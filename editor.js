@@ -1,3 +1,55 @@
+// Theme presets
+const THEMES = {
+  lavender: {
+    name: 'Lavender',
+    textColor: '#6D68B3',
+    backgroundColor: '#ECEDE7',
+    selectionColor: '#6D68B3'
+  },
+  midnight: {
+    name: 'Midnight',
+    textColor: '#E8E6E3',
+    backgroundColor: '#1A1A2E',
+    selectionColor: '#4A4E69'
+  },
+  sepia: {
+    name: 'Sepia',
+    textColor: '#5C4033',
+    backgroundColor: '#F4ECD8',
+    selectionColor: '#8B7355'
+  },
+  forest: {
+    name: 'Forest',
+    textColor: '#2D5A27',
+    backgroundColor: '#F0F5E9',
+    selectionColor: '#4A7C43'
+  },
+  ocean: {
+    name: 'Ocean',
+    textColor: '#1E5162',
+    backgroundColor: '#E8F4F8',
+    selectionColor: '#2980B9'
+  },
+  rose: {
+    name: 'Rosé',
+    textColor: '#8E4A5C',
+    backgroundColor: '#FDF2F4',
+    selectionColor: '#C77B8B'
+  },
+  charcoal: {
+    name: 'Charcoal',
+    textColor: '#D4D4D4',
+    backgroundColor: '#2D2D2D',
+    selectionColor: '#505050'
+  },
+  paper: {
+    name: 'Paper',
+    textColor: '#333333',
+    backgroundColor: '#FFFFFF',
+    selectionColor: '#6B7280'
+  }
+};
+
 // Default settings
 const DEFAULT_SETTINGS = {
   fontFamily: 'Georgia, serif',
@@ -7,21 +59,20 @@ const DEFAULT_SETTINGS = {
   maxWidth: 800,
   textColor: '#6D68B3',
   backgroundColor: '#ECEDE7',
-  selectionColor: '#6D68B3'
+  selectionColor: '#6D68B3',
+  currentTheme: 'lavender'
 };
 
-// Apple-style emoji collection for pages
+// Static emoji collection for pages
 const PAGE_EMOJIS = [
-  '📝', '✏️', '📖', '📚', '📓', '📒', '📕', '📗',
-  '🌟', '⭐', '✨', '💫', '🌙', '☀️', '🌈', '🔥',
-  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
-  '🍎', '🍊', '🍋', '🍀', '🌸', '🌺', '🌻', '🌷',
-  '🦋', '🐝', '🐱', '🐶', '🦊', '🐰', '🐻', '🐼',
-  '🎵', '🎨', '🎭', '🎪', '🎯', '🎲', '🎮', '🕹️',
-  '☕', '🍵', '🧁', '🍰', '🍩', '🍪', '🍫', '🍬',
-  '🏠', '🏡', '🌍', '🚀', '✈️', '⛵', '🚲', '🛸',
-  '💡', '💎', '🔮', '🎀', '🎁', '🏆', '🎈', '🎉',
-  '📱', '💻', '⌨️', '🖥️', '📷', '🎬', '🎤', '🎧'
+  '📝', '✏️', '📖', '📚', '📓', '📒',
+  '⭐', '✨', '🌙', '☀️', '🌈', '🔥',
+  '❤️', '🧡', '💛', '💚', '💙', '💜',
+  '🌸', '🌻', '🍀', '🌿', '🌱', '🦋',
+  '🐱', '🐶', '🐰', '🦊', '🐻', '🐼',
+  '☕', '🍵', '🧁', '🍪', '🎂', '🍩',
+  '🎉', '🎁', '🎈', '🏆', '🎨', '🎵',
+  '🚀', '✈️', '💡', '💎', '🔮', '💻'
 ];
 
 // DOM Elements
@@ -31,6 +82,7 @@ const pageTabsList = document.getElementById('pageTabsList');
 const addPageBtn = document.getElementById('addPageBtn');
 const emojiPickerOverlay = document.getElementById('emojiPickerOverlay');
 const emojiGrid = document.getElementById('emojiGrid');
+const themeGrid = document.getElementById('themeGrid');
 
 // Setting controls
 const controls = {
@@ -43,6 +95,9 @@ const controls = {
   backgroundColor: document.getElementById('backgroundColor'),
   selectionColor: document.getElementById('selectionColor')
 };
+
+// Current theme state
+let currentTheme = 'lavender';
 
 // Value displays
 const valueDisplays = {
@@ -170,12 +225,20 @@ async function loadSavedData() {
     const syncData = await chrome.storage.sync.get(['settings']);
     const settings = { ...DEFAULT_SETTINGS, ...syncData.settings };
     
+    // Set current theme
+    currentTheme = settings.currentTheme || 'lavender';
+    
     applySettings(settings);
     updateControlValues(settings);
+    
+    // Initialize theme grid
+    initThemeGrid();
+    updateThemeGridSelection();
   } catch (error) {
     console.error('Error loading saved data:', error);
     applySettings(DEFAULT_SETTINGS);
     updateControlValues(DEFAULT_SETTINGS);
+    initThemeGrid();
   }
 }
 
@@ -203,14 +266,26 @@ function renderPageTabs() {
     const tab = document.createElement('button');
     tab.className = 'page-tab' + (page.id === currentPageId ? ' active' : '');
     tab.title = 'Click to switch, double-click to change emoji';
-    tab.innerHTML = `
-      ${page.emoji}
-      ${pages.length > 1 ? '<span class="page-tab-delete" title="Delete page">×</span>' : ''}
-    `;
+    
+    // Create emoji element
+    const emoji = typeof page.emoji === 'string' ? page.emoji : '📝';
+    const span = document.createElement('span');
+    span.className = 'page-tab-emoji';
+    span.textContent = emoji;
+    tab.appendChild(span);
+    
+    // Add delete button
+    if (pages.length > 1) {
+      const deleteBtn = document.createElement('span');
+      deleteBtn.className = 'page-tab-delete';
+      deleteBtn.title = 'Delete page';
+      deleteBtn.innerHTML = '<svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 1l6 6M7 1L1 7"/></svg>';
+      tab.appendChild(deleteBtn);
+    }
     
     // Single click to switch page
     tab.addEventListener('click', (e) => {
-      if (e.target.classList.contains('page-tab-delete')) {
+      if (e.target.closest('.page-tab-delete')) {
         deletePage(page.id);
         return;
       }
@@ -303,6 +378,8 @@ function selectEmoji(emoji) {
 
 // Initialize emoji picker
 function initEmojiPicker() {
+  emojiGrid.innerHTML = '';
+  
   PAGE_EMOJIS.forEach(emoji => {
     const btn = document.createElement('button');
     btn.className = 'emoji-option';
@@ -328,8 +405,89 @@ function getCurrentSettings() {
     maxWidth: parseFloat(controls.maxWidth.value),
     textColor: controls.textColor.value,
     backgroundColor: controls.backgroundColor.value,
-    selectionColor: controls.selectionColor.value
+    selectionColor: controls.selectionColor.value,
+    currentTheme: currentTheme
   };
+}
+
+// Initialize theme grid
+function initThemeGrid() {
+  themeGrid.innerHTML = '';
+  
+  Object.entries(THEMES).forEach(([key, theme]) => {
+    const swatch = document.createElement('button');
+    swatch.className = 'theme-swatch';
+    swatch.dataset.theme = key;
+    swatch.title = theme.name;
+    swatch.style.backgroundColor = theme.backgroundColor;
+    swatch.style.color = theme.textColor;
+    
+    const inner = document.createElement('div');
+    inner.className = 'theme-swatch-inner';
+    inner.style.backgroundColor = theme.backgroundColor;
+    
+    const text = document.createElement('span');
+    text.className = 'theme-swatch-text';
+    text.style.color = theme.textColor;
+    text.textContent = 'Aa';
+    
+    inner.appendChild(text);
+    swatch.appendChild(inner);
+    
+    swatch.addEventListener('click', () => selectTheme(key));
+    themeGrid.appendChild(swatch);
+  });
+}
+
+// Select a theme
+function selectTheme(themeKey) {
+  if (!THEMES[themeKey]) return;
+  
+  currentTheme = themeKey;
+  const theme = THEMES[themeKey];
+  
+  // Update color controls
+  controls.textColor.value = theme.textColor;
+  controls.backgroundColor.value = theme.backgroundColor;
+  controls.selectionColor.value = theme.selectionColor;
+  
+  // Apply and save
+  handleSettingChange();
+  updateThemeGridSelection();
+}
+
+// Update theme grid selection state
+function updateThemeGridSelection() {
+  const swatches = themeGrid.querySelectorAll('.theme-swatch');
+  swatches.forEach(swatch => {
+    if (swatch.dataset.theme === currentTheme) {
+      swatch.classList.add('active');
+    } else {
+      swatch.classList.remove('active');
+    }
+  });
+}
+
+// Handle manual color changes (marks theme as custom)
+function handleColorChange() {
+  // Check if current colors match any theme
+  const textColor = controls.textColor.value.toUpperCase();
+  const bgColor = controls.backgroundColor.value.toUpperCase();
+  const selColor = controls.selectionColor.value.toUpperCase();
+  
+  let matchedTheme = null;
+  for (const [key, theme] of Object.entries(THEMES)) {
+    if (theme.textColor.toUpperCase() === textColor &&
+        theme.backgroundColor.toUpperCase() === bgColor &&
+        theme.selectionColor.toUpperCase() === selColor) {
+      matchedTheme = key;
+      break;
+    }
+  }
+  
+  currentTheme = matchedTheme || 'custom';
+  updateThemeGridSelection();
+  handleSettingChange();
 }
 
 // Handle setting changes
@@ -347,9 +505,11 @@ function handleSettingChange() {
 
 // Reset settings to defaults
 function resetSettings() {
+  currentTheme = 'lavender';
   applySettings(DEFAULT_SETTINGS);
   updateControlValues(DEFAULT_SETTINGS);
   saveSettings(DEFAULT_SETTINGS);
+  updateThemeGridSelection();
 }
 
 // Event Listeners
@@ -364,10 +524,16 @@ editor.addEventListener('paste', (e) => {
   document.execCommand('insertText', false, text);
 });
 
-// Setting controls
-Object.values(controls).forEach(control => {
-  control.addEventListener('input', handleSettingChange);
-  control.addEventListener('change', handleSettingChange);
+// Setting controls (non-color)
+['fontFamily', 'fontSize', 'lineHeight', 'letterSpacing', 'maxWidth'].forEach(key => {
+  controls[key].addEventListener('input', handleSettingChange);
+  controls[key].addEventListener('change', handleSettingChange);
+});
+
+// Color controls - use special handler
+['textColor', 'backgroundColor', 'selectionColor'].forEach(key => {
+  controls[key].addEventListener('input', handleColorChange);
+  controls[key].addEventListener('change', handleColorChange);
 });
 
 // Reset button
