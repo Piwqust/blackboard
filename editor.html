@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blackboard Text</title>
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+  <div id="editor" contenteditable="true" spellcheck="false"></div>
+
+  <!-- Hidden controls - visible on hover -->
+  <div class="controls-container">
+    <div class="controls-panel">
+      <h3>Settings</h3>
+      
+      <div class="control-group">
+        <label for="fontFamily">Font</label>
+        <select id="fontFamily">
+          <optgroup label="System Fonts">
+            <option value="Georgia, serif">Georgia</option>
+            <option value="'Times New Roman', serif">Times New Roman</option>
+            <option value="Arial, sans-serif">Arial</option>
+            <option value="'Helvetica Neue', sans-serif">Helvetica</option>
+            <option value="'Courier New', monospace">Courier New</option>
+            <option value="'Segoe UI', sans-serif">Segoe UI</option>
+            <option value="system-ui, sans-serif">System UI</option>
+          </optgroup>
+          <optgroup label="Unica 77 Cyr">
+            <option value="'Unica 77 Cyr', sans-serif">Unica 77 Cyr</option>
+          </optgroup>
+          <optgroup label="Inter">
+            <option value="'Inter', sans-serif">Inter</option>
+            <option value="'Inter Tight', sans-serif">Inter Tight</option>
+          </optgroup>
+          <optgroup label="PP Right Grotesk (Display)">
+            <option value="'PP Right Grotesk Tight', sans-serif">PP Right Grotesk Tight</option>
+            <option value="'PP Right Grotesk', sans-serif">PP Right Grotesk</option>
+            <option value="'PP Right Grotesk Wide', sans-serif">PP Right Grotesk Wide</option>
+          </optgroup>
+          <optgroup label="PP Right Grotesk (Text)">
+            <option value="'PP Right Text Compact', sans-serif">PP Right Text Compact</option>
+            <option value="'PP Right Text', sans-serif">PP Right Text</option>
+            <option value="'PP Right Text Wide', sans-serif">PP Right Text Wide</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="fontSize">Size <span id="fontSizeValue">18px</span></label>
+        <input type="range" id="fontSize" min="12" max="128" value="18">
+      </div>
+
+      <div class="control-group">
+        <label for="lineHeight">Line Spacing <span id="lineHeightValue">1.8</span></label>
+        <input type="range" id="lineHeight" min="1" max="3" step="0.1" value="1.8">
+      </div>
+
+      <div class="control-group">
+        <label for="letterSpacing">Kerning <span id="letterSpacingValue">0em</span></label>
+        <input type="range" id="letterSpacing" min="-0.05" max="0.2" step="0.01" value="0">
+      </div>
+
+      <div class="control-group">
+        <label for="maxWidth">Max Width <span id="maxWidthValue">800px</span></label>
+        <input type="range" id="maxWidth" min="400" max="1600" step="50" value="800">
+      </div>
+
+      <div class="control-group">
+        <label for="textColor">Text Color</label>
+        <input type="color" id="textColor" value="#6D68B3">
+      </div>
+
+      <div class="control-group">
+        <label for="backgroundColor">Background</label>
+        <input type="color" id="backgroundColor" value="#ECEDE7">
+      </div>
+
+      <div class="control-group">
+        <label for="selectionColor">Selection Color</label>
+        <input type="color" id="selectionColor" value="#6D68B3">
+      </div>
+
+      <button id="resetSettings" class="reset-btn">Reset to Defaults</button>
+    </div>
+
+    <div class="controls-icon" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Save indicator -->
+  <div id="saveIndicator" class="save-indicator">Saved</div>
+
+  <!-- Page tabs -->
+  <div class="page-tabs">
+    <div class="page-tabs-list" id="pageTabsList"></div>
+    <button class="add-page-btn" id="addPageBtn" title="Add page">+</button>
+  </div>
+
+  <!-- Emoji picker modal -->
+  <div class="emoji-picker-overlay" id="emojiPickerOverlay">
+    <div class="emoji-picker">
+      <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+  </div>
+
+  <script src="editor.js"></script>
+</body>
+</html>

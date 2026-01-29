@@ -1,0 +1,517 @@
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inter+Tight:wght@100..900&display=swap');
+
+/* Unica 77 Cyr Fonts */
+@font-face {
+  font-family: 'Unica 77 Cyr';
+  src: url('fonts/Unica77LLCyr-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Unica 77 Cyr';
+  src: url('fonts/Unica77LLCyr-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Unica 77 Cyr';
+  src: url('fonts/Unica77LLCyr-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* PP Right Grotesk Display Fonts */
+@font-face {
+  font-family: 'PP Right Grotesk Tight';
+  src: url('fonts/PPRightGrotesk-TightMedium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PP Right Grotesk';
+  src: url('fonts/PPRightGrotesk-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PP Right Grotesk Wide';
+  src: url('fonts/PPRightGrotesk-WideMedium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* PP Right Grotesk Text Fonts */
+@font-face {
+  font-family: 'PP Right Text';
+  src: url('fonts/PPRightGroteskText-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PP Right Text Compact';
+  src: url('fonts/PPRightGroteskText-CompactMedium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PP Right Text Wide';
+  src: url('fonts/PPRightGroteskText-WideBold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --font-family: Georgia, serif;
+  --font-size: 18px;
+  --line-height: 1.8;
+  --letter-spacing: 0em;
+  --max-width: 800px;
+  --text-color: #6D68B3;
+  --bg-color: #ECEDE7;
+  --selection-color: #6D68B3;
+}
+
+html, body {
+  height: 100%;
+  background-color: var(--bg-color);
+  color-scheme: light;
+}
+
+/* Editor */
+#editor {
+  width: 100%;
+  max-width: var(--max-width);
+  min-height: 100vh;
+
+  padding: 40px 40px 60px 40px;
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  letter-spacing: var(--letter-spacing);
+  color: var(--text-color);
+  background-color: var(--bg-color);
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+#editor:empty::before {
+  content: 'Start writing...';
+  color: var(--text-color);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Text selection styling */
+#editor::selection {
+  background-color: var(--selection-color);
+  color: white;
+}
+
+#editor *::selection {
+  background-color: var(--selection-color);
+  color: white;
+}
+
+/* Controls Container */
+.controls-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+
+.controls-icon {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  background: #ECEDE7;
+  border: 1px solid #6D68B3;
+  border-radius: 50%;
+  color: #6D68B3;
+  opacity: 0.25;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.controls-icon:hover {
+  opacity: 1;
+}
+
+.controls-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Controls Panel */
+.controls-panel {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 260px;
+  padding: 20px;
+  background: #ECEDE7;
+  border: 1px solid #6D68B3;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  color-scheme: light;
+  
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+}
+
+.controls-container:hover .controls-panel,
+.controls-panel:focus-within {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.controls-container:hover .controls-icon {
+  opacity: 1;
+}
+
+.controls-panel h3 {
+  margin-bottom: 16px;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 600;
+  color: #6D68B3;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Control Groups */
+.control-group {
+  margin-bottom: 16px;
+}
+
+.control-group:last-of-type {
+  margin-bottom: 20px;
+}
+
+.control-group label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  color: #6D68B3;
+}
+
+.control-group label span {
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Select */
+.control-group select {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: #6D68B3;
+  background: white;
+  border: 1px solid #6D68B3;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+}
+
+.control-group select:focus {
+  border-color: var(--text-color);
+  box-shadow: 0 0 0 2px rgba(109, 104, 179, 0.2);
+}
+
+/* Range Slider */
+.control-group input[type="range"] {
+  width: 100%;
+  height: 4px;
+  background: rgba(109, 104, 179, 0.2);
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--text-color);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+/* Color Picker */
+.control-group input[type="color"] {
+  width: 100%;
+  height: 32px;
+  padding: 2px;
+  background: white;
+  border: 1px solid var(--text-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.control-group input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.control-group input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+/* Reset Button */
+.reset-btn {
+  width: 100%;
+  padding: 10px;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color);
+  background: transparent;
+  border: 1px solid var(--text-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-btn:hover {
+  background: var(--text-color);
+  color: var(--bg-color);
+}
+
+/* Save Indicator */
+.save-indicator {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  padding: 8px 14px;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  color: var(--text-color);
+  background: var(--bg-color);
+  border: 1px solid var(--text-color);
+  border-radius: 20px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+}
+
+.save-indicator.visible {
+  opacity: 0.6;
+  transform: translateY(0);
+}
+
+/* Page Tabs */
+.page-tabs {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: transparent;
+  z-index: 999;
+}
+
+.page-tabs-list {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.page-tab {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.4;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.page-tab:hover {
+  opacity: 0.7;
+  background: rgba(109, 104, 179, 0.1);
+}
+
+.page-tab.active {
+  opacity: 1;
+}
+
+.page-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: var(--text-color);
+  border-radius: 50%;
+}
+
+.page-tab-delete {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-family: system-ui, sans-serif;
+  color: white;
+  background: #ff5f57;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.page-tab:hover .page-tab-delete {
+  display: flex;
+}
+
+.add-page-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-family: system-ui, sans-serif;
+  color: var(--text-color);
+  background: transparent;
+  border: 1px dashed var(--text-color);
+  border-radius: 8px;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: all 0.2s ease;
+}
+
+.add-page-btn:hover {
+  opacity: 0.7;
+  background: rgba(109, 104, 179, 0.1);
+}
+
+/* Emoji Picker */
+.emoji-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.emoji-picker-overlay.visible {
+  display: flex;
+}
+
+.emoji-picker {
+  background: var(--bg-color);
+  border: 1px solid var(--text-color);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  max-width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+}
+
+.emoji-option {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.emoji-option:hover {
+  background: rgba(109, 104, 179, 0.15);
+  transform: scale(1.15);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  #editor {
+    padding: 40px 30px;
+    padding-bottom: 60px;
+  }
+  
+  .controls-panel {
+    width: 240px;
+    padding: 16px;
+  }
+  
+  .page-tab {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+  
+  .add-page-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+}
