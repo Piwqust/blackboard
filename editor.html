@@ -120,7 +120,11 @@
   </div>
 
   <!-- Save indicator -->
-  <div id="saveIndicator" class="save-indicator">Saved</div>
+  <div id="saveIndicator" class="save-indicator">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 8.5l3.5 3.5 6.5-7"/>
+    </svg>
+  </div>
 
   <!-- Page tabs -->
   <div class="page-tabs">
@@ -135,6 +139,11 @@
   <!-- Emoji picker modal -->
   <div class="emoji-picker-overlay" id="emojiPickerOverlay">
     <div class="emoji-picker">
+      <button class="emoji-picker-close" id="emojiPickerClose">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M2 2l10 10M12 2L2 12"/>
+        </svg>
+      </button>
       <div class="emoji-grid" id="emojiGrid"></div>
     </div>
   </div>

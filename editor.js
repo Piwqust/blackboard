@@ -393,6 +393,12 @@ function initEmojiPicker() {
       closeEmojiPicker();
     }
   });
+  
+  // Close button
+  const closeBtn = document.getElementById('emojiPickerClose');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeEmojiPicker);
+  }
 }
 
 // Get current settings from controls
