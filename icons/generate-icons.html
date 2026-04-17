@@ -2,85 +2,155 @@
 <html>
 <head>
   <title>Icon Generator</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+    }
+    .upload-area {
+      border: 2px dashed #6D68B3;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      margin: 20px 0;
+      cursor: pointer;
+      background: #f9f9f9;
+    }
+    .upload-area:hover {
+      background: #f0f0f0;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin: 10px 0;
+    }
+    .download-btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #6D68B3;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      margin: 5px;
+    }
+    .download-btn:hover {
+      background: #5a55a0;
+    }
+    #preview {
+      max-width: 200px;
+      max-height: 200px;
+      margin: 10px 0;
+    }
+    .hidden { display: none; }
+  </style>
 </head>
 <body>
   <h1>Icon Generator for Blackboard Text</h1>
-  <p>Right-click each canvas and "Save image as..." to save as PNG</p>
   
-  <h2>48x48 Icon</h2>
-  <canvas id="icon48" width="48" height="48"></canvas>
+  <div class="upload-area" id="uploadArea">
+    <p>📁 Click to select an image or drag & drop here</p>
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+  </div>
   
-  <h2>128x128 Icon</h2>
-  <canvas id="icon128" width="128" height="128"></canvas>
+  <div id="previewSection" class="hidden">
+    <h2>Original Image</h2>
+    <img id="preview" alt="Preview">
+    
+    <h2>48x48 Icon</h2>
+    <canvas id="icon48" width="48" height="48"></canvas>
+    
+    <h2>128x128 Icon</h2>
+    <canvas id="icon128" width="128" height="128"></canvas>
+    
+    <div id="downloadLinks"></div>
+  </div>
 
   <script>
-    function drawIcon(canvas, size) {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const previewSection = document.getElementById('previewSection');
+    const preview = document.getElementById('preview');
+    const downloadLinks = document.getElementById('downloadLinks');
+    
+    uploadArea.addEventListener('click', () => fileInput.click());
+    
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.style.background = '#e8e8ff';
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.style.background = '#f9f9f9';
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.style.background = '#f9f9f9';
+      if (e.dataTransfer.files.length) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+    
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) {
+        handleFile(e.target.files[0]);
+      }
+    });
+    
+    function handleFile(file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          preview.src = e.target.result;
+          previewSection.classList.remove('hidden');
+          
+          generateIcon(img, document.getElementById('icon48'), 48);
+          generateIcon(img, document.getElementById('icon128'), 128);
+          
+          createDownloadLinks();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    function generateIcon(img, canvas, size) {
       const ctx = canvas.getContext('2d');
-      const scale = size / 48;
+      ctx.clearRect(0, 0, size, size);
       
-      // Background
-      ctx.fillStyle = '#ECEDE7';
-      roundRect(ctx, 0, 0, size, size, 8 * scale);
-      ctx.fill();
+      // Calculate scaling to fit and center the image
+      const scale = Math.min(size / img.width, size / img.height);
+      const width = img.width * scale;
+      const height = img.height * scale;
+      const x = (size - width) / 2;
+      const y = (size - height) / 2;
       
-      // Text lines
-      ctx.fillStyle = '#6D68B3';
-      roundRect(ctx, 8 * scale, 12 * scale, 32 * scale, 3 * scale, 1.5 * scale);
-      ctx.fill();
-      roundRect(ctx, 8 * scale, 20 * scale, 28 * scale, 3 * scale, 1.5 * scale);
-      ctx.fill();
-      roundRect(ctx, 8 * scale, 28 * scale, 32 * scale, 3 * scale, 1.5 * scale);
-      ctx.fill();
-      roundRect(ctx, 8 * scale, 36 * scale, 20 * scale, 3 * scale, 1.5 * scale);
-      ctx.fill();
+      // Enable smooth scaling
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      
+      ctx.drawImage(img, x, y, width, height);
     }
     
-    function roundRect(ctx, x, y, width, height, radius) {
-      ctx.beginPath();
-      ctx.moveTo(x + radius, y);
-      ctx.lineTo(x + width - radius, y);
-      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-      ctx.lineTo(x + width, y + height - radius);
-      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-      ctx.lineTo(x + radius, y + height);
-      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-      ctx.lineTo(x, y + radius);
-      ctx.quadraticCurveTo(x, y, x + radius, y);
-      ctx.closePath();
-    }
-    
-    drawIcon(document.getElementById('icon48'), 48);
-    drawIcon(document.getElementById('icon128'), 128);
-    
-    // Auto-download
-    setTimeout(() => {
+    function createDownloadLinks() {
       const canvas48 = document.getElementById('icon48');
       const canvas128 = document.getElementById('icon128');
       
-      const link48 = document.createElement('a');
-      link48.download = 'icon-48.png';
-      link48.href = canvas48.toDataURL('image/png');
-      
-      const link128 = document.createElement('a');
-      link128.download = 'icon-128.png';
-      link128.href = canvas128.toDataURL('image/png');
-      
-      document.body.appendChild(document.createElement('br'));
-      document.body.appendChild(document.createElement('br'));
-      
-      const downloadBtn48 = document.createElement('a');
-      downloadBtn48.href = canvas48.toDataURL('image/png');
-      downloadBtn48.download = 'icon-48.png';
-      downloadBtn48.textContent = 'Download 48x48 PNG';
-      downloadBtn48.style.marginRight = '20px';
-      document.body.appendChild(downloadBtn48);
-      
-      const downloadBtn128 = document.createElement('a');
-      downloadBtn128.href = canvas128.toDataURL('image/png');
-      downloadBtn128.download = 'icon-128.png';
-      downloadBtn128.textContent = 'Download 128x128 PNG';
-      document.body.appendChild(downloadBtn128);
-    }, 100);
+      downloadLinks.innerHTML = `
+        <a class="download-btn" href="${canvas48.toDataURL('image/png')}" download="icon-48.png">
+          ⬇️ Download 48x48 PNG
+        </a>
+        <a class="download-btn" href="${canvas128.toDataURL('image/png')}" download="icon-128.png">
+          ⬇️ Download 128x128 PNG
+        </a>
+      `;
+    }
   </script>
 </body>
 </html>

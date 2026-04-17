@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="editor.css">
 </head>
 <body>
-  <div id="editor" contenteditable="true" spellcheck="false"></div>
+  <div id="editor" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Note editor"></div>
 
   <!-- Hidden controls - visible on hover -->
   <div class="controls-container">
@@ -28,7 +28,8 @@
         
         <div class="control-group">
           <label for="fontFamily">Font</label>
-          <select id="fontFamily">
+          <!-- Hidden native select for form compatibility -->
+          <select id="fontFamily" style="display: none;">
             <optgroup label="System Fonts">
               <option value="Georgia, serif">Georgia</option>
               <option value="'Times New Roman', serif">Times New Roman</option>
@@ -56,6 +57,16 @@
               <option value="'PP Right Text Wide', sans-serif">PP Right Text Wide</option>
             </optgroup>
           </select>
+          <!-- Custom font dropdown with preview -->
+          <div class="font-dropdown-wrapper" id="fontDropdownWrapper">
+            <button type="button" class="font-dropdown-trigger" id="fontDropdownTrigger">
+              <span class="font-dropdown-preview" id="fontDropdownPreview">Georgia</span>
+              <svg class="font-dropdown-arrow" viewBox="0 0 10 10" fill="currentColor">
+                <path d="M2 3.5L5 6.5L8 3.5"/>
+              </svg>
+            </button>
+            <div class="font-dropdown-menu" id="fontDropdownMenu"></div>
+          </div>
         </div>
 
         <div class="control-group">
@@ -82,7 +93,7 @@
         
         <div class="control-group">
           <label for="maxWidth">Content Width <span id="maxWidthValue">800px</span></label>
-          <input type="range" id="maxWidth" min="400" max="1600" step="50" value="800">
+          <input type="range" id="maxWidth" min="400" max="2400" step="50" value="800">
         </div>
       </div>
 
@@ -93,17 +104,28 @@
         <div class="section-label">Custom Colors</div>
         
         <div class="color-controls">
-          <div class="color-control">
-            <label for="textColor">Text</label>
-            <input type="color" id="textColor" value="#6D68B3">
+          <div class="color-control" data-color-type="textColor">
+            <label>Text</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="textColor" value="#6D68B3">
+              <input type="text" class="color-hex-input" id="textColorHex" value="#6D68B3" maxlength="7" placeholder="#000000">
+            </div>
           </div>
-          <div class="color-control">
-            <label for="backgroundColor">Background</label>
-            <input type="color" id="backgroundColor" value="#ECEDE7">
+          
+          <div class="color-control" data-color-type="backgroundColor">
+            <label>Background</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="backgroundColor" value="#ECEDE7">
+              <input type="text" class="color-hex-input" id="backgroundColorHex" value="#ECEDE7" maxlength="7" placeholder="#FFFFFF">
+            </div>
           </div>
-          <div class="color-control">
-            <label for="selectionColor">Selection</label>
-            <input type="color" id="selectionColor" value="#6D68B3">
+          
+          <div class="color-control" data-color-type="selectionColor">
+            <label>Selection</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="selectionColor" value="#6D68B3">
+              <input type="text" class="color-hex-input" id="selectionColorHex" value="#6D68B3" maxlength="7" placeholder="#0000FF">
+            </div>
           </div>
         </div>
       </div>
@@ -111,12 +133,46 @@
       <button id="resetSettings" class="reset-btn">Reset to Defaults</button>
     </div>
 
-    <div class="controls-icon" title="Settings">
+    <button class="controls-icon" title="Settings" aria-label="Open settings" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
+    </button>
+  </div>
+
+  <!-- Color Picker Popup - Redesigned -->
+  <div class="color-picker-popup" id="colorPickerPopup">
+    <div class="color-picker-header">
+      <span class="color-picker-title" id="colorPickerTitle">Text Color</span>
+      <button class="color-picker-close" id="colorPickerClose" type="button">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M1 1l8 8M9 1l-8 8"/>
+        </svg>
+      </button>
     </div>
+    
+    <!-- 2D Saturation-Brightness Area -->
+    <div class="color-picker-area" id="colorPickerArea">
+      <div class="color-picker-cursor" id="colorPickerCursor"></div>
+    </div>
+    
+    <!-- Hue Slider -->
+    <div class="color-picker-hue-wrap">
+      <input type="range" class="color-picker-hue" id="colorPickerHue" min="0" max="360" value="0">
+    </div>
+    
+    <!-- Color Preview & Hex -->
+    <div class="color-picker-footer">
+      <div class="color-picker-previews">
+        <div class="color-picker-preview-current" id="colorPickerPreviewCurrent" title="Current"></div>
+        <div class="color-picker-preview-new" id="colorPickerPreviewNew" title="New"></div>
+      </div>
+      <input type="text" class="color-picker-hex" id="colorPickerHexInput" maxlength="7" placeholder="#000000" spellcheck="false">
+    </div>
+    
+    <!-- Preset Swatches -->
+    <div class="color-picker-swatches" id="colorPickerSwatches"></div>
   </div>
 
   <!-- Save indicator -->
@@ -126,24 +182,27 @@
     </svg>
   </div>
 
+  <!-- Word/character count -->
+  <div id="wordCount" class="word-count"></div>
+
   <!-- Page tabs -->
   <div class="page-tabs">
-    <div class="page-tabs-list" id="pageTabsList"></div>
-    <button class="add-page-btn" id="addPageBtn" title="Add page">
+    <div class="page-tabs-list" id="pageTabsList" role="tablist" aria-label="Note pages"></div>
+    <button class="add-page-btn" id="addPageBtn" title="Add page (Ctrl+N)">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
         <path d="M8 3v10M3 8h10"/>
       </svg>
     </button>
-  </div>
-
-  <!-- Emoji picker modal -->
-  <div class="emoji-picker-overlay" id="emojiPickerOverlay">
-    <div class="emoji-picker">
-      <button class="emoji-picker-close" id="emojiPickerClose">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <path d="M2 2l10 10M12 2L2 12"/>
-        </svg>
-      </button>
+    
+    <!-- Emoji picker tooltip -->
+    <div class="emoji-picker" id="emojiPicker">
+      <div class="emoji-picker-header">
+        <button class="emoji-picker-delete" id="emojiPickerDelete" title="Delete page">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 4h12M5.33 4V2.67a1.33 1.33 0 011.34-1.34h2.66a1.33 1.33 0 011.34 1.34V4M12.67 4v9.33a1.33 1.33 0 01-1.34 1.34H4.67a1.33 1.33 0 01-1.34-1.34V4h9.34z"/>
+          </svg>
+        </button>
+      </div>
       <div class="emoji-grid" id="emojiGrid"></div>
     </div>
   </div>

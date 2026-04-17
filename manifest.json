@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Blackboard Text",
-  "version": "1.0.0",
+  "version": "1.6.0",
   "description": "Minimalist note-taking with customizable typography",
   "icons": {
     "48": "icons/icon-48.png",

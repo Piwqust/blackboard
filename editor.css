@@ -107,13 +107,22 @@ html, body {
   background-color: var(--bg-color);
   color-scheme: light;
   transition: background-color 0.3s ease;
-  overflow: overlay;
+  overflow: auto;
+}
+
+/* Dark mode auto-detection */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme-set]) {
+    --text-color: #D4D4D4;
+    --bg-color: #2D2D2D;
+    --selection-color: #505050;
+  }
 }
 
 /* Custom Scrollbar - Overlay style */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 2px;
+  height: 2px;
   background: transparent;
 }
 
@@ -122,16 +131,12 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 5px;
-  border: 3px solid transparent;
-  background-clip: content-box;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 1px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
-  border: 3px solid transparent;
-  background-clip: content-box;
+  background: rgba(0, 0, 0, 0.3);
 }
 
 ::-webkit-scrollbar-corner {
@@ -150,7 +155,7 @@ html {
   max-width: var(--max-width);
   min-height: 100vh;
   margin: 0;
-  padding: 80px 48px 120px 48px;
+  padding: 48px 48px 120px 48px;
   font-family: var(--font-family);
   font-size: var(--font-size);
   line-height: var(--line-height);
@@ -159,6 +164,8 @@ html {
   background-color: var(--bg-color);
   outline: none;
   white-space: pre-wrap;
+  tab-size: 6;
+  -moz-tab-size: 6;
   word-wrap: break-word;
   text-align: left;
   transition: color 0.3s ease, background-color 0.3s ease;
@@ -240,14 +247,21 @@ html {
 }
 
 .controls-container:hover .controls-panel,
+.controls-container:focus-within .controls-panel,
 .controls-panel:focus-within {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
 }
 
-.controls-container:hover .controls-icon {
+.controls-container:hover .controls-icon,
+.controls-container:focus-within .controls-icon {
   opacity: 0.6;
+}
+
+/* Button reset for controls-icon */
+button.controls-icon {
+  font: inherit;
 }
 
 .controls-panel h3 {
@@ -306,107 +320,367 @@ html {
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
+  gap: 6px;
 }
 
 .theme-swatch {
   position: relative;
-  aspect-ratio: 1;
-  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  border: 2px solid transparent;
   transition: all 0.15s ease;
-  overflow: hidden;
-}
-
-.theme-swatch::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 4px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
 }
 
 .theme-swatch:hover {
-  transform: scale(1.1);
-}
-
-.theme-swatch.active {
-  border-color: #333;
-}
-
-.theme-swatch.active::after {
-  content: '✓';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 10px;
-  font-weight: 600;
-  color: inherit;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transform: scale(1.05);
 }
 
 .theme-swatch-inner {
-  position: absolute;
-  inset: 3px;
-  border-radius: 6px;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 2px solid transparent;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.theme-swatch.active .theme-swatch-inner {
+  border-color: #333;
+}
+
+.theme-swatch.active .theme-swatch-inner::after {
+  content: '✓';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+  background: #333;
+  border-radius: 50%;
 }
 
 .theme-swatch-text {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.theme-swatch-name {
+  font-family: system-ui, -apple-system, sans-serif;
   font-size: 8px;
-  font-weight: 600;
+  font-weight: 500;
+  color: #888;
+  text-transform: uppercase;
   letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* Color Controls */
 .color-controls {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
 .color-control {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 10px;
+  padding: 6px 8px;
+  background: #f8f8f8;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.color-control:hover {
+  background: #f0f0f0;
 }
 
 .color-control label {
   font-family: system-ui, -apple-system, sans-serif;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
-  color: #999;
+  color: #666;
   margin-bottom: 0;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.color-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .color-control input[type="color"] {
-  width: 100%;
-  height: 28px;
-  padding: 2px;
-  background: #f5f5f5;
-  border: 1px solid #eee;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 2px solid #fff;
+  border-radius: 50%;
   cursor: pointer;
   transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .color-control input[type="color"]:hover {
-  border-color: #ccc;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .color-control input[type="color"]::-webkit-color-swatch-wrapper {
-  padding: 2px;
+  padding: 0;
 }
 
 .color-control input[type="color"]::-webkit-color-swatch {
   border: none;
+  border-radius: 50%;
+}
+
+.color-hex-input {
+  width: 76px;
+  padding: 5px 8px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: #444;
+  text-transform: uppercase;
+  background: #fff;
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.color-hex-input:focus {
+  border-color: #999;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+}
+
+.color-hex-input::placeholder {
+  color: #bbb;
+}
+
+/* Custom Color Picker Popup - Redesigned */
+.color-picker-popup {
+  position: fixed;
+  width: 220px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 14px;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.95);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: visible;
+}
+
+.color-picker-popup.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.color-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.color-picker-title {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.color-picker-close {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: #aaa;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.color-picker-close:hover {
+  background: #f0f0f0;
+  color: #666;
+}
+
+/* 2D Color Area (Saturation-Brightness) */
+.color-picker-area {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  border-radius: 8px;
+  cursor: crosshair;
+  overflow: hidden;
+  background: linear-gradient(to bottom, transparent, #000),
+              linear-gradient(to right, #fff, transparent);
+  background-color: #ff0000;
+}
+
+.color-picker-cursor {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: box-shadow 0.15s ease;
+}
+
+/* Hue Slider */
+.color-picker-hue-wrap {
+  margin-top: 12px;
+}
+
+.color-picker-hue {
+  width: 100%;
+  height: 14px;
+  border-radius: 7px;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  background: linear-gradient(to right, 
+    hsl(0, 100%, 50%), 
+    hsl(60, 100%, 50%), 
+    hsl(120, 100%, 50%), 
+    hsl(180, 100%, 50%), 
+    hsl(240, 100%, 50%), 
+    hsl(300, 100%, 50%), 
+    hsl(360, 100%, 50%)
+  );
+  border: none;
+  outline: none;
+}
+
+.color-picker-hue::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s ease;
+}
+
+.color-picker-hue::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.color-picker-hue::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.05);
+}
+
+/* Footer with Preview & Hex */
+.color-picker-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.color-picker-previews {
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.color-picker-preview-current,
+.color-picker-preview-new {
+  width: 28px;
+  height: 28px;
+}
+
+.color-picker-preview-current {
+  opacity: 0.6;
+}
+
+.color-picker-hex {
+  flex: 1;
+  height: 28px;
+  padding: 0 10px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  text-transform: uppercase;
+  background: #f5f5f5;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.color-picker-hex:hover {
+  background: #f0f0f0;
+}
+
+.color-picker-hex:focus {
+  background: #fff;
+  border-color: #ccc;
+}
+
+/* Preset Swatches */
+.color-picker-swatches {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.color-picker-swatch {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.color-picker-swatch:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1;
 }
 
 /* Select */
@@ -419,7 +693,7 @@ html {
   color: #333;
   background: #f5f5f5;
   border: 1px solid #eee;
-  border-radius: 6px;
+  border-radius: 8px;
   outline: none;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -433,10 +707,135 @@ html {
 
 .control-group select:hover {
   border-color: #ccc;
+  background-color: #f0f0f0;
 }
 
 .control-group select:focus {
   border-color: #999;
+}
+
+/* Custom Font Dropdown */
+.font-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.font-dropdown-trigger {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #333;
+  background: #f5f5f5;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.font-dropdown-trigger:hover {
+  border-color: #ccc;
+  background: #f0f0f0;
+}
+
+.font-dropdown-trigger.open {
+  border-color: #999;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.font-dropdown-preview {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.font-dropdown-arrow {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  margin-left: 6px;
+  transition: transform 0.2s ease;
+}
+
+.font-dropdown-trigger.open .font-dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.font-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #999;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  z-index: 1500;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: all 0.15s ease;
+}
+
+.font-dropdown-menu.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.font-dropdown-group {
+  padding: 4px 0;
+}
+
+.font-dropdown-group:not(:last-child) {
+  border-bottom: 1px solid #eee;
+}
+
+.font-dropdown-group-label {
+  padding: 6px 10px 4px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.font-dropdown-option {
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background 0.1s ease;
+  text-align: left;
+}
+
+.font-dropdown-option:hover {
+  background: #f5f5f5;
+}
+
+.font-dropdown-option.selected {
+  background: #f0f0f0;
+}
+
+.font-dropdown-option-name {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.3;
 }
 
 /* Range Slider */
@@ -598,38 +997,6 @@ html {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.page-tab-delete {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 14px;
-  height: 14px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  background: #FF3B30;
-  border: 1.5px solid var(--bg-color);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.12s ease;
-  padding: 0;
-}
-
-.page-tab-delete svg {
-  width: 6px;
-  height: 6px;
-}
-
-.page-tab-delete:hover {
-  transform: scale(1.1);
-  background: #D62D23;
-}
-
-.page-tab:hover .page-tab-delete {
-  display: flex;
-}
-
 .add-page-btn {
   width: 40px;
   height: 40px;
@@ -656,102 +1023,89 @@ html {
   background: rgba(0, 0, 0, 0.025);
 }
 
-/* Emoji Picker */
-.emoji-picker-overlay {
-  position: fixed;
+/* Emoji Picker - Tooltip Style */
+.emoji-picker {
+  position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: none;
+  right: calc(100% + 8px);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(4px);
+  transition: all 0.15s ease;
+  z-index: 100;
+}
+
+.emoji-picker.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.emoji-picker-header {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.emoji-picker-delete {
+  display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.emoji-picker-overlay.visible {
-  display: flex;
-  opacity: 1;
-}
-
-.emoji-picker {
-  position: relative;
-  background: #fff;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15);
-  max-width: 280px;
-  max-height: 360px;
-  overflow-y: auto;
-  transform: scale(0.96);
-  transition: transform 0.15s ease;
-}
-
-.emoji-picker-overlay.visible .emoji-picker {
-  transform: scale(1);
-}
-
-.emoji-picker-close {
-  position: absolute;
-  top: -8px;
-  right: -8px;
   width: 24px;
   height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  border: none;
-  border-radius: 50%;
-  color: #999;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.15s ease;
-}
-
-.emoji-picker-close:hover {
-  background: #f5f5f5;
-  color: #333;
-  transform: scale(1.1);
-}
-
-.emoji-picker::-webkit-scrollbar {
-  width: 0;
-}
-
-.emoji-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 2px;
-}
-
-.emoji-option {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
+  color: #bbb;
   cursor: pointer;
   transition: all 0.1s ease;
 }
 
+.emoji-picker-delete:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: #999;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0;
+}
+
+.emoji-option {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  opacity: 0.8;
+}
+
 .emoji-option:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.03);
   transform: scale(1.15);
+  opacity: 1;
 }
 
 .emoji-option:active {
-  transform: scale(0.95);
+  transform: scale(0.9);
 }
 
 /* Responsive */
@@ -819,5 +1173,60 @@ html {
     width: 40px;
     height: 40px;
     padding: 5px;
+  }
+  
+  .word-count {
+    bottom: 26px;
+    right: 66px;
+  }
+}
+
+/* Word/Character Count */
+.word-count {
+  position: fixed;
+  bottom: 30px;
+  right: 70px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-color);
+  opacity: 0.3;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Drag and Drop Styling */
+.page-tab.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+.page-tab.drag-over {
+  border: 2px dashed var(--text-color);
+  opacity: 0.7;
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: white !important;
+  }
+  
+  #editor {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
+    color: black !important;
+    background: white !important;
+  }
+  
+  .controls-container,
+  .page-tabs,
+  .save-indicator,
+  .word-count,
+  .emoji-picker {
+    display: none !important;
   }
 }
