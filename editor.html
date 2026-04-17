@@ -15,12 +15,20 @@
   </div>
 
   <div class="top-right-rail">
-    <div id="drawingToolbar" class="drawing-toolbar" aria-label="Drawing tools">
-      <div class="drawing-toolbar-group">
-        <button id="drawToggleBtn" class="drawing-tool-button drawing-toggle-button" type="button" aria-pressed="false" title="Toggle brush mode (Alt+Shift+B)">
+    <div id="drawingToolbar" class="drawing-toolbar" role="toolbar" aria-label="Drawing tools">
+      <div class="drawing-toolbar-group drawing-toolbar-group-tools" role="group" aria-label="Brush and eraser">
+        <button id="drawToggleBtn" class="drawing-tool-button drawing-toggle-button" type="button" aria-pressed="false" title="Brush tool (Alt+Shift+B)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 20h9"/>
             <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/>
+          </svg>
+        </button>
+
+        <button id="eraseToggleBtn" class="drawing-tool-button drawing-toggle-button" type="button" aria-pressed="false" title="Eraser tool (Alt+Shift+E)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M13.75 5.75 18.25 10.25"/>
+            <path d="m4.9 14.6 6.85-6.85a2.25 2.25 0 0 1 3.18 0l4.32 4.32a2.25 2.25 0 0 1 0 3.18l-2.5 2.5a2.25 2.25 0 0 1-1.59.66H8.99a2.25 2.25 0 0 1-1.59-.66L4.9 15.24a.45.45 0 0 1 0-.64Z"/>
+            <path d="M10.25 18.41h9.25"/>
           </svg>
         </button>
       </div>
@@ -39,31 +47,26 @@
 
       <div class="drawing-toolbar-group">
         <button id="drawColorBtn" class="drawing-tool-button drawing-color-button" type="button" title="Brush color">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 22a10 10 0 1 1 9.6-12.8 2.5 2.5 0 0 1-2.4 3.3H17a2 2 0 0 0 0 4h1a2.5 2.5 0 0 1 2.43 3.08A10 10 0 0 1 12 22Z"/>
-            <path d="M8 11h.01"/>
-            <path d="M12 7h.01"/>
-            <path d="M16 11h.01"/>
-          </svg>
           <span id="drawColorPreview" class="drawing-color-preview"></span>
         </button>
       </div>
 
       <div class="drawing-toolbar-group drawing-toolbar-group-actions">
-        <button id="undoDrawingBtn" class="drawing-tool-button" type="button" title="Undo last stroke (Ctrl+Z)">
+        <button id="undoDrawingBtn" class="drawing-tool-button" type="button" title="Undo last stroke (Ctrl/Cmd+Z)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 8H5V4"/>
-            <path d="M5 8a8 8 0 1 1 2.34 5.66"/>
+            <path d="M9 7H4.75V2.75"/>
+            <path d="M4.75 7c1.9-2.43 4.64-3.64 8.2-3.2 3.93.48 6.8 3.56 6.8 7.28 0 4.07-3.3 7.37-7.37 7.37H8.75"/>
           </svg>
         </button>
 
         <button id="clearDrawingsBtn" class="drawing-tool-button drawing-tool-button-danger" type="button" title="Clear page drawings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 6h18"/>
-            <path d="M8 6V4h8v2"/>
-            <path d="M19 6l-1 13H6L5 6"/>
-            <path d="M10 11v6"/>
-            <path d="M14 11v6"/>
+            <path d="M9 4.75h6"/>
+            <path d="M10.25 4.75V3.7c0-.52.43-.95.95-.95h1.6c.52 0 .95.43.95.95v1.05"/>
+            <path d="M5.25 6.75h13.5"/>
+            <path d="m6.75 6.75.86 10.13c.08.82.76 1.45 1.58 1.45h5.62c.82 0 1.5-.63 1.58-1.45l.86-10.13"/>
+            <path d="M10.25 10.25v4.75"/>
+            <path d="M13.75 10.25v4.75"/>
           </svg>
         </button>
       </div>
@@ -85,9 +88,23 @@
         <div class="emoji-picker-header">
           <button class="emoji-picker-delete" id="emojiPickerDelete" title="Delete page">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2 4h12M5.33 4V2.67a1.33 1.33 0 011.34-1.34h2.66a1.33 1.33 0 011.34 1.34V4M12.67 4v9.33a1.33 1.33 0 01-1.34 1.34H4.67a1.33 1.33 0 01-1.34-1.34V4h9.34z"/>
+              <path d="M5.33 3.5h5.34"/>
+              <path d="M6.17 3.5v-.86c0-.43.35-.78.78-.78h2.1c.43 0 .78.35.78.78v.86"/>
+              <path d="M2.83 5.28h10.34"/>
+              <path d="m4 5.28.63 7.53c.05.56.52.99 1.08.99h4.58c.56 0 1.03-.43 1.08-.99L12 5.28"/>
+              <path d="M6.9 7.72v3.53"/>
+              <path d="M9.1 7.72v3.53"/>
             </svg>
           </button>
+
+          <div id="deletePageConfirm" class="delete-confirm-popover" role="dialog" aria-modal="false" aria-labelledby="deletePageConfirmTitle">
+            <p id="deletePageConfirmTitle" class="delete-confirm-title">Delete page?</p>
+            <p class="delete-confirm-text">This removes the page text and its drawings.</p>
+            <div class="delete-confirm-actions">
+              <button id="cancelDeletePageBtn" class="delete-confirm-cancel" type="button">Cancel</button>
+              <button id="confirmDeletePageBtn" class="delete-confirm-delete" type="button">Delete</button>
+            </div>
+          </div>
         </div>
         <div class="emoji-grid" id="emojiGrid"></div>
       </div>
@@ -97,8 +114,17 @@
   <!-- Hidden controls - visible on hover -->
   <div class="controls-container">
     <div class="controls-panel">
-      <h3>Settings</h3>
-      
+      <div class="controls-panel-header">
+        <div class="controls-panel-heading">
+          <h3>Settings</h3>
+        </div>
+        <button id="settingsCloseBtn" class="controls-close" type="button" aria-label="Close settings">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M3 3l10 10M13 3 3 13"/>
+          </svg>
+        </button>
+      </div>
+
       <!-- Theme Section -->
       <div class="control-section">
         <div class="section-label">Theme</div>
@@ -109,7 +135,7 @@
 
       <!-- Typography Section -->
       <div class="control-section">
-        <div class="section-label">Typography</div>
+        <div class="section-label">Type</div>
         
         <div class="control-group">
           <label for="fontFamily">Font</label>
@@ -174,7 +200,7 @@
 
       <!-- Layout Section -->
       <div class="control-section">
-        <div class="section-label">Layout</div>
+        <div class="section-label">Canvas</div>
         
         <div class="control-group">
           <label for="maxWidth">Content Width <span id="maxWidthValue">800px</span></label>
@@ -185,40 +211,42 @@
       <div class="control-divider"></div>
 
       <!-- Custom Colors Section -->
-      <div class="control-section">
-        <div class="section-label">Custom Colors</div>
-        
-        <div class="color-controls">
-          <div class="color-control" data-color-type="textColor">
-            <label>Text</label>
-            <div class="color-input-wrapper">
-              <input type="color" id="textColor" value="#6D68B3">
-              <input type="text" class="color-hex-input" id="textColorHex" value="#6D68B3" maxlength="7" placeholder="#000000">
+      <div class="control-section control-section-advanced">
+        <details class="control-disclosure">
+          <summary class="control-disclosure-summary">Advanced</summary>
+
+          <div class="color-controls">
+            <div class="color-control" data-color-type="textColor">
+              <label>Text</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="textColor" value="#6D68B3">
+                <input type="text" class="color-hex-input" id="textColorHex" value="#6D68B3" maxlength="7" placeholder="#000000">
+              </div>
+            </div>
+            
+            <div class="color-control" data-color-type="backgroundColor">
+              <label>Background</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="backgroundColor" value="#ECEDE7">
+                <input type="text" class="color-hex-input" id="backgroundColorHex" value="#ECEDE7" maxlength="7" placeholder="#FFFFFF">
+              </div>
+            </div>
+            
+            <div class="color-control" data-color-type="selectionColor">
+              <label>Selection</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="selectionColor" value="#6D68B3">
+                <input type="text" class="color-hex-input" id="selectionColorHex" value="#6D68B3" maxlength="7" placeholder="#0000FF">
+              </div>
             </div>
           </div>
-          
-          <div class="color-control" data-color-type="backgroundColor">
-            <label>Background</label>
-            <div class="color-input-wrapper">
-              <input type="color" id="backgroundColor" value="#ECEDE7">
-              <input type="text" class="color-hex-input" id="backgroundColorHex" value="#ECEDE7" maxlength="7" placeholder="#FFFFFF">
-            </div>
-          </div>
-          
-          <div class="color-control" data-color-type="selectionColor">
-            <label>Selection</label>
-            <div class="color-input-wrapper">
-              <input type="color" id="selectionColor" value="#6D68B3">
-              <input type="text" class="color-hex-input" id="selectionColorHex" value="#6D68B3" maxlength="7" placeholder="#0000FF">
-            </div>
-          </div>
-        </div>
+        </details>
       </div>
 
       <button id="resetSettings" class="reset-btn">Reset to Defaults</button>
     </div>
 
-    <button class="controls-icon" title="Settings" aria-label="Open settings" type="button">
+    <button id="settingsToggleBtn" class="controls-icon" title="Settings" aria-label="Open settings" aria-expanded="false" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>

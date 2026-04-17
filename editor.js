@@ -85,14 +85,23 @@ const editor = document.getElementById('editor');
 const drawingLayer = document.getElementById('drawingLayer');
 const drawingToolbar = document.getElementById('drawingToolbar');
 const drawToggleBtn = document.getElementById('drawToggleBtn');
+const eraseToggleBtn = document.getElementById('eraseToggleBtn');
 const drawColorBtn = document.getElementById('drawColorBtn');
 const drawColorPreview = document.getElementById('drawColorPreview');
 const undoDrawingBtn = document.getElementById('undoDrawingBtn');
 const clearDrawingsBtn = document.getElementById('clearDrawingsBtn');
+const settingsToggleBtn = document.getElementById('settingsToggleBtn');
+const settingsCloseBtn = document.getElementById('settingsCloseBtn');
+const controlsContainer = document.querySelector('.controls-container');
 const saveIndicator = document.getElementById('saveIndicator');
 const pageTabsList = document.getElementById('pageTabsList');
 const addPageBtn = document.getElementById('addPageBtn');
+const emojiPicker = document.getElementById('emojiPicker');
 const emojiGrid = document.getElementById('emojiGrid');
+const emojiPickerDelete = document.getElementById('emojiPickerDelete');
+const deletePageConfirm = document.getElementById('deletePageConfirm');
+const cancelDeletePageBtn = document.getElementById('cancelDeletePageBtn');
+const confirmDeletePageBtn = document.getElementById('confirmDeletePageBtn');
 const themeGrid = document.getElementById('themeGrid');
 
 // Setting controls
@@ -181,6 +190,38 @@ function hexToHsb(hex) {
   return { h: Math.round(h), s: Math.round(s), b: Math.round(v) };
 }
 
+function normalizeHex(hex) {
+  if (typeof hex !== 'string') {
+    return '#000000';
+  }
+
+  let value = hex.trim();
+  if (!value.startsWith('#')) {
+    value = `#${value}`;
+  }
+
+  if (/^#([A-Fa-f0-9]{3})$/.test(value)) {
+    value = `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`;
+  }
+
+  return /^#([A-Fa-f0-9]{6})$/.test(value) ? value.toUpperCase() : '#000000';
+}
+
+function hexToRgb(hex) {
+  const normalizedHex = normalizeHex(hex);
+
+  return {
+    r: parseInt(normalizedHex.slice(1, 3), 16),
+    g: parseInt(normalizedHex.slice(3, 5), 16),
+    b: parseInt(normalizedHex.slice(5, 7), 16)
+  };
+}
+
+function hexToRgba(hex, alpha) {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 // Keep HSL functions for backwards compatibility
 function hslToHex(h, s, l) {
   s /= 100;
@@ -242,6 +283,13 @@ function initColorPickerSwatches() {
 // Color picker functions
 function openColorPicker(colorKey, triggerElement) {
   const labels = { textColor: 'Text Color', backgroundColor: 'Background', selectionColor: 'Selection', drawColor: 'Brush Color' };
+
+  if (colorKey === 'drawColor') {
+    setSettingsPanelOpen(false);
+  } else {
+    closeDeletePageConfirm();
+  }
+
   colorPickerState.activeColorKey = colorKey;
   colorPickerState.isOpen = true;
   
@@ -270,14 +318,31 @@ function openColorPicker(colorKey, triggerElement) {
   const popupWidth = 220;
   const popupHeight = 340;
   
-  let left = rect.left - popupWidth - 12;
-  let top = rect.top - 50;
-  
-  // Keep within viewport
-  if (left < 12) left = rect.right + 12;
-  if (top < 12) top = 12;
-  if (top + popupHeight > window.innerHeight - 12) {
-    top = window.innerHeight - popupHeight - 12;
+  let left;
+  let top;
+
+  if (colorKey === 'drawColor') {
+    left = rect.left + (rect.width / 2) - (popupWidth / 2);
+    top = rect.bottom + 12;
+
+    if (left < 12) left = 12;
+    if (left + popupWidth > window.innerWidth - 12) {
+      left = window.innerWidth - popupWidth - 12;
+    }
+
+    if (top + popupHeight > window.innerHeight - 12) {
+      top = Math.max(12, rect.top - popupHeight - 12);
+    }
+  } else {
+    left = rect.left - popupWidth - 12;
+    top = rect.top - 50;
+
+    // Keep within viewport
+    if (left < 12) left = rect.right + 12;
+    if (top < 12) top = 12;
+    if (top + popupHeight > window.innerHeight - 12) {
+      top = window.innerHeight - popupHeight - 12;
+    }
   }
   
   colorPickerPopup.style.left = left + 'px';
@@ -625,28 +690,76 @@ let pages = [];
 let currentPageId = null;
 let editingPageId = null;
 
+// Overlay/menu state
+const uiState = {
+  settingsOpen: false,
+  deleteConfirmOpen: false
+};
+
 // Drawing state
 const drawingContext = drawingLayer ? drawingLayer.getContext('2d') : null;
 const drawingState = {
   enabled: false,
   isDrawing: false,
   currentStroke: null,
+  currentTool: 'brush',
   currentBrushSize: DEFAULT_SETTINGS.drawSize,
   currentBrushColorMode: DEFAULT_SETTINGS.drawColorMode,
   syncFrame: null
 };
 
 function normalizePage(page = {}) {
+  const parsedScrollTop = Number(page.scrollTop);
+
   return {
     id: page.id || generateId(),
     emoji: typeof page.emoji === 'string' ? page.emoji : '📝',
     content: typeof page.content === 'string' ? page.content : '',
-    drawings: Array.isArray(page.drawings) ? page.drawings : []
+    drawings: Array.isArray(page.drawings) ? page.drawings : [],
+    scrollTop: Number.isFinite(parsedScrollTop) && parsedScrollTop > 0 ? parsedScrollTop : 0
   };
 }
 
 function getCurrentPage() {
   return pages.find(page => page.id === currentPageId) || null;
+}
+
+function getViewportScrollTop() {
+  return Math.max(window.scrollY || window.pageYOffset || 0, 0);
+}
+
+function getMaxViewportScrollTop() {
+  const documentHeight = Math.max(
+    document.documentElement?.scrollHeight || 0,
+    document.body?.scrollHeight || 0,
+    board?.scrollHeight || 0
+  );
+
+  return Math.max(documentHeight - window.innerHeight, 0);
+}
+
+function syncCurrentPageScrollPosition() {
+  const page = getCurrentPage();
+  if (!page) {
+    return;
+  }
+
+  page.scrollTop = getViewportScrollTop();
+}
+
+function restorePageScrollPosition(scrollTop = 0) {
+  const targetScrollTop = Math.max(0, Number(scrollTop) || 0);
+
+  requestAnimationFrame(() => {
+    window.scrollTo(0, Math.min(targetScrollTop, getMaxViewportScrollTop()));
+
+    requestAnimationFrame(() => {
+      const clampedScrollTop = Math.min(targetScrollTop, getMaxViewportScrollTop());
+      if (Math.abs(getViewportScrollTop() - clampedScrollTop) > 1) {
+        window.scrollTo(0, clampedScrollTop);
+      }
+    });
+  });
 }
 
 function getCurrentBrushColor() {
@@ -695,18 +808,51 @@ function setBrushSize(size, persist = true) {
   }
 }
 
+function updateDrawingToolButtons() {
+  const isBrushActive = drawingState.enabled && drawingState.currentTool === 'brush';
+  const isEraserActive = drawingState.enabled && drawingState.currentTool === 'eraser';
+
+  if (drawToggleBtn) {
+    drawToggleBtn.classList.toggle('active', isBrushActive);
+    drawToggleBtn.setAttribute('aria-pressed', String(isBrushActive));
+  }
+
+  if (eraseToggleBtn) {
+    eraseToggleBtn.classList.toggle('active', isEraserActive);
+    eraseToggleBtn.setAttribute('aria-pressed', String(isEraserActive));
+  }
+
+  if (drawingToolbar) {
+    drawingToolbar.classList.toggle('eraser-active', isEraserActive);
+  }
+
+  document.body.classList.toggle('eraser-mode', isEraserActive);
+}
+
+function setDrawingTool(tool) {
+  drawingState.currentTool = tool === 'eraser' ? 'eraser' : 'brush';
+  updateDrawingToolButtons();
+}
+
+function toggleDrawingTool(tool) {
+  const nextTool = tool === 'eraser' ? 'eraser' : 'brush';
+
+  if (drawingState.enabled && drawingState.currentTool === nextTool) {
+    setDrawMode(false);
+    return;
+  }
+
+  setDrawingTool(nextTool);
+  setDrawMode(true);
+}
+
 function setDrawMode(enabled) {
   drawingState.enabled = Boolean(enabled);
   document.body.classList.toggle('drawing-mode', drawingState.enabled);
   if (drawingToolbar) {
     drawingToolbar.classList.toggle('active', drawingState.enabled);
   }
-
-  [drawToggleBtn].forEach(button => {
-    if (!button) return;
-    button.classList.toggle('active', drawingState.enabled);
-    button.setAttribute('aria-pressed', String(drawingState.enabled));
-  });
+  updateDrawingToolButtons();
 
   if (drawingState.enabled) {
     editor.blur();
@@ -751,8 +897,11 @@ function drawStroke(stroke) {
     return;
   }
 
+  const isEraserStroke = stroke.tool === 'eraser';
+
   drawingContext.save();
-  drawingContext.strokeStyle = stroke.color || getCurrentBrushColor();
+  drawingContext.globalCompositeOperation = isEraserStroke ? 'destination-out' : 'source-over';
+  drawingContext.strokeStyle = isEraserStroke ? '#000000' : (stroke.color || getCurrentBrushColor());
   drawingContext.lineWidth = Math.max(1, Number(stroke.width) || DEFAULT_SETTINGS.drawSize);
   drawingContext.lineCap = 'round';
   drawingContext.lineJoin = 'round';
@@ -823,7 +972,8 @@ function beginStroke(event) {
 
   const stroke = {
     id: generateId(),
-    color: getCurrentBrushColor(),
+    tool: drawingState.currentTool,
+    color: drawingState.currentTool === 'eraser' ? null : getCurrentBrushColor(),
     width: drawingState.currentBrushSize,
     points: [getRelativePoint(event)]
   };
@@ -904,6 +1054,87 @@ function clearCurrentPageDrawings() {
   saveContent();
 }
 
+function setSettingsPanelOpen(isOpen) {
+  uiState.settingsOpen = Boolean(isOpen);
+
+  if (controlsContainer) {
+    controlsContainer.classList.toggle('open', uiState.settingsOpen);
+  }
+
+  if (settingsToggleBtn) {
+    settingsToggleBtn.setAttribute('aria-expanded', String(uiState.settingsOpen));
+    settingsToggleBtn.setAttribute('aria-label', uiState.settingsOpen ? 'Close settings' : 'Open settings');
+  }
+
+  if (!uiState.settingsOpen) {
+    if (fontDropdownOpen) {
+      closeFontDropdown();
+    }
+    if (colorPickerState.isOpen) {
+      closeColorPicker();
+    }
+  } else {
+    if (uiState.deleteConfirmOpen) {
+      closeDeletePageConfirm();
+    }
+  }
+}
+
+function closeDeletePageConfirm({ restoreFocus = false } = {}) {
+  uiState.deleteConfirmOpen = false;
+
+  if (deletePageConfirm) {
+    deletePageConfirm.classList.remove('visible');
+  }
+
+  if (emojiPickerDelete) {
+    emojiPickerDelete.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) {
+      emojiPickerDelete.focus();
+    }
+  }
+}
+
+function openDeletePageConfirm() {
+  if (!deletePageConfirm || !emojiPickerDelete || pages.length <= 1) {
+    return;
+  }
+
+  uiState.deleteConfirmOpen = true;
+  deletePageConfirm.classList.add('visible');
+  emojiPickerDelete.setAttribute('aria-expanded', 'true');
+}
+
+function getShortcutTarget(event) {
+  if (event.target instanceof HTMLElement) {
+    return event.target;
+  }
+
+  return document.activeElement instanceof HTMLElement ? document.activeElement : null;
+}
+
+function isTextEditingShortcutTarget(event) {
+  const target = getShortcutTarget(event);
+  if (!target) {
+    return false;
+  }
+
+  if (target.closest('input, textarea, select')) {
+    return true;
+  }
+
+  return target === editor || target.closest('#editor') || target.isContentEditable;
+}
+
+function isFormFieldShortcutTarget(event) {
+  const target = getShortcutTarget(event);
+  return Boolean(target?.closest('input, textarea, select'));
+}
+
+function isUndoShortcut(event) {
+  return (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'z';
+}
+
 function shouldHandleGlobalShortcut(event) {
   if (event.defaultPrevented) {
     return false;
@@ -972,6 +1203,14 @@ function debounce(func, wait) {
   };
 }
 
+const persistPagesState = debounce(async () => {
+  try {
+    await chrome.storage.local.set({ pages, currentPageId });
+  } catch (error) {
+    console.error('Error saving page state:', error);
+  }
+}, 200);
+
 // Apply settings to CSS custom properties
 function applySettings(settings) {
   const root = document.documentElement;
@@ -983,6 +1222,19 @@ function applySettings(settings) {
   root.style.setProperty('--text-color', settings.textColor);
   root.style.setProperty('--bg-color', settings.backgroundColor);
   root.style.setProperty('--selection-color', settings.selectionColor);
+  root.style.setProperty('--ui-surface', hexToRgba(settings.backgroundColor, 0.56));
+  root.style.setProperty('--ui-surface-strong', hexToRgba(settings.backgroundColor, 0.72));
+  root.style.setProperty('--ui-surface-soft', hexToRgba(settings.backgroundColor, 0.44));
+  root.style.setProperty('--ui-section-surface', hexToRgba(settings.backgroundColor, 0.34));
+  root.style.setProperty('--ui-border', hexToRgba(settings.textColor, 0.12));
+  root.style.setProperty('--ui-border-strong', hexToRgba(settings.textColor, 0.2));
+  root.style.setProperty('--ui-text', hexToRgba(settings.textColor, 0.88));
+  root.style.setProperty('--ui-text-muted', hexToRgba(settings.textColor, 0.6));
+  root.style.setProperty('--ui-hover', hexToRgba(settings.textColor, 0.08));
+  root.style.setProperty('--ui-hover-strong', hexToRgba(settings.textColor, 0.14));
+  root.style.setProperty('--ui-track', hexToRgba(settings.textColor, 0.12));
+  root.style.setProperty('--ui-shadow-soft', '0 18px 42px rgba(15, 23, 42, 0.06)');
+  root.style.setProperty('--ui-shadow-subtle', '0 10px 24px rgba(15, 23, 42, 0.04)');
 }
 
 // Update control values in UI
@@ -999,6 +1251,7 @@ function updateControlValues(settings) {
   drawingState.currentBrushSize = settings.drawSize ?? DEFAULT_SETTINGS.drawSize;
   drawingState.currentBrushColorMode = settings.drawColorMode || DEFAULT_SETTINGS.drawColorMode;
   updateBrushSizeButtons();
+  updateDrawingToolButtons();
   updateDrawColorPreview();
   
   // Update hex inputs
@@ -1023,6 +1276,8 @@ async function saveContent() {
   if (!currentPageId) return;
   
   try {
+    syncCurrentPageScrollPosition();
+
     const content = editor.innerHTML;
     const pageIndex = pages.findIndex(p => p.id === currentPageId);
     if (pageIndex === -1) {
@@ -1133,6 +1388,7 @@ function loadPageContent(pageId) {
     renderPageTabs();
     updateWordCount();
     scheduleDrawingLayerSync();
+    restorePageScrollPosition(page.scrollTop);
   }
 }
 
@@ -1167,6 +1423,7 @@ function renderPageTabs() {
     // Single click to switch page
     tab.addEventListener('click', (e) => {
       if (page.id !== currentPageId) {
+        syncCurrentPageScrollPosition();
         saveContent();
         loadPageContent(page.id);
       }
@@ -1238,13 +1495,15 @@ function addNewPage() {
     ? unusedEmojis[Math.floor(Math.random() * unusedEmojis.length)]
     : PAGE_EMOJIS[Math.floor(Math.random() * PAGE_EMOJIS.length)];
   
+  syncCurrentPageScrollPosition();
   saveContent();
   
   const newPage = {
     id: generateId(),
     emoji: emoji,
     content: '',
-    drawings: []
+    drawings: [],
+    scrollTop: 0
   };
   
   pages.push(newPage);
@@ -1255,6 +1514,7 @@ function addNewPage() {
   chrome.storage.local.set({ pages, currentPageId });
   renderPageTabs();
   scheduleDrawingLayerSync();
+  restorePageScrollPosition(0);
   editor.focus();
 }
 
@@ -1279,15 +1539,20 @@ function deletePage(pageId) {
 // Open emoji picker
 function openEmojiPicker(pageId) {
   editingPageId = pageId;
-  const picker = document.getElementById('emojiPicker');
-  picker.classList.add('visible');
+  closeDeletePageConfirm();
+
+  if (emojiPickerDelete) {
+    emojiPickerDelete.disabled = pages.length <= 1;
+  }
+
+  emojiPicker?.classList.add('visible');
 }
 
 // Close emoji picker
 function closeEmojiPicker() {
   editingPageId = null;
-  const picker = document.getElementById('emojiPicker');
-  picker.classList.remove('visible');
+  closeDeletePageConfirm();
+  emojiPicker?.classList.remove('visible');
 }
 
 // Select emoji for page
@@ -1318,8 +1583,7 @@ function initEmojiPicker() {
   
   // Click outside to close
   document.addEventListener('click', (e) => {
-    const picker = document.getElementById('emojiPicker');
-    if (picker.classList.contains('visible')) {
+    if (emojiPicker?.classList.contains('visible')) {
       if (!e.target.closest('.emoji-picker') && !e.target.closest('.page-tab')) {
         closeEmojiPicker();
       }
@@ -1327,9 +1591,33 @@ function initEmojiPicker() {
   });
   
   // Delete button
-  const deleteBtn = document.getElementById('emojiPickerDelete');
-  if (deleteBtn) {
-    deleteBtn.addEventListener('click', () => {
+  if (emojiPickerDelete) {
+    emojiPickerDelete.addEventListener('click', (event) => {
+      event.stopPropagation();
+
+      if (!editingPageId || pages.length <= 1) {
+        return;
+      }
+
+      if (uiState.deleteConfirmOpen) {
+        closeDeletePageConfirm({ restoreFocus: false });
+      } else {
+        openDeletePageConfirm();
+      }
+    });
+  }
+
+  if (cancelDeletePageBtn) {
+    cancelDeletePageBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      closeDeletePageConfirm({ restoreFocus: true });
+    });
+  }
+
+  if (confirmDeletePageBtn) {
+    confirmDeletePageBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+
       if (editingPageId && pages.length > 1) {
         deletePage(editingPageId);
         closeEmojiPicker();
@@ -1371,16 +1659,31 @@ function initThemeGrid() {
     inner.className = 'theme-swatch-inner';
     inner.style.backgroundColor = theme.backgroundColor;
     
-    const text = document.createElement('span');
-    text.className = 'theme-swatch-text';
-    text.style.color = theme.textColor;
-    text.textContent = 'Aa';
+    const preview = document.createElement('div');
+    preview.className = 'theme-swatch-preview';
+
+    const regularText = document.createElement('span');
+    regularText.className = 'theme-swatch-text theme-swatch-text-regular';
+    regularText.textContent = 'Aa';
+
+    const highlightedText = document.createElement('span');
+    highlightedText.className = 'theme-swatch-highlight';
+    highlightedText.style.backgroundColor = theme.selectionColor;
+
+    const highlightedTextLabel = document.createElement('span');
+    highlightedTextLabel.className = 'theme-swatch-text theme-swatch-text-highlighted';
+    highlightedTextLabel.style.color = theme.textColor;
+    highlightedTextLabel.textContent = 'Aa';
+
+    highlightedText.appendChild(highlightedTextLabel);
+    preview.appendChild(regularText);
+    preview.appendChild(highlightedText);
     
     const nameEl = document.createElement('span');
     nameEl.className = 'theme-swatch-name';
     nameEl.textContent = theme.name;
     
-    inner.appendChild(text);
+    inner.appendChild(preview);
     swatch.appendChild(inner);
     swatch.appendChild(nameEl);
     
@@ -1658,13 +1961,35 @@ function handleUnindent(selection) {
 // Reset button
 document.getElementById('resetSettings').addEventListener('click', resetSettings);
 
+// Settings panel controls
+if (settingsToggleBtn) {
+  settingsToggleBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setSettingsPanelOpen(!uiState.settingsOpen);
+  });
+}
+
+if (settingsCloseBtn) {
+  settingsCloseBtn.addEventListener('click', () => {
+    setSettingsPanelOpen(false);
+    settingsToggleBtn?.focus();
+  });
+}
+
 // Add page button
 addPageBtn.addEventListener('click', addNewPage);
 
 // Drawing mode controls
 if (drawToggleBtn) {
   drawToggleBtn.addEventListener('click', (event) => {
-    setDrawMode(!drawingState.enabled);
+    toggleDrawingTool('brush');
+    event.currentTarget.blur();
+  });
+}
+
+if (eraseToggleBtn) {
+  eraseToggleBtn.addEventListener('click', (event) => {
+    toggleDrawingTool('eraser');
     event.currentTarget.blur();
   });
 }
@@ -1698,6 +2023,21 @@ if (drawingLayer) {
 }
 
 window.addEventListener('resize', scheduleDrawingLayerSync);
+
+window.addEventListener('scroll', () => {
+  syncCurrentPageScrollPosition();
+  persistPagesState();
+}, { passive: true });
+
+document.addEventListener('click', (event) => {
+  if (uiState.settingsOpen && !event.target.closest('.controls-container') && !event.target.closest('.color-picker-popup')) {
+    setSettingsPanelOpen(false);
+  }
+
+  if (uiState.deleteConfirmOpen && !event.target.closest('#deletePageConfirm') && !event.target.closest('#emojiPickerDelete')) {
+    closeDeletePageConfirm();
+  }
+});
 
 if (window.ResizeObserver && board) {
   const resizeObserver = new ResizeObserver(() => {
@@ -1737,22 +2077,61 @@ editor.addEventListener('input', debouncedWordCount);
 document.addEventListener('keydown', (e) => {
   const isModifierPressed = e.ctrlKey || e.metaKey;
 
+  if (e.key === 'Escape') {
+    if (uiState.deleteConfirmOpen) {
+      e.preventDefault();
+      closeDeletePageConfirm({ restoreFocus: true });
+      return;
+    }
+
+    if (colorPickerState.isOpen) {
+      e.preventDefault();
+      closeColorPicker();
+      return;
+    }
+
+    if (fontDropdownOpen) {
+      e.preventDefault();
+      closeFontDropdown();
+      return;
+    }
+
+    if (uiState.settingsOpen) {
+      e.preventDefault();
+      setSettingsPanelOpen(false);
+      settingsToggleBtn?.focus();
+      return;
+    }
+  }
+
   if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'b' && shouldHandleBrushToggleShortcut(e)) {
     e.preventDefault();
-    setDrawMode(!drawingState.enabled);
+    toggleDrawingTool('brush');
     return;
+  }
+
+  if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'e' && shouldHandleBrushToggleShortcut(e)) {
+    e.preventDefault();
+    toggleDrawingTool('eraser');
+    return;
+  }
+
+  if (isUndoShortcut(e)) {
+    if (drawingState.enabled && !isFormFieldShortcutTarget(e)) {
+      e.preventDefault();
+      undoLastStroke();
+      return;
+    }
+
+    if (isTextEditingShortcutTarget(e)) {
+      return;
+    }
   }
 
   if (drawingState.enabled && shouldHandleDrawingShortcut(e)) {
     if (e.key === 'Escape') {
       e.preventDefault();
       setDrawMode(false);
-      return;
-    }
-
-    if (isModifierPressed && e.key.toLowerCase() === 'z') {
-      e.preventDefault();
-      undoLastStroke();
       return;
     }
   }
