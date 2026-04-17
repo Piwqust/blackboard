@@ -7,7 +7,92 @@
   <link rel="stylesheet" href="editor.css">
 </head>
 <body>
-  <div id="editor" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Note editor"></div>
+  <div id="board">
+    <div id="editorShell">
+      <div id="editor" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Note editor"></div>
+    </div>
+    <canvas id="drawingLayer" aria-label="Drawing annotations" role="img"></canvas>
+  </div>
+
+  <div class="top-right-rail">
+    <div id="drawingToolbar" class="drawing-toolbar" aria-label="Drawing tools">
+      <div class="drawing-toolbar-group">
+        <button id="drawToggleBtn" class="drawing-tool-button drawing-toggle-button" type="button" aria-pressed="false" title="Toggle brush mode (Alt+Shift+B)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="drawing-toolbar-group drawing-size-group" role="group" aria-label="Brush size">
+        <button class="drawing-tool-button drawing-size-button" type="button" data-draw-size="2.5" title="Small brush">
+          <span class="drawing-size-dot drawing-size-dot-sm"></span>
+        </button>
+        <button class="drawing-tool-button drawing-size-button" type="button" data-draw-size="4" title="Medium brush">
+          <span class="drawing-size-dot drawing-size-dot-md"></span>
+        </button>
+        <button class="drawing-tool-button drawing-size-button" type="button" data-draw-size="7" title="Large brush">
+          <span class="drawing-size-dot drawing-size-dot-lg"></span>
+        </button>
+      </div>
+
+      <div class="drawing-toolbar-group">
+        <button id="drawColorBtn" class="drawing-tool-button drawing-color-button" type="button" title="Brush color">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22a10 10 0 1 1 9.6-12.8 2.5 2.5 0 0 1-2.4 3.3H17a2 2 0 0 0 0 4h1a2.5 2.5 0 0 1 2.43 3.08A10 10 0 0 1 12 22Z"/>
+            <path d="M8 11h.01"/>
+            <path d="M12 7h.01"/>
+            <path d="M16 11h.01"/>
+          </svg>
+          <span id="drawColorPreview" class="drawing-color-preview"></span>
+        </button>
+      </div>
+
+      <div class="drawing-toolbar-group drawing-toolbar-group-actions">
+        <button id="undoDrawingBtn" class="drawing-tool-button" type="button" title="Undo last stroke (Ctrl+Z)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 8H5V4"/>
+            <path d="M5 8a8 8 0 1 1 2.34 5.66"/>
+          </svg>
+        </button>
+
+        <button id="clearDrawingsBtn" class="drawing-tool-button drawing-tool-button-danger" type="button" title="Clear page drawings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 6h18"/>
+            <path d="M8 6V4h8v2"/>
+            <path d="M19 6l-1 13H6L5 6"/>
+            <path d="M10 11v6"/>
+            <path d="M14 11v6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <input type="color" id="drawColor" value="#6D68B3" hidden>
+
+    <!-- Page tabs -->
+    <div class="page-tabs">
+      <div class="page-tabs-list" id="pageTabsList" role="tablist" aria-label="Note pages"></div>
+      <button class="add-page-btn" id="addPageBtn" title="Add page (Ctrl+N)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M8 3v10M3 8h10"/>
+        </svg>
+      </button>
+      
+      <!-- Emoji picker tooltip -->
+      <div class="emoji-picker" id="emojiPicker">
+        <div class="emoji-picker-header">
+          <button class="emoji-picker-delete" id="emojiPickerDelete" title="Delete page">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 4h12M5.33 4V2.67a1.33 1.33 0 011.34-1.34h2.66a1.33 1.33 0 011.34 1.34V4M12.67 4v9.33a1.33 1.33 0 01-1.34 1.34H4.67a1.33 1.33 0 01-1.34-1.34V4h9.34z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="emoji-grid" id="emojiGrid"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- Hidden controls - visible on hover -->
   <div class="controls-container">
@@ -184,28 +269,6 @@
 
   <!-- Word/character count -->
   <div id="wordCount" class="word-count"></div>
-
-  <!-- Page tabs -->
-  <div class="page-tabs">
-    <div class="page-tabs-list" id="pageTabsList" role="tablist" aria-label="Note pages"></div>
-    <button class="add-page-btn" id="addPageBtn" title="Add page (Ctrl+N)">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-        <path d="M8 3v10M3 8h10"/>
-      </svg>
-    </button>
-    
-    <!-- Emoji picker tooltip -->
-    <div class="emoji-picker" id="emojiPicker">
-      <div class="emoji-picker-header">
-        <button class="emoji-picker-delete" id="emojiPickerDelete" title="Delete page">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 4h12M5.33 4V2.67a1.33 1.33 0 011.34-1.34h2.66a1.33 1.33 0 011.34 1.34V4M12.67 4v9.33a1.33 1.33 0 01-1.34 1.34H4.67a1.33 1.33 0 01-1.34-1.34V4h9.34z"/>
-          </svg>
-        </button>
-      </div>
-      <div class="emoji-grid" id="emojiGrid"></div>
-    </div>
-  </div>
 
   <script src="editor.js"></script>
 </body>
