@@ -618,8 +618,7 @@ button.controls-icon {
 }
 
 .theme-swatch-text-regular {
-  color: #FFFFFF;
-  text-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+  text-shadow: none;
 }
 
 .theme-swatch-highlight {
@@ -657,6 +656,18 @@ button.controls-icon {
 
 .color-control:hover {
   background: transparent;
+}
+
+.color-control[data-color-type="selectionColor"] {
+  display: none;
+}
+
+.color-note {
+  margin: 8px 0 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--ui-text-muted);
 }
 
 .color-control label {
@@ -1265,6 +1276,8 @@ button.controls-icon {
   flex-direction: column;
   align-items: center;
   gap: 3px;
+  max-height: min(70vh, calc(100vh - 140px));
+  overflow-y: auto;
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
   padding: 5px;
@@ -1287,6 +1300,30 @@ button.controls-icon {
   cursor: pointer;
   transition: all 0.15s ease;
   opacity: 0.8;
+}
+
+.page-tab.active::after {
+  content: '✎';
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ui-text);
+  background: color-mix(in srgb, var(--bg-color) 88%, white 12%);
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  box-shadow: var(--ui-shadow-subtle);
+  opacity: 0;
+  transform: translateY(4px) scale(0.92);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
 }
 
 .page-tab-emoji {
@@ -1312,6 +1349,12 @@ button.controls-icon {
   opacity: 1;
   background: var(--ui-hover-strong);
   box-shadow: none;
+}
+
+.page-tab.active:hover::after,
+.page-tab.active:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 .add-page-btn {
@@ -1344,9 +1387,12 @@ button.controls-icon {
 
 /* Emoji Picker - Tooltip Style */
 .emoji-picker {
-  position: absolute;
-  top: 0;
-  right: calc(100% + 8px);
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: min(280px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
   backdrop-filter: blur(20px) saturate(135%);
@@ -1357,7 +1403,7 @@ button.controls-icon {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translateX(4px);
+  transform: translateY(4px);
   transition: all 0.15s ease;
   z-index: 100;
 }
@@ -1366,53 +1412,96 @@ button.controls-icon {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translateX(0);
+  transform: translateY(0);
 }
 
 .emoji-picker-header {
   display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  position: relative;
-  margin-bottom: 6px;
-  padding-bottom: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--ui-border);
 }
 
-.emoji-picker-delete {
+.emoji-picker-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.emoji-picker-title,
+.emoji-picker-hint {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.emoji-picker-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ui-text);
+}
+
+.emoji-picker-hint {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ui-text-muted);
+}
+
+.emoji-picker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.emoji-picker-action {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--ui-text-muted);
+  min-height: 30px;
+  padding: 0 10px;
+  white-space: nowrap;
+  background: var(--ui-surface-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  color: var(--ui-text);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.1s ease;
+  transition: all 0.15s ease;
 }
 
-.emoji-picker-delete:hover {
-  background: var(--ui-danger-surface);
+.emoji-picker-action:hover {
+  background: var(--ui-hover);
+}
+
+.emoji-picker-action-danger {
   color: var(--ui-danger-text);
+  background: color-mix(in srgb, var(--ui-surface-soft) 78%, rgba(172, 92, 92, 0.22));
+  border-color: var(--ui-danger-border);
 }
 
-.emoji-picker-delete:disabled {
+.emoji-picker-action-danger:hover {
+  background: color-mix(in srgb, var(--ui-surface-strong) 70%, rgba(172, 92, 92, 0.28));
+}
+
+.emoji-picker-action:disabled {
   opacity: 0.34;
   cursor: not-allowed;
 }
 
-.emoji-picker-delete:disabled:hover {
-  background: transparent;
-  color: var(--ui-text-muted);
+.emoji-picker-action:disabled:hover {
+  background: var(--ui-surface-soft);
+  color: var(--ui-text);
 }
 
 .delete-confirm-popover {
-  position: absolute;
-  top: -8px;
-  left: calc(100% + 8px);
-  width: 204px;
+  position: static;
+  width: 100%;
+  margin-bottom: 10px;
   padding: 12px;
   background: color-mix(in srgb, var(--ui-surface-strong) 76%, rgba(172, 92, 92, 0.28));
   border: 1px solid var(--ui-danger-border);
@@ -1421,29 +1510,24 @@ button.controls-icon {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translateX(-4px);
+  transform: translateY(-2px);
   transition: all 0.15s ease;
   z-index: 120;
 }
 
 .delete-confirm-popover::before {
-  content: '';
-  position: absolute;
-  top: 18px;
-  left: -6px;
-  width: 12px;
-  height: 12px;
-  background: color-mix(in srgb, var(--ui-surface-strong) 76%, rgba(172, 92, 92, 0.28));
-  border-left: 1px solid var(--ui-danger-border);
-  border-bottom: 1px solid var(--ui-danger-border);
-  transform: rotate(45deg);
+  display: none;
+}
+
+.delete-confirm-popover[hidden] {
+  display: none;
 }
 
 .delete-confirm-popover.visible {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translateX(0);
+  transform: translateY(0);
 }
 
 .delete-confirm-title {
@@ -1503,7 +1587,7 @@ button.controls-icon {
 .emoji-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  gap: 0;
+  gap: 4px;
 }
 
 .emoji-option {
@@ -1528,8 +1612,73 @@ button.controls-icon {
   opacity: 1;
 }
 
+.emoji-option.selected,
+.emoji-option[aria-pressed="true"] {
+  background: var(--ui-hover-strong);
+  box-shadow: inset 0 0 0 1px var(--ui-border-strong);
+  opacity: 1;
+}
+
+.emoji-option.selected:hover,
+.emoji-option[aria-pressed="true"]:hover {
+  background: var(--ui-hover-strong);
+}
+
 .emoji-option:active {
   transform: scale(0.9);
+}
+
+body.is-scrolling .page-tab,
+body.is-scrolling .add-page-btn,
+body.is-scrolling .controls-icon,
+body.is-scrolling .controls-close,
+body.is-scrolling .drawing-tool-button,
+body.is-scrolling .emoji-picker-action,
+body.is-scrolling .emoji-option,
+body.is-scrolling .delete-confirm-cancel,
+body.is-scrolling .delete-confirm-delete {
+  pointer-events: none;
+}
+
+body.is-scrolling .drawing-tool-button:hover,
+body.is-scrolling .controls-icon:hover,
+body.is-scrolling .controls-close:hover,
+body.is-scrolling .page-tab:hover,
+body.is-scrolling .add-page-btn:hover,
+body.is-scrolling .emoji-picker-action:hover,
+body.is-scrolling .emoji-option:hover {
+  background: transparent;
+  transform: none;
+}
+
+body.is-scrolling .page-tab:hover {
+  opacity: 0.8;
+}
+
+body.is-scrolling .page-tab.active,
+body.is-scrolling .page-tab.active:hover {
+  opacity: 1;
+  background: var(--ui-hover-strong);
+}
+
+body.is-scrolling .page-tab:hover .page-tab-emoji {
+  opacity: 0.7;
+}
+
+body.is-scrolling .page-tab.active .page-tab-emoji,
+body.is-scrolling .page-tab.active:hover .page-tab-emoji {
+  opacity: 1;
+}
+
+body.is-scrolling .page-tab.active::after {
+  opacity: 0;
+  transform: translateY(4px) scale(0.92);
+}
+
+body.is-scrolling .add-page-btn:hover,
+body.is-scrolling .controls-icon:hover,
+body.is-scrolling .drawing-tool-button:hover {
+  opacity: inherit;
 }
 
 .drawing-tool-button:focus-visible,
@@ -1537,7 +1686,7 @@ button.controls-icon {
 .controls-close:focus-visible,
 .add-page-btn:focus-visible,
 .page-tab:focus-visible,
-.emoji-picker-delete:focus-visible,
+.emoji-picker-action:focus-visible,
 .delete-confirm-cancel:focus-visible,
 .delete-confirm-delete:focus-visible,
 .reset-btn:focus-visible,
@@ -1629,22 +1778,8 @@ button.controls-icon {
   }
   
   .emoji-picker {
-    max-width: 290px;
+    width: min(280px, calc(100vw - 24px));
     padding: 14px;
-  }
-
-  .delete-confirm-popover {
-    left: auto;
-    right: calc(100% + 8px);
-  }
-
-  .delete-confirm-popover::before {
-    left: auto;
-    right: -6px;
-    border-left: none;
-    border-bottom: none;
-    border-right: 1px solid var(--ui-danger-border);
-    border-top: 1px solid var(--ui-danger-border);
   }
   
   .emoji-grid {

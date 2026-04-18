@@ -10,43 +10,43 @@ const THEMES = {
     name: 'Midnight',
     textColor: '#E8E6E3',
     backgroundColor: '#1A1A2E',
-    selectionColor: '#4A4E69'
+    selectionColor: '#E8E6E3'
   },
   sepia: {
     name: 'Sepia',
     textColor: '#5C4033',
     backgroundColor: '#F4ECD8',
-    selectionColor: '#8B7355'
+    selectionColor: '#5C4033'
   },
   forest: {
     name: 'Forest',
     textColor: '#2D5A27',
     backgroundColor: '#F0F5E9',
-    selectionColor: '#4A7C43'
+    selectionColor: '#2D5A27'
   },
   ocean: {
     name: 'Ocean',
     textColor: '#1E5162',
     backgroundColor: '#E8F4F8',
-    selectionColor: '#2980B9'
+    selectionColor: '#1E5162'
   },
   rose: {
     name: 'Rosé',
     textColor: '#8E4A5C',
     backgroundColor: '#FDF2F4',
-    selectionColor: '#C77B8B'
+    selectionColor: '#8E4A5C'
   },
   charcoal: {
     name: 'Charcoal',
     textColor: '#D4D4D4',
     backgroundColor: '#2D2D2D',
-    selectionColor: '#505050'
+    selectionColor: '#D4D4D4'
   },
   paper: {
     name: 'Paper',
     textColor: '#333333',
     backgroundColor: '#FFFFFF',
-    selectionColor: '#6B7280'
+    selectionColor: '#333333'
   }
 };
 
@@ -78,6 +78,8 @@ const PAGE_EMOJIS = [
   '🚀', '✈️', '💡', '💎', '🔮', '💻'
 ];
 
+const DEFAULT_PAGE_EMOJI = '📝';
+
 // DOM Elements
 const board = document.getElementById('board');
 const editorShell = document.getElementById('editorShell');
@@ -98,6 +100,7 @@ const pageTabsList = document.getElementById('pageTabsList');
 const addPageBtn = document.getElementById('addPageBtn');
 const emojiPicker = document.getElementById('emojiPicker');
 const emojiGrid = document.getElementById('emojiGrid');
+const emojiPickerClear = document.getElementById('emojiPickerClear');
 const emojiPickerDelete = document.getElementById('emojiPickerDelete');
 const deletePageConfirm = document.getElementById('deletePageConfirm');
 const cancelDeletePageBtn = document.getElementById('cancelDeletePageBtn');
@@ -689,6 +692,8 @@ const valueDisplays = {
 let pages = [];
 let currentPageId = null;
 let editingPageId = null;
+let hoverResetTimeout = null;
+let scrollRestoreTimeout = null;
 
 // Overlay/menu state
 const uiState = {
@@ -713,7 +718,7 @@ function normalizePage(page = {}) {
 
   return {
     id: page.id || generateId(),
-    emoji: typeof page.emoji === 'string' ? page.emoji : '📝',
+    emoji: typeof page.emoji === 'string' ? page.emoji : DEFAULT_PAGE_EMOJI,
     content: typeof page.content === 'string' ? page.content : '',
     drawings: Array.isArray(page.drawings) ? page.drawings : [],
     scrollTop: Number.isFinite(parsedScrollTop) && parsedScrollTop > 0 ? parsedScrollTop : 0
@@ -722,6 +727,26 @@ function normalizePage(page = {}) {
 
 function getCurrentPage() {
   return pages.find(page => page.id === currentPageId) || null;
+}
+
+function getPageById(pageId) {
+  return pages.find(page => page.id === pageId) || null;
+}
+
+function getPageDisplayEmoji(page) {
+  if (!page || typeof page.emoji !== 'string' || page.emoji.length === 0) {
+    return DEFAULT_PAGE_EMOJI;
+  }
+
+  return page.emoji;
+}
+
+function getPageTabButton(pageId = editingPageId) {
+  if (!pageTabsList || !pageId) {
+    return null;
+  }
+
+  return pageTabsList.querySelector(`.page-tab[data-page-id="${pageId}"]`);
 }
 
 function getViewportScrollTop() {
@@ -749,17 +774,70 @@ function syncCurrentPageScrollPosition() {
 
 function restorePageScrollPosition(scrollTop = 0) {
   const targetScrollTop = Math.max(0, Number(scrollTop) || 0);
+  const applyScroll = () => {
+    const clampedScrollTop = Math.min(targetScrollTop, getMaxViewportScrollTop());
+    window.scrollTo(0, clampedScrollTop);
+
+    if (Math.abs(getViewportScrollTop() - clampedScrollTop) > 1) {
+      window.scrollTo(0, clampedScrollTop);
+    }
+  };
+
+  if (scrollRestoreTimeout) {
+    clearTimeout(scrollRestoreTimeout);
+  }
 
   requestAnimationFrame(() => {
-    window.scrollTo(0, Math.min(targetScrollTop, getMaxViewportScrollTop()));
-
+    applyScroll();
     requestAnimationFrame(() => {
-      const clampedScrollTop = Math.min(targetScrollTop, getMaxViewportScrollTop());
-      if (Math.abs(getViewportScrollTop() - clampedScrollTop) > 1) {
-        window.scrollTo(0, clampedScrollTop);
-      }
+      applyScroll();
     });
   });
+
+  scrollRestoreTimeout = setTimeout(() => {
+    applyScroll();
+    scrollRestoreTimeout = null;
+  }, 120);
+}
+
+function suppressHoverEffects() {
+  document.body.classList.add('is-scrolling');
+
+  if (hoverResetTimeout) {
+    clearTimeout(hoverResetTimeout);
+  }
+
+  hoverResetTimeout = setTimeout(() => {
+    document.body.classList.remove('is-scrolling');
+    hoverResetTimeout = null;
+  }, 140);
+}
+
+function handleScrollActivity({ repositionEmojiPicker = false, persistPageScroll = false } = {}) {
+  suppressHoverEffects();
+
+  if (repositionEmojiPicker && emojiPicker?.classList.contains('visible')) {
+    positionEmojiPicker(editingPageId);
+  }
+
+  if (persistPageScroll) {
+    syncCurrentPageScrollPosition();
+    persistPagesState();
+  }
+}
+
+function syncSelectionColorControl(color = controls.textColor?.value || DEFAULT_SETTINGS.textColor) {
+  const normalizedColor = normalizeHex(color);
+
+  if (controls.selectionColor) {
+    controls.selectionColor.value = normalizedColor;
+  }
+
+  if (hexInputs.selectionColor) {
+    hexInputs.selectionColor.value = normalizedColor;
+  }
+
+  return normalizedColor;
 }
 
 function getCurrentBrushColor() {
@@ -1085,6 +1163,7 @@ function closeDeletePageConfirm({ restoreFocus = false } = {}) {
 
   if (deletePageConfirm) {
     deletePageConfirm.classList.remove('visible');
+    deletePageConfirm.hidden = true;
   }
 
   if (emojiPickerDelete) {
@@ -1092,6 +1171,10 @@ function closeDeletePageConfirm({ restoreFocus = false } = {}) {
     if (restoreFocus) {
       emojiPickerDelete.focus();
     }
+  }
+
+  if (emojiPicker?.classList.contains('visible') && editingPageId) {
+    positionEmojiPicker(editingPageId);
   }
 }
 
@@ -1101,8 +1184,46 @@ function openDeletePageConfirm() {
   }
 
   uiState.deleteConfirmOpen = true;
+  deletePageConfirm.hidden = false;
   deletePageConfirm.classList.add('visible');
   emojiPickerDelete.setAttribute('aria-expanded', 'true');
+  positionEmojiPicker(editingPageId);
+}
+
+function positionEmojiPicker(pageId = editingPageId) {
+  if (!emojiPicker || !pageId) {
+    return;
+  }
+
+  const anchor = pageTabsList?.querySelector(`.page-tab[data-page-id="${pageId}"]`);
+  if (!anchor) {
+    return;
+  }
+
+  const anchorRect = anchor.getBoundingClientRect();
+  const pickerWidth = Math.min(emojiPicker.offsetWidth || 280, window.innerWidth - 24);
+  const pickerHeight = Math.min(emojiPicker.offsetHeight || 280, window.innerHeight - 24);
+  const viewportPadding = 12;
+  const gutter = 10;
+
+  let left = anchorRect.left - pickerWidth - gutter;
+  if (left < viewportPadding) {
+    left = anchorRect.right + gutter;
+  }
+  if (left + pickerWidth > window.innerWidth - viewportPadding) {
+    left = window.innerWidth - pickerWidth - viewportPadding;
+  }
+
+  let top = anchorRect.top + (anchorRect.height - pickerHeight) / 2;
+  if (top < viewportPadding) {
+    top = viewportPadding;
+  }
+  if (top + pickerHeight > window.innerHeight - viewportPadding) {
+    top = window.innerHeight - pickerHeight - viewportPadding;
+  }
+
+  emojiPicker.style.left = `${Math.max(viewportPadding, left)}px`;
+  emojiPicker.style.top = `${Math.max(viewportPadding, top)}px`;
 }
 
 function getShortcutTarget(event) {
@@ -1211,9 +1332,18 @@ const persistPagesState = debounce(async () => {
   }
 }, 200);
 
+async function persistPagesStateImmediately() {
+  try {
+    await chrome.storage.local.set({ pages, currentPageId });
+  } catch (error) {
+    console.error('Error saving page state immediately:', error);
+  }
+}
+
 // Apply settings to CSS custom properties
 function applySettings(settings) {
   const root = document.documentElement;
+  const selectionColor = normalizeHex(settings.textColor || settings.selectionColor || DEFAULT_SETTINGS.textColor);
   root.style.setProperty('--font-family', settings.fontFamily);
   root.style.setProperty('--font-size', settings.fontSize + 'px');
   root.style.setProperty('--line-height', settings.lineHeight);
@@ -1221,7 +1351,7 @@ function applySettings(settings) {
   root.style.setProperty('--max-width', settings.maxWidth + 'px');
   root.style.setProperty('--text-color', settings.textColor);
   root.style.setProperty('--bg-color', settings.backgroundColor);
-  root.style.setProperty('--selection-color', settings.selectionColor);
+  root.style.setProperty('--selection-color', selectionColor);
   root.style.setProperty('--ui-surface', hexToRgba(settings.backgroundColor, 0.56));
   root.style.setProperty('--ui-surface-strong', hexToRgba(settings.backgroundColor, 0.72));
   root.style.setProperty('--ui-surface-soft', hexToRgba(settings.backgroundColor, 0.44));
@@ -1239,6 +1369,8 @@ function applySettings(settings) {
 
 // Update control values in UI
 function updateControlValues(settings) {
+  const selectionColor = normalizeHex(settings.textColor || settings.selectionColor || DEFAULT_SETTINGS.textColor);
+
   controls.fontFamily.value = settings.fontFamily;
   controls.fontSize.value = settings.fontSize;
   controls.lineHeight.value = settings.lineHeight;
@@ -1247,7 +1379,7 @@ function updateControlValues(settings) {
   controls.drawColor.value = settings.drawColor || settings.textColor || DEFAULT_SETTINGS.drawColor;
   controls.textColor.value = settings.textColor;
   controls.backgroundColor.value = settings.backgroundColor;
-  controls.selectionColor.value = settings.selectionColor;
+  controls.selectionColor.value = selectionColor;
   drawingState.currentBrushSize = settings.drawSize ?? DEFAULT_SETTINGS.drawSize;
   drawingState.currentBrushColorMode = settings.drawColorMode || DEFAULT_SETTINGS.drawColorMode;
   updateBrushSizeButtons();
@@ -1257,7 +1389,7 @@ function updateControlValues(settings) {
   // Update hex inputs
   if (hexInputs.textColor) hexInputs.textColor.value = settings.textColor;
   if (hexInputs.backgroundColor) hexInputs.backgroundColor.value = settings.backgroundColor;
-  if (hexInputs.selectionColor) hexInputs.selectionColor.value = settings.selectionColor;
+  if (hexInputs.selectionColor) hexInputs.selectionColor.value = selectionColor;
   
   // Update value displays
   valueDisplays.fontSize.textContent = settings.fontSize + 'px';
@@ -1324,12 +1456,13 @@ async function loadSavedData() {
   try {
     // Load pages
     const localData = await chrome.storage.local.get(['pages', 'currentPageId', 'noteContent']);
+    const syncData = await chrome.storage.sync.get(['settings']);
     
     // Migration: convert old single-note format to pages
     if (!localData.pages && localData.noteContent) {
       pages = [normalizePage({
         id: generateId(),
-        emoji: '📝',
+        emoji: DEFAULT_PAGE_EMOJI,
         content: localData.noteContent
       })];
       currentPageId = pages[0].id;
@@ -1342,19 +1475,15 @@ async function loadSavedData() {
       // Create default page
       pages = [normalizePage({
         id: generateId(),
-        emoji: '📝',
+        emoji: DEFAULT_PAGE_EMOJI,
         content: ''
       })];
       currentPageId = pages[0].id;
       await chrome.storage.local.set({ pages, currentPageId });
     }
     
-    renderPageTabs();
-    loadPageContent(currentPageId);
-    
-    // Load settings
-    const syncData = await chrome.storage.sync.get(['settings']);
     const settings = { ...DEFAULT_SETTINGS, ...syncData.settings };
+    settings.selectionColor = normalizeHex(settings.textColor || DEFAULT_SETTINGS.textColor);
     
     // Set current theme
     currentTheme = settings.currentTheme || 'lavender';
@@ -1365,6 +1494,9 @@ async function loadSavedData() {
     // Initialize theme grid
     initThemeGrid();
     updateThemeGridSelection();
+
+    renderPageTabs();
+    loadPageContent(currentPageId);
   } catch (error) {
     console.error('Error loading saved data:', error);
     applySettings(DEFAULT_SETTINGS);
@@ -1398,17 +1530,25 @@ function renderPageTabs() {
   
   pages.forEach((page, index) => {
     const tab = document.createElement('button');
-    tab.className = 'page-tab' + (page.id === currentPageId ? ' active' : '');
-    tab.title = 'Click to switch, double-click to change emoji, drag to reorder';
+    const isActive = page.id === currentPageId;
+    const emoji = getPageDisplayEmoji(page);
+
+    tab.className = 'page-tab' + (isActive ? ' active' : '');
+    tab.type = 'button';
+    tab.title = isActive
+      ? 'Current page. Click to change emoji. Drag to reorder.'
+      : 'Click to switch pages. Drag to reorder.';
     tab.setAttribute('role', 'tab');
-    tab.setAttribute('aria-selected', page.id === currentPageId ? 'true' : 'false');
-    tab.setAttribute('tabindex', page.id === currentPageId ? '0' : '-1');
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    tab.setAttribute('tabindex', isActive ? '0' : '-1');
     tab.setAttribute('draggable', 'true');
+    tab.setAttribute('aria-label', isActive
+      ? `Current page ${index + 1}. Click to change the emoji.`
+      : `Open page ${index + 1}.`);
     tab.dataset.pageId = page.id;
     tab.dataset.pageIndex = index;
     
     // Create emoji element
-    const emoji = typeof page.emoji === 'string' ? page.emoji : '📝';
     const span = document.createElement('span');
     span.className = 'page-tab-emoji';
     span.textContent = emoji;
@@ -1422,16 +1562,17 @@ function renderPageTabs() {
     
     // Single click to switch page
     tab.addEventListener('click', (e) => {
-      if (page.id !== currentPageId) {
-        syncCurrentPageScrollPosition();
-        saveContent();
-        loadPageContent(page.id);
+      e.preventDefault();
+
+      if (page.id === currentPageId) {
+        openEmojiPicker(page.id);
+        return;
       }
-    });
-    
-    // Double click to change emoji
-    tab.addEventListener('dblclick', (e) => {
-      openEmojiPicker(page.id);
+
+      closeEmojiPicker();
+      syncCurrentPageScrollPosition();
+      saveContent();
+      loadPageContent(page.id);
     });
     
     pageTabsList.appendChild(tab);
@@ -1541,32 +1682,98 @@ function openEmojiPicker(pageId) {
   editingPageId = pageId;
   closeDeletePageConfirm();
 
+  if (emojiPickerClear) {
+    emojiPickerClear.disabled = !getPageById(pageId)?.emoji;
+  }
+
+  if (emojiPickerDelete) {
+    emojiPickerDelete.disabled = pages.length <= 1;
+    emojiPickerDelete.setAttribute('aria-expanded', 'false');
+  }
+
+  emojiPicker?.classList.add('visible');
+  updateEmojiPickerState({ focusSelection: true });
+  positionEmojiPicker(pageId);
+}
+
+// Close emoji picker
+function closeEmojiPicker({ restoreFocus = false } = {}) {
+  const pageIdToFocus = editingPageId;
+
+  editingPageId = null;
+  closeDeletePageConfirm();
+  emojiPicker?.classList.remove('visible');
+  if (emojiPicker) {
+    emojiPicker.style.left = '';
+    emojiPicker.style.top = '';
+  }
+
+  if (restoreFocus) {
+    getPageTabButton(pageIdToFocus)?.focus();
+  }
+}
+
+function updateEmojiPickerState({ focusSelection = false } = {}) {
+  const page = getPageById(editingPageId);
+  const selectedEmoji = page?.emoji || '';
+  let selectedButton = null;
+  let firstButton = null;
+
+  emojiGrid?.querySelectorAll('.emoji-option').forEach(button => {
+    if (!firstButton) {
+      firstButton = button;
+    }
+
+    const isSelected = Boolean(selectedEmoji) && button.dataset.emoji === selectedEmoji;
+    button.classList.toggle('selected', isSelected);
+    button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+
+    if (isSelected) {
+      selectedButton = button;
+    }
+  });
+
+  if (emojiPickerClear) {
+    emojiPickerClear.disabled = !selectedEmoji;
+  }
+
   if (emojiPickerDelete) {
     emojiPickerDelete.disabled = pages.length <= 1;
   }
 
-  emojiPicker?.classList.add('visible');
+  if (focusSelection) {
+    requestAnimationFrame(() => {
+      (selectedButton || firstButton)?.focus();
+    });
+  }
 }
 
-// Close emoji picker
-function closeEmojiPicker() {
-  editingPageId = null;
-  closeDeletePageConfirm();
-  emojiPicker?.classList.remove('visible');
+function clearPageEmoji() {
+  if (!editingPageId) return;
+
+  const page = getPageById(editingPageId);
+  if (!page || !page.emoji) {
+    return;
+  }
+
+  page.emoji = '';
+  chrome.storage.local.set({ pages, currentPageId });
+  renderPageTabs();
+  closeEmojiPicker({ restoreFocus: true });
 }
 
 // Select emoji for page
 function selectEmoji(emoji) {
   if (!editingPageId) return;
   
-  const page = pages.find(p => p.id === editingPageId);
+  const page = getPageById(editingPageId);
   if (page) {
     page.emoji = emoji;
-    chrome.storage.local.set({ pages });
+    chrome.storage.local.set({ pages, currentPageId });
     renderPageTabs();
   }
   
-  closeEmojiPicker();
+  closeEmojiPicker({ restoreFocus: true });
 }
 
 // Initialize emoji picker
@@ -1576,6 +1783,10 @@ function initEmojiPicker() {
   PAGE_EMOJIS.forEach(emoji => {
     const btn = document.createElement('button');
     btn.className = 'emoji-option';
+    btn.type = 'button';
+    btn.dataset.emoji = emoji;
+    btn.setAttribute('aria-label', `Set page emoji to ${emoji}`);
+    btn.setAttribute('aria-pressed', 'false');
     btn.textContent = emoji;
     btn.addEventListener('click', () => selectEmoji(emoji));
     emojiGrid.appendChild(btn);
@@ -1604,6 +1815,13 @@ function initEmojiPicker() {
       } else {
         openDeletePageConfirm();
       }
+    });
+  }
+
+  if (emojiPickerClear) {
+    emojiPickerClear.addEventListener('click', (event) => {
+      event.stopPropagation();
+      clearPageEmoji();
     });
   }
 
@@ -1639,7 +1857,7 @@ function getCurrentSettings() {
     drawColorMode: drawingState.currentBrushColorMode,
     textColor: controls.textColor.value,
     backgroundColor: controls.backgroundColor.value,
-    selectionColor: controls.selectionColor.value,
+    selectionColor: syncSelectionColorControl(controls.textColor.value),
     currentTheme: currentTheme
   };
 }
@@ -1668,11 +1886,12 @@ function initThemeGrid() {
 
     const highlightedText = document.createElement('span');
     highlightedText.className = 'theme-swatch-highlight';
-    highlightedText.style.backgroundColor = theme.selectionColor;
+    highlightedText.style.backgroundColor = theme.textColor;
 
     const highlightedTextLabel = document.createElement('span');
     highlightedTextLabel.className = 'theme-swatch-text theme-swatch-text-highlighted';
-    highlightedTextLabel.style.color = theme.textColor;
+    regularText.style.color = theme.textColor;
+    highlightedTextLabel.style.color = '#FFFFFF';
     highlightedTextLabel.textContent = 'Aa';
 
     highlightedText.appendChild(highlightedTextLabel);
@@ -1702,12 +1921,12 @@ function selectTheme(themeKey) {
   // Update color controls
   controls.textColor.value = theme.textColor;
   controls.backgroundColor.value = theme.backgroundColor;
-  controls.selectionColor.value = theme.selectionColor;
+  controls.selectionColor.value = theme.textColor;
   
   // Update hex inputs
   if (hexInputs.textColor) hexInputs.textColor.value = theme.textColor;
   if (hexInputs.backgroundColor) hexInputs.backgroundColor.value = theme.backgroundColor;
-  if (hexInputs.selectionColor) hexInputs.selectionColor.value = theme.selectionColor;
+  if (hexInputs.selectionColor) hexInputs.selectionColor.value = theme.textColor;
 
   if (drawingState.currentBrushColorMode !== 'custom') {
     setBrushColor(theme.textColor, { persist: false, mode: 'theme' });
@@ -1735,18 +1954,18 @@ function handleColorChange() {
   // Check if current colors match any theme
   const textColor = controls.textColor.value.toUpperCase();
   const bgColor = controls.backgroundColor.value.toUpperCase();
-  const selColor = controls.selectionColor.value.toUpperCase();
+  const selColor = syncSelectionColorControl(textColor).toUpperCase();
   
   // Sync hex inputs
   if (hexInputs.textColor) hexInputs.textColor.value = controls.textColor.value;
   if (hexInputs.backgroundColor) hexInputs.backgroundColor.value = controls.backgroundColor.value;
-  if (hexInputs.selectionColor) hexInputs.selectionColor.value = controls.selectionColor.value;
+  if (hexInputs.selectionColor) hexInputs.selectionColor.value = selColor;
   
   let matchedTheme = null;
   for (const [key, theme] of Object.entries(THEMES)) {
     if (theme.textColor.toUpperCase() === textColor &&
         theme.backgroundColor.toUpperCase() === bgColor &&
-        theme.selectionColor.toUpperCase() === selColor) {
+        theme.textColor.toUpperCase() === selColor) {
       matchedTheme = key;
       break;
     }
@@ -1765,6 +1984,11 @@ function handleHexInputChange(colorKey) {
   const hexInput = hexInputs[colorKey];
   const colorInput = controls[colorKey];
   if (!hexInput || !colorInput) return;
+
+  if (colorKey === 'selectionColor') {
+    syncSelectionColorControl();
+    return;
+  }
   
   let value = hexInput.value.trim();
   
@@ -1805,9 +2029,10 @@ function handleSettingChange() {
 // Reset settings to defaults
 function resetSettings() {
   currentTheme = 'lavender';
-  applySettings(DEFAULT_SETTINGS);
-  updateControlValues(DEFAULT_SETTINGS);
-  saveSettings(DEFAULT_SETTINGS);
+  const resetSettingsValues = { ...DEFAULT_SETTINGS, selectionColor: DEFAULT_SETTINGS.textColor };
+  applySettings(resetSettingsValues);
+  updateControlValues(resetSettingsValues);
+  saveSettings(resetSettingsValues);
   updateThemeGridSelection();
   scheduleDrawingLayerSync();
 }
@@ -1944,7 +2169,7 @@ function handleUnindent(selection) {
 });
 
 // Color controls - use special handler
-['textColor', 'backgroundColor', 'selectionColor'].forEach(key => {
+['textColor', 'backgroundColor'].forEach(key => {
   controls[key].addEventListener('input', handleColorChange);
   controls[key].addEventListener('change', handleColorChange);
 });
@@ -1978,6 +2203,12 @@ if (settingsCloseBtn) {
 
 // Add page button
 addPageBtn.addEventListener('click', addNewPage);
+
+if (pageTabsList) {
+  pageTabsList.addEventListener('pointerdown', () => {
+    closeDeletePageConfirm();
+  });
+}
 
 // Drawing mode controls
 if (drawToggleBtn) {
@@ -2022,12 +2253,40 @@ if (drawingLayer) {
   drawingLayer.addEventListener('pointercancel', finishStroke);
 }
 
-window.addEventListener('resize', scheduleDrawingLayerSync);
+window.addEventListener('resize', () => {
+  scheduleDrawingLayerSync();
+  if (emojiPicker?.classList.contains('visible')) {
+    positionEmojiPicker(editingPageId);
+  }
+});
 
 window.addEventListener('scroll', () => {
-  syncCurrentPageScrollPosition();
-  persistPagesState();
+  handleScrollActivity({ persistPageScroll: true });
 }, { passive: true });
+
+if (pageTabsList) {
+  pageTabsList.addEventListener('scroll', () => {
+    handleScrollActivity({ repositionEmojiPicker: true });
+  }, { passive: true });
+}
+
+if (emojiPicker) {
+  emojiPicker.addEventListener('scroll', () => {
+    handleScrollActivity();
+  }, { passive: true });
+}
+
+window.addEventListener('pagehide', () => {
+  syncCurrentPageScrollPosition();
+  persistPagesStateImmediately();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    syncCurrentPageScrollPosition();
+    persistPagesStateImmediately();
+  }
+});
 
 document.addEventListener('click', (event) => {
   if (uiState.settingsOpen && !event.target.closest('.controls-container') && !event.target.closest('.color-picker-popup')) {
@@ -2093,6 +2352,12 @@ document.addEventListener('keydown', (e) => {
     if (fontDropdownOpen) {
       e.preventDefault();
       closeFontDropdown();
+      return;
+    }
+
+    if (emojiPicker?.classList.contains('visible')) {
+      e.preventDefault();
+      closeEmojiPicker({ restoreFocus: true });
       return;
     }
 

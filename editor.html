@@ -84,28 +84,28 @@
       </button>
       
       <!-- Emoji picker tooltip -->
-      <div class="emoji-picker" id="emojiPicker">
+      <div class="emoji-picker" id="emojiPicker" role="dialog" aria-modal="false" aria-labelledby="emojiPickerTitle" aria-describedby="emojiPickerHint">
         <div class="emoji-picker-header">
-          <button class="emoji-picker-delete" id="emojiPickerDelete" title="Delete page">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5.33 3.5h5.34"/>
-              <path d="M6.17 3.5v-.86c0-.43.35-.78.78-.78h2.1c.43 0 .78.35.78.78v.86"/>
-              <path d="M2.83 5.28h10.34"/>
-              <path d="m4 5.28.63 7.53c.05.56.52.99 1.08.99h4.58c.56 0 1.03-.43 1.08-.99L12 5.28"/>
-              <path d="M6.9 7.72v3.53"/>
-              <path d="M9.1 7.72v3.53"/>
-            </svg>
-          </button>
+          <div class="emoji-picker-copy">
+            <p class="emoji-picker-title" id="emojiPickerTitle">Page emoji</p>
+            <p class="emoji-picker-hint" id="emojiPickerHint">Choose a new emoji, reset it, or delete the page.</p>
+          </div>
 
-          <div id="deletePageConfirm" class="delete-confirm-popover" role="dialog" aria-modal="false" aria-labelledby="deletePageConfirmTitle">
-            <p id="deletePageConfirmTitle" class="delete-confirm-title">Delete page?</p>
-            <p class="delete-confirm-text">This removes the page text and its drawings.</p>
-            <div class="delete-confirm-actions">
-              <button id="cancelDeletePageBtn" class="delete-confirm-cancel" type="button">Cancel</button>
-              <button id="confirmDeletePageBtn" class="delete-confirm-delete" type="button">Delete</button>
-            </div>
+          <div class="emoji-picker-actions">
+            <button class="emoji-picker-action" id="emojiPickerClear" type="button">Reset emoji</button>
+            <button class="emoji-picker-action emoji-picker-action-danger" id="emojiPickerDelete" type="button" aria-controls="deletePageConfirm" aria-expanded="false">Delete page…</button>
           </div>
         </div>
+
+        <div id="deletePageConfirm" class="delete-confirm-popover" role="dialog" aria-modal="false" aria-labelledby="deletePageConfirmTitle" hidden>
+          <p id="deletePageConfirmTitle" class="delete-confirm-title">Delete page?</p>
+          <p class="delete-confirm-text">This removes the page text and its drawings.</p>
+          <div class="delete-confirm-actions">
+            <button id="cancelDeletePageBtn" class="delete-confirm-cancel" type="button">Cancel</button>
+            <button id="confirmDeletePageBtn" class="delete-confirm-delete" type="button">Delete</button>
+          </div>
+        </div>
+
         <div class="emoji-grid" id="emojiGrid"></div>
       </div>
     </div>
@@ -240,6 +240,7 @@
               </div>
             </div>
           </div>
+          <p class="color-note">Highlights match the text color automatically.</p>
         </details>
       </div>
 
