@@ -204,6 +204,14 @@ html {
   transition: color 0.3s ease, background-color 0.3s ease;
 }
 
+#editor img {
+  display: block;
+  inline-size: auto;
+  max-inline-size: min(100%, 32em);
+  block-size: auto;
+  margin-block: 0.75em;
+}
+
 #drawingLayer {
   position: absolute;
   inset: 0;
@@ -1343,6 +1351,24 @@ button.controls-icon {
 .page-tab:hover {
   opacity: 1;
   background: var(--ui-hover);
+}
+
+body.page-reordering .page-tab:hover {
+  opacity: 0.8;
+  background: transparent;
+}
+
+body.page-reordering .page-tab:hover .page-tab-emoji {
+  opacity: 0.7;
+}
+
+body.page-reordering .page-tab.active:hover {
+  opacity: 1;
+  background: var(--ui-hover-strong);
+}
+
+body.page-reordering .page-tab.active:hover .page-tab-emoji {
+  opacity: 1;
 }
 
 .page-tab.active {

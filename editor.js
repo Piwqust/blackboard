@@ -694,6 +694,7 @@ let currentPageId = null;
 let editingPageId = null;
 let hoverResetTimeout = null;
 let scrollRestoreTimeout = null;
+let hoverResetOnPointerMove = false;
 
 // Overlay/menu state
 const uiState = {
@@ -702,7 +703,9 @@ const uiState = {
 };
 
 // Drawing state
-const drawingContext = drawingLayer ? drawingLayer.getContext('2d') : null;
+const drawingContext = drawingLayer
+  ? (drawingLayer.getContext('2d', { desynchronized: true }) || drawingLayer.getContext('2d'))
+  : null;
 const drawingState = {
   enabled: false,
   isDrawing: false,
@@ -710,7 +713,12 @@ const drawingState = {
   currentTool: 'brush',
   currentBrushSize: DEFAULT_SETTINGS.drawSize,
   currentBrushColorMode: DEFAULT_SETTINGS.drawColorMode,
-  syncFrame: null
+  syncFrame: null,
+  strokeFrame: null,
+  activeBoardRect: null,
+  lastRenderedPointIndex: -1,
+  pendingFullRedraw: false,
+  scrollTopBeforeMode: 0
 };
 
 function normalizePage(page = {}) {
@@ -772,6 +780,17 @@ function syncCurrentPageScrollPosition() {
   page.scrollTop = getViewportScrollTop();
 }
 
+function persistCurrentPageScrollPosition({ immediate = false } = {}) {
+  syncCurrentPageScrollPosition();
+
+  if (immediate) {
+    persistPagesStateImmediately();
+    return;
+  }
+
+  persistPagesState();
+}
+
 function restorePageScrollPosition(scrollTop = 0) {
   const targetScrollTop = Math.max(0, Number(scrollTop) || 0);
   const applyScroll = () => {
@@ -800,6 +819,20 @@ function restorePageScrollPosition(scrollTop = 0) {
   }, 120);
 }
 
+function clearHoverEffectsSuppression() {
+  document.body.classList.remove('is-scrolling');
+
+  if (hoverResetTimeout) {
+    clearTimeout(hoverResetTimeout);
+    hoverResetTimeout = null;
+  }
+
+  if (hoverResetOnPointerMove) {
+    window.removeEventListener('pointermove', clearHoverEffectsSuppression);
+    hoverResetOnPointerMove = false;
+  }
+}
+
 function suppressHoverEffects() {
   document.body.classList.add('is-scrolling');
 
@@ -807,10 +840,14 @@ function suppressHoverEffects() {
     clearTimeout(hoverResetTimeout);
   }
 
+  if (!hoverResetOnPointerMove) {
+    window.addEventListener('pointermove', clearHoverEffectsSuppression, { passive: true });
+    hoverResetOnPointerMove = true;
+  }
+
   hoverResetTimeout = setTimeout(() => {
-    document.body.classList.remove('is-scrolling');
-    hoverResetTimeout = null;
-  }, 140);
+    clearHoverEffectsSuppression();
+  }, 480);
 }
 
 function handleScrollActivity({ repositionEmojiPicker = false, persistPageScroll = false } = {}) {
@@ -821,8 +858,7 @@ function handleScrollActivity({ repositionEmojiPicker = false, persistPageScroll
   }
 
   if (persistPageScroll) {
-    syncCurrentPageScrollPosition();
-    persistPagesState();
+    persistCurrentPageScrollPosition();
   }
 }
 
@@ -912,6 +948,20 @@ function setDrawingTool(tool) {
   updateDrawingToolButtons();
 }
 
+function focusEditorWithoutScroll(scrollTop = getViewportScrollTop()) {
+  if (!editor) {
+    return;
+  }
+
+  try {
+    editor.focus({ preventScroll: true });
+  } catch (error) {
+    editor.focus();
+  }
+
+  restorePageScrollPosition(scrollTop);
+}
+
 function toggleDrawingTool(tool) {
   const nextTool = tool === 'eraser' ? 'eraser' : 'brush';
 
@@ -925,6 +975,7 @@ function toggleDrawingTool(tool) {
 }
 
 function setDrawMode(enabled) {
+  const viewportScrollTop = getViewportScrollTop();
   drawingState.enabled = Boolean(enabled);
   document.body.classList.toggle('drawing-mode', drawingState.enabled);
   if (drawingToolbar) {
@@ -933,20 +984,27 @@ function setDrawMode(enabled) {
   updateDrawingToolButtons();
 
   if (drawingState.enabled) {
+    drawingState.scrollTopBeforeMode = viewportScrollTop;
+    syncCurrentPageScrollPosition();
     editor.blur();
   } else {
-    editor.focus();
+    focusEditorWithoutScroll(drawingState.scrollTopBeforeMode || viewportScrollTop);
+    syncCurrentPageScrollPosition();
   }
 }
 
-function scheduleDrawingLayerSync() {
+function scheduleDrawingLayerSync({ forceRedraw = false } = {}) {
+  drawingState.pendingFullRedraw = drawingState.pendingFullRedraw || forceRedraw;
+
   if (drawingState.syncFrame) {
     cancelAnimationFrame(drawingState.syncFrame);
   }
 
   drawingState.syncFrame = requestAnimationFrame(() => {
+    const pendingFullRedraw = drawingState.pendingFullRedraw;
     drawingState.syncFrame = null;
-    syncDrawingLayerSize();
+    drawingState.pendingFullRedraw = false;
+    syncDrawingLayerSize({ forceRedraw: pendingFullRedraw });
   });
 }
 
@@ -1007,13 +1065,14 @@ function redrawDrawings() {
   page.drawings.forEach(stroke => drawStroke(stroke));
 }
 
-function syncDrawingLayerSize() {
+function syncDrawingLayerSize({ forceRedraw = false } = {}) {
   if (!drawingLayer || !drawingContext || !board) return;
 
   const { width, height } = getBoardSize();
   const dpr = window.devicePixelRatio || 1;
   const targetWidth = Math.max(1, Math.round(width * dpr));
   const targetHeight = Math.max(1, Math.round(height * dpr));
+  let resized = false;
 
   if (drawingLayer.width !== targetWidth || drawingLayer.height !== targetHeight) {
     drawingLayer.width = targetWidth;
@@ -1021,23 +1080,101 @@ function syncDrawingLayerSize() {
     drawingLayer.style.width = `${width}px`;
     drawingLayer.style.height = `${height}px`;
     drawingContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+    resized = true;
   }
 
-  redrawDrawings();
+  if (resized || forceRedraw) {
+    redrawDrawings();
+  }
 }
 
-function getRelativePoint(event) {
+function getRelativePoint(event, rect = drawingState.activeBoardRect) {
   if (!board) {
     return { x: 0, y: 0 };
   }
 
-  const rect = board.getBoundingClientRect();
-  const width = Math.max(rect.width, 1);
-  const height = Math.max(rect.height, 1);
-  const x = Math.min(Math.max(event.clientX - rect.left, 0), width);
-  const y = Math.min(Math.max(event.clientY - rect.top, 0), height);
+  const boardRect = rect || board.getBoundingClientRect();
+  const width = Math.max(boardRect.width, 1);
+  const height = Math.max(boardRect.height, 1);
+  const x = Math.min(Math.max(event.clientX - boardRect.left, 0), width);
+  const y = Math.min(Math.max(event.clientY - boardRect.top, 0), height);
 
   return { x, y };
+}
+
+function drawStrokeRange(stroke, startIndex = 0) {
+  if (!drawingContext || !stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) {
+    return;
+  }
+
+  const clampedStartIndex = Math.max(0, Math.min(Number(startIndex) || 0, stroke.points.length - 1));
+  const pathStartIndex = clampedStartIndex > 0 ? clampedStartIndex - 1 : 0;
+  const startPoint = stroke.points[pathStartIndex];
+  const segmentPoints = stroke.points.slice(clampedStartIndex > 0 ? clampedStartIndex : 1);
+  const isSinglePointStroke = stroke.points.length === 1 && clampedStartIndex === 0;
+
+  if (!startPoint) {
+    return;
+  }
+
+  drawingContext.save();
+  drawingContext.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
+  drawingContext.strokeStyle = stroke.tool === 'eraser' ? '#000000' : (stroke.color || getCurrentBrushColor());
+  drawingContext.lineWidth = Math.max(1, Number(stroke.width) || DEFAULT_SETTINGS.drawSize);
+  drawingContext.lineCap = 'round';
+  drawingContext.lineJoin = 'round';
+  drawingContext.beginPath();
+  drawingContext.moveTo(startPoint.x, startPoint.y);
+
+  if (isSinglePointStroke) {
+    drawingContext.lineTo(startPoint.x + 0.01, startPoint.y + 0.01);
+  } else {
+    segmentPoints.forEach(point => drawingContext.lineTo(point.x, point.y));
+  }
+
+  drawingContext.stroke();
+  drawingContext.restore();
+}
+
+function flushPendingStrokeRender() {
+  const stroke = drawingState.currentStroke;
+  if (!stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) {
+    return;
+  }
+
+  const startIndex = drawingState.lastRenderedPointIndex < 0
+    ? 0
+    : drawingState.lastRenderedPointIndex + 1;
+
+  if (startIndex >= stroke.points.length) {
+    return;
+  }
+
+  drawStrokeRange(stroke, startIndex);
+  drawingState.lastRenderedPointIndex = stroke.points.length - 1;
+}
+
+function schedulePendingStrokeRender() {
+  if (drawingState.strokeFrame) {
+    return;
+  }
+
+  drawingState.strokeFrame = requestAnimationFrame(() => {
+    drawingState.strokeFrame = null;
+    flushPendingStrokeRender();
+  });
+}
+
+function resetCurrentStrokeState() {
+  drawingState.isDrawing = false;
+  drawingState.currentStroke = null;
+  drawingState.activeBoardRect = null;
+  drawingState.lastRenderedPointIndex = -1;
+
+  if (drawingState.strokeFrame) {
+    cancelAnimationFrame(drawingState.strokeFrame);
+    drawingState.strokeFrame = null;
+  }
 }
 
 function beginStroke(event) {
@@ -1047,37 +1184,39 @@ function beginStroke(event) {
   if (!page) return;
 
   event.preventDefault();
+  drawingState.activeBoardRect = board?.getBoundingClientRect() || null;
 
   const stroke = {
     id: generateId(),
     tool: drawingState.currentTool,
     color: drawingState.currentTool === 'eraser' ? null : getCurrentBrushColor(),
     width: drawingState.currentBrushSize,
-    points: [getRelativePoint(event)]
+    points: [getRelativePoint(event, drawingState.activeBoardRect)]
   };
 
   page.drawings.push(stroke);
   drawingState.isDrawing = true;
   drawingState.currentStroke = stroke;
+  drawingState.lastRenderedPointIndex = -1;
 
   if (drawingLayer.setPointerCapture) {
     drawingLayer.setPointerCapture(event.pointerId);
   }
 
-  redrawDrawings();
+  schedulePendingStrokeRender();
 }
 
 function extendStroke(event) {
   if (!drawingState.enabled || !drawingState.isDrawing || !drawingState.currentStroke) return;
 
   event.preventDefault();
-  const point = getRelativePoint(event);
+  const point = getRelativePoint(event, drawingState.activeBoardRect);
   const points = drawingState.currentStroke.points;
   const lastPoint = points[points.length - 1];
 
   if (!lastPoint || lastPoint.x !== point.x || lastPoint.y !== point.y) {
     points.push(point);
-    redrawDrawings();
+    schedulePendingStrokeRender();
   }
 }
 
@@ -1095,13 +1234,18 @@ function finishStroke(event) {
     }
   }
 
+  if (drawingState.strokeFrame) {
+    cancelAnimationFrame(drawingState.strokeFrame);
+    drawingState.strokeFrame = null;
+  }
+
+  flushPendingStrokeRender();
+
   if (drawingState.currentStroke.points.length === 1) {
     drawingState.currentStroke.points.push({ ...drawingState.currentStroke.points[0] });
   }
 
-  drawingState.isDrawing = false;
-  drawingState.currentStroke = null;
-  redrawDrawings();
+  resetCurrentStrokeState();
   saveContent();
 }
 
@@ -1514,12 +1658,13 @@ function generateId() {
 function loadPageContent(pageId) {
   const page = pages.find(p => p.id === pageId);
   if (page) {
+    resetCurrentStrokeState();
     editor.innerHTML = page.content;
     currentPageId = pageId;
     chrome.storage.local.set({ currentPageId });
     renderPageTabs();
     updateWordCount();
-    scheduleDrawingLayerSync();
+    scheduleDrawingLayerSync({ forceRedraw: true });
     restorePageScrollPosition(page.scrollTop);
   }
 }
@@ -1584,9 +1729,26 @@ function renderPageTabs() {
 // Drag and drop state
 let draggedPageId = null;
 
+function clearPageTabDragState() {
+  document.querySelectorAll('.page-tab').forEach(tab => {
+    tab.classList.remove('dragging', 'drag-over');
+  });
+}
+
+function setPageReorderingState(isReordering) {
+  document.body.classList.toggle('page-reordering', Boolean(isReordering));
+}
+
 function handleDragStart(e) {
-  draggedPageId = e.target.dataset.pageId;
-  e.target.classList.add('dragging');
+  const tab = e.currentTarget.closest('.page-tab');
+  if (!tab) {
+    return;
+  }
+
+  draggedPageId = tab.dataset.pageId;
+  clearPageTabDragState();
+  setPageReorderingState(true);
+  tab.classList.add('dragging');
   e.dataTransfer.effectAllowed = 'move';
 }
 
@@ -1594,6 +1756,16 @@ function handleDragOver(e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
   const tab = e.target.closest('.page-tab');
+  clearPageTabDragState();
+
+  const draggedTab = draggedPageId
+    ? pageTabsList?.querySelector(`.page-tab[data-page-id="${draggedPageId}"]`)
+    : null;
+
+  if (draggedTab) {
+    draggedTab.classList.add('dragging');
+  }
+
   if (tab && tab.dataset.pageId !== draggedPageId) {
     tab.classList.add('drag-over');
   }
@@ -1616,15 +1788,17 @@ function handleDrop(e) {
   const [draggedPage] = pages.splice(draggedIndex, 1);
   pages.splice(targetIndex, 0, draggedPage);
   
-  chrome.storage.local.set({ pages });
+  draggedPageId = null;
+  clearPageTabDragState();
+  setPageReorderingState(false);
+  chrome.storage.local.set({ pages, currentPageId });
   renderPageTabs();
 }
 
 function handleDragEnd(e) {
   draggedPageId = null;
-  document.querySelectorAll('.page-tab').forEach(tab => {
-    tab.classList.remove('dragging', 'drag-over');
-  });
+  clearPageTabDragState();
+  setPageReorderingState(false);
 }
 
 // Add new page
@@ -1654,7 +1828,7 @@ function addNewPage() {
   
   chrome.storage.local.set({ pages, currentPageId });
   renderPageTabs();
-  scheduleDrawingLayerSync();
+  scheduleDrawingLayerSync({ forceRedraw: true });
   restorePageScrollPosition(0);
   editor.focus();
 }
@@ -2023,7 +2197,7 @@ function handleSettingChange() {
   valueDisplays.letterSpacing.textContent = settings.letterSpacing + 'em';
   valueDisplays.maxWidth.textContent = settings.maxWidth + 'px';
 
-  scheduleDrawingLayerSync();
+  scheduleDrawingLayerSync({ forceRedraw: true });
 }
 
 // Reset settings to defaults
@@ -2034,14 +2208,14 @@ function resetSettings() {
   updateControlValues(resetSettingsValues);
   saveSettings(resetSettingsValues);
   updateThemeGridSelection();
-  scheduleDrawingLayerSync();
+  scheduleDrawingLayerSync({ forceRedraw: true });
 }
 
 // Event Listeners
 
 // Editor input - auto-save
 editor.addEventListener('input', debouncedSave);
-editor.addEventListener('input', scheduleDrawingLayerSync);
+editor.addEventListener('input', () => scheduleDrawingLayerSync());
 
 // Prevent unwanted formatting on paste - keep plain text
 editor.addEventListener('paste', (e) => {
@@ -2254,7 +2428,7 @@ if (drawingLayer) {
 }
 
 window.addEventListener('resize', () => {
-  scheduleDrawingLayerSync();
+  scheduleDrawingLayerSync({ forceRedraw: true });
   if (emojiPicker?.classList.contains('visible')) {
     positionEmojiPicker(editingPageId);
   }
@@ -2277,14 +2451,12 @@ if (emojiPicker) {
 }
 
 window.addEventListener('pagehide', () => {
-  syncCurrentPageScrollPosition();
-  persistPagesStateImmediately();
+  persistCurrentPageScrollPosition({ immediate: true });
 });
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
-    syncCurrentPageScrollPosition();
-    persistPagesStateImmediately();
+    persistCurrentPageScrollPosition({ immediate: true });
   }
 });
 
@@ -2300,7 +2472,7 @@ document.addEventListener('click', (event) => {
 
 if (window.ResizeObserver && board) {
   const resizeObserver = new ResizeObserver(() => {
-    scheduleDrawingLayerSync();
+    scheduleDrawingLayerSync({ forceRedraw: true });
   });
 
   resizeObserver.observe(board);
@@ -2414,7 +2586,7 @@ document.addEventListener('keydown', (e) => {
 
 // Initialize
 loadSavedData();
-scheduleDrawingLayerSync();
+scheduleDrawingLayerSync({ forceRedraw: true });
 
 // Focus editor on load
 editor.focus();
