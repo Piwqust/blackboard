@@ -57,7 +57,7 @@ const DEFAULT_SETTINGS = {
   lineHeight: 1.8,
   letterSpacing: 0,
   maxWidth: 800,
-  drawSize: 4,
+  drawSize: 4 / 18,
   drawColor: '#6D68B3',
   drawColorMode: 'theme',
   textColor: '#6D68B3',
@@ -65,6 +65,11 @@ const DEFAULT_SETTINGS = {
   selectionColor: '#6D68B3',
   currentTheme: 'lavender'
 };
+
+const DRAWING_COORDINATE_SPACE = 'text-scaled-px';
+const LEGACY_DRAWING_COORDINATE_SPACE = 'font-relative';
+const MIN_DRAW_SIZE = 0.08;
+const MAX_DRAW_SIZE = 1.4;
 
 // Static emoji collection for pages
 const PAGE_EMOJIS = [
@@ -92,6 +97,9 @@ const drawColorBtn = document.getElementById('drawColorBtn');
 const drawColorPreview = document.getElementById('drawColorPreview');
 const undoDrawingBtn = document.getElementById('undoDrawingBtn');
 const clearDrawingsBtn = document.getElementById('clearDrawingsBtn');
+const drawSizeToggleBtn = document.getElementById('drawSizeToggleBtn');
+const drawSizeToggleStroke = document.getElementById('drawSizeToggleStroke');
+const drawSizePopover = document.getElementById('drawSizePopover');
 const settingsToggleBtn = document.getElementById('settingsToggleBtn');
 const settingsCloseBtn = document.getElementById('settingsCloseBtn');
 const controlsContainer = document.querySelector('.controls-container');
@@ -120,7 +128,11 @@ const controls = {
   selectionColor: document.getElementById('selectionColor')
 };
 
+const drawSizeSlider = document.getElementById('drawSize');
+const drawSizeValue = document.getElementById('drawSizeValue');
+const drawSizeMarkers = document.getElementById('drawSizeMarkers');
 const drawSizeButtons = Array.from(document.querySelectorAll('[data-draw-size]'));
+const DRAW_SIZE_MARKERS = [0.08, 0.14, 0.22, 0.32, 0.46, 0.66, 0.92, 1.22];
 
 // Hex input controls
 const hexInputs = {
@@ -286,6 +298,8 @@ function initColorPickerSwatches() {
 // Color picker functions
 function openColorPicker(colorKey, triggerElement) {
   const labels = { textColor: 'Text Color', backgroundColor: 'Background', selectionColor: 'Selection', drawColor: 'Brush Color' };
+
+  closeDrawSizePopover();
 
   if (colorKey === 'drawColor') {
     setSettingsPanelOpen(false);
@@ -695,11 +709,13 @@ let editingPageId = null;
 let hoverResetTimeout = null;
 let scrollRestoreTimeout = null;
 let hoverResetOnPointerMove = false;
+let drawSizeMarkerButtons = [];
 
 // Overlay/menu state
 const uiState = {
   settingsOpen: false,
-  deleteConfirmOpen: false
+  deleteConfirmOpen: false,
+  drawSizePopoverOpen: false
 };
 
 // Drawing state
@@ -718,17 +734,210 @@ const drawingState = {
   activeBoardRect: null,
   lastRenderedPointIndex: -1,
   pendingFullRedraw: false,
-  scrollTopBeforeMode: 0
+  scrollTopBeforeMode: 0,
+  activePointerId: null
 };
 
-function normalizePage(page = {}) {
+function getNormalizedFontSize(fontSize = controls.fontSize?.value || DEFAULT_SETTINGS.fontSize) {
+  const parsedFontSize = Number(fontSize);
+  return Number.isFinite(parsedFontSize) && parsedFontSize > 0 ? parsedFontSize : DEFAULT_SETTINGS.fontSize;
+}
+
+function clampBrushSize(size) {
+  const parsedSize = Number(size);
+
+  if (!Number.isFinite(parsedSize)) {
+    return DEFAULT_SETTINGS.drawSize;
+  }
+
+  return Math.min(MAX_DRAW_SIZE, Math.max(MIN_DRAW_SIZE, parsedSize));
+}
+
+function normalizeBrushSizeSetting(size, fontSize = DEFAULT_SETTINGS.fontSize) {
+  const parsedSize = Number(size);
+  if (!Number.isFinite(parsedSize)) {
+    return DEFAULT_SETTINGS.drawSize;
+  }
+
+  const normalizedFontSize = getNormalizedFontSize(fontSize);
+  const scaledSize = parsedSize > MAX_DRAW_SIZE ? parsedSize / normalizedFontSize : parsedSize;
+  return clampBrushSize(scaledSize);
+}
+
+function normalizeStoredPoint(point = {}) {
+  const x = Number(point?.x);
+  const y = Number(point?.y);
+
+  return {
+    x: Number.isFinite(x) ? x : 0,
+    y: Number.isFinite(y) ? y : 0
+  };
+}
+
+function getStrokeReferenceFontSize(stroke = {}, fallbackFontSize = DEFAULT_SETTINGS.fontSize) {
+  return getNormalizedFontSize(stroke.referenceFontSize ?? stroke.fontSize ?? fallbackFontSize);
+}
+
+function convertLegacyPointToStoredPixels(point, fontSize = DEFAULT_SETTINGS.fontSize) {
+  const normalizedFontSize = getNormalizedFontSize(fontSize);
+  const normalizedPoint = normalizeStoredPoint(point);
+
+  return {
+    x: normalizedPoint.x * normalizedFontSize,
+    y: normalizedPoint.y * normalizedFontSize
+  };
+}
+
+function convertPointToCanvasPixels(point, referenceFontSize = DEFAULT_SETTINGS.fontSize, fontSize = getNormalizedFontSize()) {
+  const normalizedReferenceFontSize = getNormalizedFontSize(referenceFontSize);
+  const normalizedFontSize = getNormalizedFontSize(fontSize);
+  const normalizedPoint = normalizeStoredPoint(point);
+  const scaleFactor = normalizedFontSize / normalizedReferenceFontSize;
+
+  return {
+    x: normalizedPoint.x * scaleFactor,
+    y: normalizedPoint.y * scaleFactor
+  };
+}
+
+function getBrushSizeInPixels(size = drawingState.currentBrushSize, fontSize = getNormalizedFontSize()) {
+  return Math.max(1, clampBrushSize(size) * getNormalizedFontSize(fontSize));
+}
+
+function formatBrushSizeLabel(size = drawingState.currentBrushSize, fontSize = getNormalizedFontSize()) {
+  const pixelValue = getBrushSizeInPixels(size, fontSize);
+  const roundedPixels = pixelValue >= 10 ? pixelValue.toFixed(0) : pixelValue.toFixed(1);
+  const normalizedPixels = roundedPixels.replace(/\.0$/, '');
+  const relativePercent = Math.round(clampBrushSize(size) * 100);
+  return `${normalizedPixels}px · ${relativePercent}%`;
+}
+
+function getClosestBrushMarkerSize(size = drawingState.currentBrushSize) {
+  const normalizedBrushSize = clampBrushSize(size);
+
+  return DRAW_SIZE_MARKERS.reduce((closestSize, markerSize) => {
+    return Math.abs(markerSize - normalizedBrushSize) < Math.abs(closestSize - normalizedBrushSize)
+      ? markerSize
+      : closestSize;
+  }, DRAW_SIZE_MARKERS[0]);
+}
+
+function updateBrushSizeMarkers(size = drawingState.currentBrushSize) {
+  if (!drawSizeMarkerButtons.length) {
+    return;
+  }
+
+  const activeMarkerSize = getClosestBrushMarkerSize(size);
+
+  drawSizeMarkerButtons.forEach(button => {
+    const markerSize = Number(button.dataset.drawSize);
+    const isActive = Math.abs(markerSize - activeMarkerSize) < 0.001;
+    const previewHeight = Math.min(16, Math.max(2, getBrushSizeInPixels(markerSize) / 1.7));
+
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
+    button.style.setProperty('--marker-stroke-height', `${previewHeight}px`);
+    button.title = formatBrushSizeLabel(markerSize);
+  });
+}
+
+function initBrushSizeMarkers() {
+  if (!drawSizeMarkers) {
+    return;
+  }
+
+  drawSizeMarkers.innerHTML = '';
+  drawSizeMarkerButtons = DRAW_SIZE_MARKERS.map(markerSize => {
+    const button = document.createElement('button');
+    const swatch = document.createElement('span');
+
+    button.className = 'drawing-size-marker';
+    button.type = 'button';
+    button.dataset.drawSize = String(markerSize);
+    button.setAttribute('role', 'listitem');
+    button.setAttribute('aria-label', `Set brush size to ${formatBrushSizeLabel(markerSize)}`);
+    button.setAttribute('aria-pressed', 'false');
+
+    swatch.className = 'drawing-size-marker-swatch';
+    button.appendChild(swatch);
+    button.addEventListener('click', () => setBrushSize(markerSize));
+    drawSizeMarkers.appendChild(button);
+
+    return button;
+  });
+
+  updateBrushSizeMarkers();
+}
+
+function updateBrushSizeButtons() {
+  const normalizedBrushSize = clampBrushSize(drawingState.currentBrushSize);
+  const brushSizeLabel = formatBrushSizeLabel(normalizedBrushSize);
+
+  drawingState.currentBrushSize = normalizedBrushSize;
+  drawSizeButtons.forEach(button => {
+    const size = normalizeBrushSizeSetting(button.dataset.drawSize);
+    button.classList.toggle('active', Math.abs(size - normalizedBrushSize) < 0.01);
+  });
+
+  if (drawSizeSlider) {
+    drawSizeSlider.value = normalizedBrushSize;
+    drawSizeSlider.setAttribute('aria-valuetext', brushSizeLabel);
+  }
+
+  if (drawSizeValue) {
+    drawSizeValue.textContent = brushSizeLabel;
+  }
+
+  if (drawSizeToggleBtn) {
+    drawSizeToggleBtn.setAttribute('aria-label', `Brush size: ${brushSizeLabel}`);
+    drawSizeToggleBtn.title = `Brush size: ${brushSizeLabel}`;
+  }
+
+  if (drawSizeToggleStroke) {
+    const previewHeight = Math.min(10, Math.max(2, getBrushSizeInPixels(normalizedBrushSize) / 1.9));
+    drawSizeToggleStroke.style.setProperty('--draw-size-preview-height', `${previewHeight}px`);
+  }
+
+  updateBrushSizeMarkers(normalizedBrushSize);
+}
+
+function normalizeStroke(stroke = {}, fontSize = DEFAULT_SETTINGS.fontSize) {
+  const points = Array.isArray(stroke.points) ? stroke.points : [];
+  const isCurrentCoordinateSpace = stroke.coordinateSpace === DRAWING_COORDINATE_SPACE;
+  const isLegacyFontRelativeStroke = stroke.coordinateSpace === LEGACY_DRAWING_COORDINATE_SPACE;
+  const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
+
+  return {
+    id: stroke.id || generateId(),
+    tool: stroke.tool === 'eraser' ? 'eraser' : 'brush',
+    color: stroke.tool === 'eraser' ? null : (stroke.color || null),
+    width: isCurrentCoordinateSpace || isLegacyFontRelativeStroke
+      ? clampBrushSize(stroke.width)
+      : normalizeBrushSizeSetting(stroke.width, referenceFontSize),
+    points: points.map(point => {
+      if (isCurrentCoordinateSpace) {
+        return normalizeStoredPoint(point);
+      }
+
+      if (isLegacyFontRelativeStroke) {
+        return convertLegacyPointToStoredPixels(point, referenceFontSize);
+      }
+
+      return normalizeStoredPoint(point);
+    }),
+    coordinateSpace: DRAWING_COORDINATE_SPACE,
+    referenceFontSize
+  };
+}
+
+function normalizePage(page = {}, fontSize = DEFAULT_SETTINGS.fontSize) {
   const parsedScrollTop = Number(page.scrollTop);
 
   return {
     id: page.id || generateId(),
     emoji: typeof page.emoji === 'string' ? page.emoji : DEFAULT_PAGE_EMOJI,
     content: typeof page.content === 'string' ? page.content : '',
-    drawings: Array.isArray(page.drawings) ? page.drawings : [],
+    drawings: Array.isArray(page.drawings) ? page.drawings.map(stroke => normalizeStroke(stroke, fontSize)) : [],
     scrollTop: Number.isFinite(parsedScrollTop) && parsedScrollTop > 0 ? parsedScrollTop : 0
   };
 }
@@ -857,6 +1066,10 @@ function handleScrollActivity({ repositionEmojiPicker = false, persistPageScroll
     positionEmojiPicker(editingPageId);
   }
 
+  if (uiState.deleteConfirmOpen) {
+    positionDeletePageConfirm();
+  }
+
   if (persistPageScroll) {
     persistCurrentPageScrollPosition();
   }
@@ -901,20 +1114,8 @@ function setBrushColor(color, { persist = true, mode = 'custom' } = {}) {
   }
 }
 
-function updateBrushSizeButtons() {
-  drawSizeButtons.forEach(button => {
-    const size = Number(button.dataset.drawSize);
-    button.classList.toggle('active', Math.abs(size - drawingState.currentBrushSize) < 0.01);
-  });
-}
-
 function setBrushSize(size, persist = true) {
-  const parsedSize = Number(size);
-  if (!Number.isFinite(parsedSize)) {
-    return;
-  }
-
-  drawingState.currentBrushSize = parsedSize;
+  drawingState.currentBrushSize = normalizeBrushSizeSetting(size, getNormalizedFontSize());
   updateBrushSizeButtons();
 
   if (persist) {
@@ -1034,20 +1235,28 @@ function drawStroke(stroke) {
   }
 
   const isEraserStroke = stroke.tool === 'eraser';
+  const fontSize = getNormalizedFontSize();
+  const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
+  const renderedPoints = stroke.points.map(point => convertPointToCanvasPixels(point, referenceFontSize, fontSize));
+  const firstPoint = renderedPoints[0];
+
+  if (!firstPoint) {
+    return;
+  }
 
   drawingContext.save();
   drawingContext.globalCompositeOperation = isEraserStroke ? 'destination-out' : 'source-over';
   drawingContext.strokeStyle = isEraserStroke ? '#000000' : (stroke.color || getCurrentBrushColor());
-  drawingContext.lineWidth = Math.max(1, Number(stroke.width) || DEFAULT_SETTINGS.drawSize);
+  drawingContext.lineWidth = getBrushSizeInPixels(stroke.width, fontSize);
   drawingContext.lineCap = 'round';
   drawingContext.lineJoin = 'round';
   drawingContext.beginPath();
-  drawingContext.moveTo(stroke.points[0].x, stroke.points[0].y);
+  drawingContext.moveTo(firstPoint.x, firstPoint.y);
 
-  if (stroke.points.length === 1) {
-    drawingContext.lineTo(stroke.points[0].x + 0.01, stroke.points[0].y + 0.01);
+  if (renderedPoints.length === 1) {
+    drawingContext.lineTo(firstPoint.x + 0.01, firstPoint.y + 0.01);
   } else {
-    stroke.points.slice(1).forEach(point => drawingContext.lineTo(point.x, point.y));
+    renderedPoints.slice(1).forEach(point => drawingContext.lineTo(point.x, point.y));
   }
 
   drawingContext.stroke();
@@ -1109,8 +1318,12 @@ function drawStrokeRange(stroke, startIndex = 0) {
 
   const clampedStartIndex = Math.max(0, Math.min(Number(startIndex) || 0, stroke.points.length - 1));
   const pathStartIndex = clampedStartIndex > 0 ? clampedStartIndex - 1 : 0;
-  const startPoint = stroke.points[pathStartIndex];
-  const segmentPoints = stroke.points.slice(clampedStartIndex > 0 ? clampedStartIndex : 1);
+  const fontSize = getNormalizedFontSize();
+  const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
+  const startPoint = convertPointToCanvasPixels(stroke.points[pathStartIndex], referenceFontSize, fontSize);
+  const segmentPoints = stroke.points
+    .slice(clampedStartIndex > 0 ? clampedStartIndex : 1)
+    .map(point => convertPointToCanvasPixels(point, referenceFontSize, fontSize));
   const isSinglePointStroke = stroke.points.length === 1 && clampedStartIndex === 0;
 
   if (!startPoint) {
@@ -1120,7 +1333,7 @@ function drawStrokeRange(stroke, startIndex = 0) {
   drawingContext.save();
   drawingContext.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
   drawingContext.strokeStyle = stroke.tool === 'eraser' ? '#000000' : (stroke.color || getCurrentBrushColor());
-  drawingContext.lineWidth = Math.max(1, Number(stroke.width) || DEFAULT_SETTINGS.drawSize);
+  drawingContext.lineWidth = getBrushSizeInPixels(stroke.width, fontSize);
   drawingContext.lineCap = 'round';
   drawingContext.lineJoin = 'round';
   drawingContext.beginPath();
@@ -1170,6 +1383,7 @@ function resetCurrentStrokeState() {
   drawingState.currentStroke = null;
   drawingState.activeBoardRect = null;
   drawingState.lastRenderedPointIndex = -1;
+  drawingState.activePointerId = null;
 
   if (drawingState.strokeFrame) {
     cancelAnimationFrame(drawingState.strokeFrame);
@@ -1185,19 +1399,24 @@ function beginStroke(event) {
 
   event.preventDefault();
   drawingState.activeBoardRect = board?.getBoundingClientRect() || null;
+  const referenceFontSize = getNormalizedFontSize();
+  const initialPoint = normalizeStoredPoint(getRelativePoint(event, drawingState.activeBoardRect));
 
   const stroke = {
     id: generateId(),
     tool: drawingState.currentTool,
     color: drawingState.currentTool === 'eraser' ? null : getCurrentBrushColor(),
-    width: drawingState.currentBrushSize,
-    points: [getRelativePoint(event, drawingState.activeBoardRect)]
+    width: clampBrushSize(drawingState.currentBrushSize),
+    points: [initialPoint],
+    coordinateSpace: DRAWING_COORDINATE_SPACE,
+    referenceFontSize
   };
 
   page.drawings.push(stroke);
   drawingState.isDrawing = true;
   drawingState.currentStroke = stroke;
   drawingState.lastRenderedPointIndex = -1;
+  drawingState.activePointerId = event.pointerId;
 
   if (drawingLayer.setPointerCapture) {
     drawingLayer.setPointerCapture(event.pointerId);
@@ -1208,9 +1427,10 @@ function beginStroke(event) {
 
 function extendStroke(event) {
   if (!drawingState.enabled || !drawingState.isDrawing || !drawingState.currentStroke) return;
+  if (drawingState.activePointerId !== null && event.pointerId !== drawingState.activePointerId) return;
 
   event.preventDefault();
-  const point = getRelativePoint(event, drawingState.activeBoardRect);
+  const point = normalizeStoredPoint(getRelativePoint(event, drawingState.activeBoardRect));
   const points = drawingState.currentStroke.points;
   const lastPoint = points[points.length - 1];
 
@@ -1222,6 +1442,7 @@ function extendStroke(event) {
 
 function finishStroke(event) {
   if (!drawingState.isDrawing || !drawingState.currentStroke) return;
+  if (event && drawingState.activePointerId !== null && event.pointerId !== drawingState.activePointerId) return;
 
   if (event) {
     event.preventDefault();
@@ -1251,7 +1472,16 @@ function finishStroke(event) {
 
 function undoLastStroke() {
   const page = getCurrentPage();
-  if (!page || !Array.isArray(page.drawings) || page.drawings.length === 0) {
+  if (!page || !Array.isArray(page.drawings)) {
+    return false;
+  }
+
+  if (drawingState.currentStroke && cancelActiveStroke()) {
+    saveContent();
+    return true;
+  }
+
+  if (page.drawings.length === 0) {
     return false;
   }
 
@@ -1274,6 +1504,68 @@ function clearCurrentPageDrawings() {
   page.drawings = [];
   redrawDrawings();
   saveContent();
+}
+
+function positionDrawSizePopover() {
+  if (!drawSizePopover || drawSizePopover.hidden || !drawSizeToggleBtn) {
+    return;
+  }
+
+  const triggerRect = drawSizeToggleBtn.getBoundingClientRect();
+  const popoverWidth = Math.min(drawSizePopover.offsetWidth || 248, window.innerWidth - 24);
+  const popoverHeight = Math.min(drawSizePopover.offsetHeight || 180, window.innerHeight - 24);
+  const viewportPadding = 12;
+  const gutter = 12;
+
+  let left = triggerRect.left + (triggerRect.width - popoverWidth) / 2;
+  left = Math.min(Math.max(viewportPadding, left), window.innerWidth - popoverWidth - viewportPadding);
+
+  let top = triggerRect.bottom + gutter;
+  if (top + popoverHeight > window.innerHeight - viewportPadding) {
+    top = Math.max(viewportPadding, triggerRect.top - popoverHeight - gutter);
+  }
+
+  drawSizePopover.style.left = `${left}px`;
+  drawSizePopover.style.top = `${top}px`;
+}
+
+function closeDrawSizePopover({ restoreFocus = false } = {}) {
+  uiState.drawSizePopoverOpen = false;
+
+  if (drawSizePopover) {
+    drawSizePopover.classList.remove('visible');
+    drawSizePopover.hidden = true;
+  }
+
+  if (drawSizeToggleBtn) {
+    drawSizeToggleBtn.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) {
+      drawSizeToggleBtn.focus();
+    }
+  }
+}
+
+function openDrawSizePopover() {
+  if (!drawSizePopover || !drawSizeToggleBtn) {
+    return;
+  }
+
+  closeDeletePageConfirm();
+  closeColorPicker();
+  uiState.drawSizePopoverOpen = true;
+  drawSizePopover.hidden = false;
+  drawSizePopover.classList.add('visible');
+  drawSizeToggleBtn.setAttribute('aria-expanded', 'true');
+  positionDrawSizePopover();
+}
+
+function toggleDrawSizePopover() {
+  if (uiState.drawSizePopoverOpen) {
+    closeDrawSizePopover({ restoreFocus: false });
+    return;
+  }
+
+  openDrawSizePopover();
 }
 
 function setSettingsPanelOpen(isOpen) {
@@ -1308,6 +1600,8 @@ function closeDeletePageConfirm({ restoreFocus = false } = {}) {
   if (deletePageConfirm) {
     deletePageConfirm.classList.remove('visible');
     deletePageConfirm.hidden = true;
+    deletePageConfirm.style.left = '';
+    deletePageConfirm.style.top = '';
   }
 
   if (emojiPickerDelete) {
@@ -1327,11 +1621,47 @@ function openDeletePageConfirm() {
     return;
   }
 
+  closeDrawSizePopover();
   uiState.deleteConfirmOpen = true;
   deletePageConfirm.hidden = false;
   deletePageConfirm.classList.add('visible');
   emojiPickerDelete.setAttribute('aria-expanded', 'true');
-  positionEmojiPicker(editingPageId);
+  positionDeletePageConfirm();
+}
+
+function positionDeletePageConfirm() {
+  if (!deletePageConfirm || deletePageConfirm.hidden || !emojiPickerDelete) {
+    return;
+  }
+
+  const pickerRect = emojiPicker?.getBoundingClientRect();
+  const triggerRect = emojiPickerDelete.getBoundingClientRect();
+  const popoverWidth = Math.min(deletePageConfirm.offsetWidth || 244, window.innerWidth - 24);
+  const popoverHeight = Math.min(deletePageConfirm.offsetHeight || 120, window.innerHeight - 24);
+  const viewportPadding = 12;
+  const menuPadding = 10;
+  const gutter = 8;
+  const horizontalAnchor = triggerRect.right - (popoverWidth / 2);
+
+  let left = horizontalAnchor;
+
+  if (pickerRect) {
+    const minLeft = Math.max(viewportPadding, pickerRect.left + menuPadding);
+    const maxLeft = Math.min(window.innerWidth - popoverWidth - viewportPadding, pickerRect.right - popoverWidth - menuPadding);
+    left = Math.min(Math.max(minLeft, left), Math.max(minLeft, maxLeft));
+  } else {
+    left = Math.min(Math.max(viewportPadding, left), window.innerWidth - popoverWidth - viewportPadding);
+  }
+
+  let top = triggerRect.bottom + gutter;
+  if (pickerRect) {
+    const maxTop = pickerRect.bottom - popoverHeight - menuPadding;
+    top = Math.min(top, maxTop);
+  }
+  top = Math.min(Math.max(viewportPadding, top), window.innerHeight - popoverHeight - viewportPadding);
+
+  deletePageConfirm.style.left = `${left}px`;
+  deletePageConfirm.style.top = `${top}px`;
 }
 
 function positionEmojiPicker(pageId = editingPageId) {
@@ -1351,8 +1681,10 @@ function positionEmojiPicker(pageId = editingPageId) {
   const gutter = 10;
 
   let left = anchorRect.left - pickerWidth - gutter;
+  let placement = 'left';
   if (left < viewportPadding) {
     left = anchorRect.right + gutter;
+    placement = 'right';
   }
   if (left + pickerWidth > window.innerWidth - viewportPadding) {
     left = window.innerWidth - pickerWidth - viewportPadding;
@@ -1368,6 +1700,11 @@ function positionEmojiPicker(pageId = editingPageId) {
 
   emojiPicker.style.left = `${Math.max(viewportPadding, left)}px`;
   emojiPicker.style.top = `${Math.max(viewportPadding, top)}px`;
+  emojiPicker.dataset.placement = placement;
+
+  if (uiState.deleteConfirmOpen) {
+    positionDeletePageConfirm();
+  }
 }
 
 function getShortcutTarget(event) {
@@ -1384,7 +1721,7 @@ function isTextEditingShortcutTarget(event) {
     return false;
   }
 
-  if (target.closest('input, textarea, select')) {
+  if (target.closest('textarea, select, input:not([type]), input[type="text"], input[type="search"], input[type="url"], input[type="email"], input[type="tel"], input[type="password"], input[type="number"]')) {
     return true;
   }
 
@@ -1394,6 +1731,101 @@ function isTextEditingShortcutTarget(event) {
 function isFormFieldShortcutTarget(event) {
   const target = getShortcutTarget(event);
   return Boolean(target?.closest('input, textarea, select'));
+}
+
+function getControlRangeBounds(control) {
+  const min = Number(control?.min);
+  const max = Number(control?.max);
+
+  return {
+    min: Number.isFinite(min) ? min : 0,
+    max: Number.isFinite(max) ? max : 100
+  };
+}
+
+function adjustFontSizeByStep(stepDelta) {
+  if (!controls.fontSize) {
+    return false;
+  }
+
+  const currentValue = Number(controls.fontSize.value);
+  const { min, max } = getControlRangeBounds(controls.fontSize);
+  const nextValue = Math.min(max, Math.max(min, currentValue + stepDelta));
+
+  if (!Number.isFinite(nextValue) || nextValue === currentValue) {
+    return false;
+  }
+
+  controls.fontSize.value = String(nextValue);
+  handleSettingChange();
+  return true;
+}
+
+function shouldHandleFontResizeWheel(event) {
+  if (!event.shiftKey || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) {
+    return false;
+  }
+
+  const target = getShortcutTarget(event);
+  if (!(target instanceof HTMLElement)) {
+    return true;
+  }
+
+  if (target.closest('input, textarea, select, .color-picker-popup, .emoji-picker, .delete-confirm-popover, .drawing-size-popover')) {
+    return false;
+  }
+
+  return Boolean(target.closest('#board, .top-right-rail, .page-tabs') || target === document.body);
+}
+
+function shouldHandleDrawingUndoShortcut(event) {
+  const target = getShortcutTarget(event);
+
+  if (!(target instanceof HTMLElement)) {
+    return true;
+  }
+
+  if (target.closest('textarea, select, input:not([type]), input[type="text"], input[type="search"], input[type="url"], input[type="email"], input[type="tel"], input[type="password"], input[type="number"]')) {
+    return false;
+  }
+
+  return !target.closest('.controls-container, .color-picker-popup, .emoji-picker, .delete-confirm-popover, .drawing-size-popover');
+}
+
+function removeStrokeById(drawings, strokeId) {
+  if (!Array.isArray(drawings) || !strokeId) {
+    return false;
+  }
+
+  const strokeIndex = drawings.findIndex(stroke => stroke?.id === strokeId);
+  if (strokeIndex < 0) {
+    return false;
+  }
+
+  drawings.splice(strokeIndex, 1);
+  return true;
+}
+
+function cancelActiveStroke() {
+  const page = getCurrentPage();
+  const activeStrokeId = drawingState.currentStroke?.id;
+
+  if (!page || !activeStrokeId) {
+    return false;
+  }
+
+  if (drawingLayer?.releasePointerCapture && drawingState.activePointerId !== null) {
+    try {
+      drawingLayer.releasePointerCapture(drawingState.activePointerId);
+    } catch (error) {
+      // Ignore release errors when pointer capture is already cleared.
+    }
+  }
+
+  const removedStroke = removeStrokeById(page.drawings, activeStrokeId);
+  resetCurrentStrokeState();
+  redrawDrawings();
+  return removedStroke;
 }
 
 function isUndoShortcut(event) {
@@ -1514,6 +1946,7 @@ function applySettings(settings) {
 // Update control values in UI
 function updateControlValues(settings) {
   const selectionColor = normalizeHex(settings.textColor || settings.selectionColor || DEFAULT_SETTINGS.textColor);
+  const normalizedDrawSize = normalizeBrushSizeSetting(settings.drawSize, settings.fontSize);
 
   controls.fontFamily.value = settings.fontFamily;
   controls.fontSize.value = settings.fontSize;
@@ -1524,7 +1957,7 @@ function updateControlValues(settings) {
   controls.textColor.value = settings.textColor;
   controls.backgroundColor.value = settings.backgroundColor;
   controls.selectionColor.value = selectionColor;
-  drawingState.currentBrushSize = settings.drawSize ?? DEFAULT_SETTINGS.drawSize;
+  drawingState.currentBrushSize = normalizedDrawSize;
   drawingState.currentBrushColorMode = settings.drawColorMode || DEFAULT_SETTINGS.drawColorMode;
   updateBrushSizeButtons();
   updateDrawingToolButtons();
@@ -1601,6 +2034,15 @@ async function loadSavedData() {
     // Load pages
     const localData = await chrome.storage.local.get(['pages', 'currentPageId', 'noteContent']);
     const syncData = await chrome.storage.sync.get(['settings']);
+    const settings = { ...DEFAULT_SETTINGS, ...syncData.settings };
+    settings.drawSize = normalizeBrushSizeSetting(settings.drawSize, settings.fontSize);
+    settings.selectionColor = normalizeHex(settings.textColor || DEFAULT_SETTINGS.textColor);
+    const pagesNeedMigration = Array.isArray(localData.pages) && localData.pages.some(page =>
+      Array.isArray(page?.drawings) && page.drawings.some(stroke =>
+        stroke?.coordinateSpace !== DRAWING_COORDINATE_SPACE || !Number.isFinite(Number(stroke?.referenceFontSize))
+      )
+    );
+    const settingsNeedMigration = syncData.settings?.drawSize !== settings.drawSize;
     
     // Migration: convert old single-note format to pages
     if (!localData.pages && localData.noteContent) {
@@ -1608,12 +2050,12 @@ async function loadSavedData() {
         id: generateId(),
         emoji: DEFAULT_PAGE_EMOJI,
         content: localData.noteContent
-      })];
+      }, settings.fontSize)];
       currentPageId = pages[0].id;
       await chrome.storage.local.set({ pages, currentPageId });
       await chrome.storage.local.remove(['noteContent']);
     } else if (localData.pages && localData.pages.length > 0) {
-      pages = localData.pages.map(normalizePage);
+      pages = localData.pages.map(page => normalizePage(page, settings.fontSize));
       currentPageId = localData.currentPageId || pages[0].id;
     } else {
       // Create default page
@@ -1621,14 +2063,11 @@ async function loadSavedData() {
         id: generateId(),
         emoji: DEFAULT_PAGE_EMOJI,
         content: ''
-      })];
+      }, settings.fontSize)];
       currentPageId = pages[0].id;
       await chrome.storage.local.set({ pages, currentPageId });
     }
-    
-    const settings = { ...DEFAULT_SETTINGS, ...syncData.settings };
-    settings.selectionColor = normalizeHex(settings.textColor || DEFAULT_SETTINGS.textColor);
-    
+
     // Set current theme
     currentTheme = settings.currentTheme || 'lavender';
     
@@ -1641,6 +2080,14 @@ async function loadSavedData() {
 
     renderPageTabs();
     loadPageContent(currentPageId);
+
+    if (pagesNeedMigration) {
+      await persistPagesStateImmediately();
+    }
+
+    if (settingsNeedMigration) {
+      await saveSettings(settings);
+    }
   } catch (error) {
     console.error('Error loading saved data:', error);
     applySettings(DEFAULT_SETTINGS);
@@ -1877,10 +2324,6 @@ function closeEmojiPicker({ restoreFocus = false } = {}) {
   editingPageId = null;
   closeDeletePageConfirm();
   emojiPicker?.classList.remove('visible');
-  if (emojiPicker) {
-    emojiPicker.style.left = '';
-    emojiPicker.style.top = '';
-  }
 
   if (restoreFocus) {
     getPageTabButton(pageIdToFocus)?.focus();
@@ -2026,7 +2469,7 @@ function getCurrentSettings() {
     lineHeight: parseFloat(controls.lineHeight.value),
     letterSpacing: parseFloat(controls.letterSpacing.value),
     maxWidth: parseFloat(controls.maxWidth.value),
-    drawSize: drawingState.currentBrushSize,
+    drawSize: clampBrushSize(drawingState.currentBrushSize),
     drawColor: getCurrentBrushColor(),
     drawColorMode: drawingState.currentBrushColorMode,
     textColor: controls.textColor.value,
@@ -2190,6 +2633,7 @@ function handleSettingChange() {
   const settings = getCurrentSettings();
   applySettings(settings);
   saveSettings(settings);
+  updateBrushSizeButtons();
   
   // Update value displays
   valueDisplays.fontSize.textContent = settings.fontSize + 'px';
@@ -2399,12 +2843,31 @@ if (eraseToggleBtn) {
   });
 }
 
+if (drawSizeToggleBtn) {
+  drawSizeToggleBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleDrawSizePopover();
+  });
+}
+
 drawSizeButtons.forEach(button => {
   button.addEventListener('click', (event) => {
     setBrushSize(button.dataset.drawSize);
     event.currentTarget.blur();
   });
 });
+
+if (drawSizeSlider) {
+  drawSizeSlider.addEventListener('input', () => {
+    setBrushSize(drawSizeSlider.value);
+    positionDrawSizePopover();
+  });
+
+  drawSizeSlider.addEventListener('change', () => {
+    setBrushSize(drawSizeSlider.value);
+  });
+}
 
 if (undoDrawingBtn) {
   undoDrawingBtn.addEventListener('click', (event) => {
@@ -2432,7 +2895,32 @@ window.addEventListener('resize', () => {
   if (emojiPicker?.classList.contains('visible')) {
     positionEmojiPicker(editingPageId);
   }
+  if (uiState.drawSizePopoverOpen) {
+    positionDrawSizePopover();
+  }
+  if (uiState.deleteConfirmOpen) {
+    positionDeletePageConfirm();
+  }
 });
+
+window.addEventListener('wheel', (event) => {
+  if (!shouldHandleFontResizeWheel(event)) {
+    return;
+  }
+
+  const wheelDelta = event.deltaY !== 0 ? event.deltaY : event.deltaX;
+  if (!wheelDelta) {
+    return;
+  }
+
+  const delta = Math.abs(wheelDelta) >= 80 ? 2 : 1;
+  const direction = wheelDelta < 0 ? delta : -delta;
+  const changed = adjustFontSizeByStep(direction);
+
+  if (changed) {
+    event.preventDefault();
+  }
+}, { passive: false });
 
 window.addEventListener('scroll', () => {
   handleScrollActivity({ persistPageScroll: true });
@@ -2465,6 +2953,10 @@ document.addEventListener('click', (event) => {
     setSettingsPanelOpen(false);
   }
 
+  if (uiState.drawSizePopoverOpen && !event.target.closest('#drawSizePopover') && !event.target.closest('#drawSizeToggleBtn')) {
+    closeDrawSizePopover();
+  }
+
   if (uiState.deleteConfirmOpen && !event.target.closest('#deletePageConfirm') && !event.target.closest('#emojiPickerDelete')) {
     closeDeletePageConfirm();
   }
@@ -2484,6 +2976,9 @@ if (window.ResizeObserver && board) {
 
 // Initialize emoji picker
 initEmojiPicker();
+
+// Initialize brush size markers
+initBrushSizeMarkers();
 
 // Initialize font dropdown
 initFontDropdown();
@@ -2512,6 +3007,12 @@ document.addEventListener('keydown', (e) => {
     if (uiState.deleteConfirmOpen) {
       e.preventDefault();
       closeDeletePageConfirm({ restoreFocus: true });
+      return;
+    }
+
+    if (uiState.drawSizePopoverOpen) {
+      e.preventDefault();
+      closeDrawSizePopover({ restoreFocus: true });
       return;
     }
 
@@ -2554,7 +3055,7 @@ document.addEventListener('keydown', (e) => {
   }
 
   if (isUndoShortcut(e)) {
-    if (drawingState.enabled && !isFormFieldShortcutTarget(e)) {
+    if (drawingState.enabled && shouldHandleDrawingUndoShortcut(e)) {
       e.preventDefault();
       undoLastStroke();
       return;
