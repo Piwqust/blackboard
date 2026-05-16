@@ -1,0 +1,21 @@
+{
+  "root": true,
+  "env": {
+    "browser": true,
+    "es2022": true,
+    "webextensions": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "script"
+  },
+  "extends": "eslint:recommended",
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "radix": "error",
+    "prefer-const": "warn",
+    "no-var": "error",
+    "eqeqeq": ["warn", "smart"],
+    "no-console": "off"
+  }
+}
