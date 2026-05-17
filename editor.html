@@ -33,15 +33,14 @@
         </button>
       </div>
 
-      <div class="drawing-toolbar-group drawing-size-group" role="group" aria-label="Brush size">
-        <button class="drawing-tool-button drawing-size-button" type="button" data-draw-size="2.5" title="Small brush">
-          <span class="drawing-size-dot drawing-size-dot-sm"></span>
-        </button>
-        <button class="drawing-tool-button drawing-size-button" type="button" data-draw-size="4" title="Medium brush">
-          <span class="drawing-size-dot drawing-size-dot-md"></span>
-        </button>
-        <button class="drawing-tool-button drawing-size-button" type="button" data-draw-size="7" title="Large brush">
-          <span class="drawing-size-dot drawing-size-dot-lg"></span>
+      <div class="drawing-toolbar-group" role="group" aria-label="Brush size">
+        <button id="drawSizeToggleBtn" class="drawing-tool-button drawing-size-toggle" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="drawSizePopover" title="Brush size">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 7.5h12"/>
+            <path d="M8.5 12h7"/>
+            <path d="M10.5 16.5h3"/>
+          </svg>
+          <span id="drawSizeToggleStroke" class="drawing-size-toggle-stroke" aria-hidden="true"></span>
         </button>
       </div>
 
@@ -74,6 +73,22 @@
 
     <input type="color" id="drawColor" value="#6D68B3" hidden>
 
+    <div class="drawing-size-popover" id="drawSizePopover" role="dialog" aria-modal="false" aria-labelledby="drawSizePopoverTitle" hidden>
+      <div class="drawing-size-popover-header">
+        <div class="drawing-size-popover-copy">
+          <p id="drawSizePopoverTitle" class="drawing-size-popover-title">Brush size</p>
+          <p class="drawing-size-popover-hint">Fine-tune stroke width with minimalist slider ticks.</p>
+        </div>
+        <span id="drawSizeValue" class="drawing-size-value">4px</span>
+      </div>
+
+      <label class="drawing-size-control" for="drawSize">
+        <input type="range" id="drawSize" class="drawing-size-slider" min="0.08" max="1.4" step="0.01" value="0.22" aria-label="Brush size">
+      </label>
+
+      <div class="drawing-size-markers" id="drawSizeMarkers" role="list" aria-label="Brush size markers"></div>
+    </div>
+
     <!-- Page tabs -->
     <div class="page-tabs">
       <div class="page-tabs-list" id="pageTabsList" role="tablist" aria-label="Note pages"></div>
@@ -97,16 +112,16 @@
           </div>
         </div>
 
-        <div id="deletePageConfirm" class="delete-confirm-popover" role="dialog" aria-modal="false" aria-labelledby="deletePageConfirmTitle" hidden>
-          <p id="deletePageConfirmTitle" class="delete-confirm-title">Delete page?</p>
-          <p class="delete-confirm-text">This removes the page text and its drawings.</p>
-          <div class="delete-confirm-actions">
-            <button id="cancelDeletePageBtn" class="delete-confirm-cancel" type="button">Cancel</button>
-            <button id="confirmDeletePageBtn" class="delete-confirm-delete" type="button">Delete</button>
-          </div>
-        </div>
-
         <div class="emoji-grid" id="emojiGrid"></div>
+      </div>
+
+      <div id="deletePageConfirm" class="delete-confirm-popover" role="dialog" aria-modal="false" aria-labelledby="deletePageConfirmTitle" hidden>
+        <p id="deletePageConfirmTitle" class="delete-confirm-title">Delete page?</p>
+        <p class="delete-confirm-text">This removes the page text and its drawings.</p>
+        <div class="delete-confirm-actions">
+          <button id="cancelDeletePageBtn" class="delete-confirm-cancel" type="button">Cancel</button>
+          <button id="confirmDeletePageBtn" class="delete-confirm-delete" type="button">Delete</button>
+        </div>
       </div>
     </div>
   </div>

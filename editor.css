@@ -314,8 +314,177 @@ body.drawing-mode #editor {
   border-left: 1px solid var(--ui-border);
 }
 
-.drawing-size-group {
+.drawing-size-control {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
+.drawing-size-value {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.drawing-size-value {
+  color: var(--ui-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.drawing-size-toggle {
   position: relative;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.drawing-size-toggle svg {
+  width: 18px;
+  height: 14px;
+}
+
+.drawing-size-toggle-stroke {
+  width: 18px;
+  height: var(--draw-size-preview-height, 3px);
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.drawing-size-popover {
+  position: fixed;
+  width: min(248px, calc(100vw - 24px));
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: 18px;
+  box-shadow: var(--ui-shadow-subtle);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  box-sizing: border-box;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(8px) scale(0.96);
+  transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.24s;
+  z-index: 3200;
+}
+
+.drawing-size-popover.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  transition-delay: 0s;
+}
+
+.drawing-size-popover-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.drawing-size-popover-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.drawing-size-popover-title,
+.drawing-size-popover-hint {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.drawing-size-popover-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ui-text);
+}
+
+.drawing-size-popover-hint {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ui-text-muted);
+}
+
+.drawing-size-slider {
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  background: var(--ui-track);
+  border-radius: 999px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.drawing-size-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px;
+  height: 11px;
+  background: var(--ui-text);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.drawing-size-slider::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  background: var(--ui-text);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.drawing-size-slider::-moz-range-track {
+  height: 4px;
+  background: var(--ui-track);
+  border-radius: 999px;
+}
+
+.drawing-size-markers {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: -2px;
+}
+
+.drawing-size-marker {
+  width: 100%;
+  min-width: 0;
+  min-height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  opacity: 0.48;
+}
+
+.drawing-size-marker:hover {
+  opacity: 0.8;
+}
+
+.drawing-size-marker.active {
+  opacity: 1;
+  transform: none;
+}
+
+.drawing-size-marker-swatch {
+  width: 100%;
+  max-width: 16px;
+  min-width: 8px;
+  height: var(--marker-stroke-height, 8px);
+  border-radius: 999px;
+  background: currentColor;
+  pointer-events: none;
 }
 
 .drawing-tool-button {
@@ -368,27 +537,6 @@ body.drawing-mode #editor {
   border-radius: 999px;
   background: var(--text-color);
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.52), 0 0 0 1px var(--ui-border);
-}
-
-.drawing-size-dot {
-  display: block;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.drawing-size-dot-sm {
-  width: 5px;
-  height: 5px;
-}
-
-.drawing-size-dot-md {
-  width: 8px;
-  height: 8px;
-}
-
-.drawing-size-dot-lg {
-  width: 12px;
-  height: 12px;
 }
 
 .controls-icon {
@@ -1416,9 +1564,10 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   position: fixed;
   top: 12px;
   left: 12px;
-  width: min(280px, calc(100vw - 24px));
+  width: min(288px, calc(100vw - 24px));
   max-height: calc(100vh - 24px);
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
   backdrop-filter: blur(20px) saturate(135%);
@@ -1426,19 +1575,31 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   border-radius: 14px;
   padding: 10px;
   box-shadow: var(--ui-shadow-subtle);
+  box-sizing: border-box;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translateY(4px);
-  transition: all 0.15s ease;
+  transform: translate3d(var(--emoji-picker-enter-x, 10px), 8px, 0) scale(0.96);
+  transition: opacity 0.18s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.28s;
   z-index: 100;
+}
+
+.emoji-picker[data-placement="left"] {
+  --emoji-picker-enter-x: 10px;
+  transform-origin: right center;
+}
+
+.emoji-picker[data-placement="right"] {
+  --emoji-picker-enter-x: -10px;
+  transform-origin: left center;
 }
 
 .emoji-picker.visible {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translateY(0);
+  transform: translate3d(0, 0, 0) scale(1);
+  transition-delay: 0s;
 }
 
 .emoji-picker-header {
@@ -1525,19 +1686,19 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
 }
 
 .delete-confirm-popover {
-  position: static;
-  width: 100%;
-  margin-bottom: 10px;
+  position: fixed;
+  width: min(244px, calc(100vw - 24px));
   padding: 12px;
   background: color-mix(in srgb, var(--ui-surface-strong) 76%, rgba(172, 92, 92, 0.28));
   border: 1px solid var(--ui-danger-border);
   border-radius: 12px;
   box-shadow: var(--ui-shadow-subtle);
+  box-sizing: border-box;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translateY(-2px);
-  transition: all 0.15s ease;
+  transform: translateY(6px) scale(0.96);
+  transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.24s;
   z-index: 120;
 }
 
@@ -1553,7 +1714,8 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
+  transition-delay: 0s;
 }
 
 .delete-confirm-title {
@@ -1612,13 +1774,14 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
 
 .emoji-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 4px;
 }
 
 .emoji-option {
-  width: 32px;
-  height: 32px;
+  width: 100%;
+  min-height: 34px;
+  aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1659,6 +1822,7 @@ body.is-scrolling .add-page-btn,
 body.is-scrolling .controls-icon,
 body.is-scrolling .controls-close,
 body.is-scrolling .drawing-tool-button,
+body.is-scrolling .drawing-size-marker,
 body.is-scrolling .emoji-picker-action,
 body.is-scrolling .emoji-option,
 body.is-scrolling .delete-confirm-cancel,
@@ -1667,6 +1831,7 @@ body.is-scrolling .delete-confirm-delete {
 }
 
 body.is-scrolling .drawing-tool-button:hover,
+body.is-scrolling .drawing-size-marker:hover,
 body.is-scrolling .controls-icon:hover,
 body.is-scrolling .controls-close:hover,
 body.is-scrolling .page-tab:hover,
@@ -1708,6 +1873,7 @@ body.is-scrolling .drawing-tool-button:hover {
 }
 
 .drawing-tool-button:focus-visible,
+.drawing-size-marker:focus-visible,
 .controls-icon:focus-visible,
 .controls-close:focus-visible,
 .add-page-btn:focus-visible,
