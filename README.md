@@ -1,206 +1,112 @@
 <div align="center">
 
-<img src="./icons/icon-128.png" width="96" height="96" alt="Blackboard Text icon" />
+<img src="./icons/icon-128.png" width="88" height="88" alt="Blackboard Text icon" />
 
 # Blackboard Text
 
 **A quiet, beautiful place to think.**
 
-A minimalist note-taking Chrome extension with elegant typography,
-multi-page tabs, themeable colors, and a freehand drawing layer
-that sits right on top of your words.
-
-<sub>Open a new tab, breathe, write.</sub>
-
-<br />
+A minimalist note-taking Chrome extension — elegant typography, multi-page
+tabs, themeable colors, and a freehand drawing layer that sits right on top
+of your words.
 
 ![Version](https://img.shields.io/badge/version-1.6.0-5B4FA8?style=flat-square)
 ![Manifest](https://img.shields.io/badge/manifest-v3-5B4FA8?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-5B4FA8?style=flat-square)
-![Made with](https://img.shields.io/badge/made%20with-%E2%9C%8E%20type-5B4FA8?style=flat-square)
-
-<br />
-
-![Blackboard Text — main UI](./theme-ui.png)
 
 </div>
 
----
-
-## ✦ Why Blackboard Text?
-
-Most note tools want to be everything. **Blackboard Text wants to be one thing,
-done right** — a clean canvas with thoughtful typography, just enough drawing,
-and zero distractions. No accounts. No clouds. No popups. Your notes live in
-your browser, sync with your Chrome profile, and are always one click away.
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                                                                      │
-│   Quiet morning thoughts.                                  📝 ✏️ 📖  │
-│   ━━━━━━━━━━━━━━━━━━━━━━━                                  ⭐ ✨ 🌙  │
-│                                                            ❤️ 🌸 🦋  │
-│   The page is wide and the font is large and that's        ☕ 🎂 🎵  │
-│   on purpose. Big type slows you down a little.            🚀 💡 💎  │
-│                                                                      │
-│   • Multiple pages, one per emoji                                +   │
-│   • Eight curated themes                                             │
-│   • A pen for when words aren't enough                               │
-│                                                                ⚙     │
-└──────────────────────────────────────────────────────────────────────┘
-```
+![Blackboard Text — default Lavender theme](./screenshots/01-hero-lavender.png)
 
 ---
 
 ## ✦ Features
 
-### 📝 Writing canvas
-- Distraction-free contenteditable surface, generous default whitespace
-- Word and character counter in the corner — never in your face
-- Automatic save with a subtle ✓ indicator
-- `Tab` / `Shift+Tab` for indent / outdent
-
-### 🎨 Typography that means it
-- **9 bundled fonts** — Unica 77 Cyr · Inter · Inter Tight · PP Right Grotesk (Tight/Reg/Wide) · PP Right Text (Compact/Reg/Wide) · system serifs & sans
-- Font preview inside the dropdown (you see the typeface before you pick it)
-- Adjustable **size (12–128px)**, **line height (1.0–3.0)**, **letter spacing (-0.05–0.2em)**
-- Adjustable **content width** up to 2400px — for ultrawides and tiny phrases alike
-
-### 🌈 Themes & color
-- 8 curated themes: **Lavender · Midnight · Sepia · Forest · Ocean · Rosé · Charcoal · Paper**
-- An *Advanced* drawer for fully custom text, background, and selection colors
-- A real HSV color picker with hue ribbon, swatches, and live hex input
-- Selection highlight always matches your text color automatically
-
-### 📚 Pages with personality
-- Each page is an emoji — 48 to pick from, or your own
-- Drag-and-drop reorder
-- Side rail **scrolls cleanly** with soft fade edges when you collect too many
-- The active page auto-scrolls itself into view
-- `Ctrl/Cmd + N` to add a new page
-
-### 🖌 Drawing layer
-- Brush and eraser, with **fine stroke control** (size scales with your font)
-- Color follows the theme, or pick your own
-- Per-page drawings — switch tabs and your sketches come along
-- Undo (`Ctrl/Cmd + Z`) and clear-all
-- Coordinates are text-relative, so resizing the window keeps strokes in place
-
-### 💾 Storage
-- Pages and content → `chrome.storage.local` (stays on this machine)
-- Settings → `chrome.storage.sync` (follows your Chrome profile)
-- No network calls. No telemetry. Ever.
+- **Distraction-free canvas** — generous default whitespace, autosave, word + character counter tucked in the corner.
+- **Typography that means it** — 3 bundled weights of BoardGrotesque Sans plus Inter / Inter Tight and system serifs/sans, with adjustable size (12–128 px), line height, letter spacing, and content width up to 2400 px.
+- **8 curated themes** + an *Advanced* drawer for fully custom text, background, and selection colors via a real HSV picker.
+- **Pages with personality** — each tab is an emoji, drag-and-drop reorderable, with a scrollable rail and soft fade edges.
+- **Drawing layer** — brush + eraser, fine stroke control, undo, per-page strokes that stay anchored to text when the window resizes.
+- **Local & private** — `chrome.storage` only. No accounts, no network, no telemetry.
 
 ---
 
-## ✦ The themes
+## ✦ Themes
+
+![Eight themes — Lavender, Midnight, Sepia, Forest, Ocean, Rosé, Charcoal, Paper](./screenshots/02-midnight.png)
 
 | Lavender | Midnight | Sepia | Forest |
 |:---:|:---:|:---:|:---:|
 | `#5B4FA8` on `#F2F0F8` | `#E4DFD0` on `#10172A` | `#4A2E1F` on `#F6EAD3` | `#1F4D2B` on `#EDF3E5` |
-
 | Ocean | Rosé | Charcoal | Paper |
-|:---:|:---:|:---:|:---:|
 | `#0F4C5C` on `#E0EEF2` | `#7A3B4D` on `#FCEDEF` | `#DDDAD2` on `#1F1F23` | `#1A1A1A` on `#FAFAF7` |
 
-> Every theme defines a text color, a background, and a selection tint.
-> Switch themes anytime — the editor crossfades in place.
+<table>
+<tr>
+<td><img src="./screenshots/03-sepia.png" alt="Sepia theme" /></td>
+<td><img src="./screenshots/04-forest.png" alt="Forest theme" /></td>
+</tr>
+</table>
 
 ---
 
-## ✦ Defaults
+## ✦ Pages & drawing
 
-The new install opens to a deliberate, type-forward setup:
+One page per emoji, switch in a click, sketch right on top.
+
+<table>
+<tr>
+<td width="50%"><img src="./screenshots/05-pages.png" alt="Scrollable emoji page tabs" /></td>
+<td width="50%"><img src="./screenshots/07-drawing.png" alt="Brush strokes over text" /></td>
+</tr>
+</table>
+
+---
+
+## ✦ Settings
+
+Themes, fonts, sizing, and the *Advanced* color drawer — all in one popover.
+
+![Settings panel](./screenshots/06-settings.png)
 
 | Setting | Default |
 |---|---|
-| Font | **Unica 77 Cyr** |
-| Size | **40 px** |
-| Line height | **1.6** |
-| Letter spacing | **0 em** |
-| Content width | **1600 px** |
+| Font | **BoardGrotesque Sans** · 40 px · line-height 1.6 |
+| Width | **1600 px** |
 | Theme | **Lavender** |
-
-You can return to these at any time with **Reset to Defaults** at the bottom
-of the settings panel.
 
 ---
 
-## ✦ Keyboard shortcuts
+## ✦ Shortcuts
 
 | Shortcut | Action |
 |---|---|
 | `Ctrl` / `Cmd` + `N` | New page |
-| `Ctrl` / `Cmd` + `Z` | Undo last brush stroke (when drawing) |
-| `Alt` + `Shift` + `B` | Toggle brush |
-| `Alt` + `Shift` + `E` | Toggle eraser |
-| `Tab` / `Shift` + `Tab` | Indent / outdent text |
-| `Esc` | Close any open popover (settings, picker, dialog) |
+| `Ctrl` / `Cmd` + `Z` | Undo last brush stroke |
+| `Alt` + `Shift` + `B` / `E` | Toggle brush / eraser |
+| `Tab` / `Shift` + `Tab` | Indent / outdent |
+| `Esc` | Close any popover |
 
 ---
 
 ## ✦ Install locally
 
 ```bash
-# 1. clone
 git clone https://github.com/Piwqust/blackboard-text.git
-
-# 2. point Chrome at it
-#    → open chrome://extensions
-#    → enable "Developer mode" (top right)
-#    → click "Load unpacked"
-#    → select the cloned folder
-
-# 3. open it
-#    → click the toolbar icon, or pin it for one-click access
+# chrome://extensions → Developer mode → Load unpacked → select the folder
 ```
 
 The extension opens `editor.html` in a new tab — that's the whole UI.
 
 ---
 
-## ✦ Project layout
-
-```
-blackboard-text/
-├── manifest.json        ← MV3 manifest, permissions, CSP
-├── service-worker.js    ← opens editor.html when the action is clicked
-├── editor.html          ← markup for the editor, toolbars, popovers
-├── editor.css           ← typography, themes, drawing UI, animations
-├── editor.js            ← editor state, pages, drawings, persistence
-├── icons/               ← extension icons (48 / 128 px)
-├── fonts/               ← Unica 77 Cyr + PP Right Grotesk OTFs
-└── theme-ui.png         ← the screenshot at the top of this file
-```
-
----
-
 ## ✦ Tech notes
 
-- **Manifest V3**, service-worker-based action handler
-- **Strict CSP**: `script-src 'self'`, no inline scripts, no remote code
-- **Zero dependencies** — no bundler, no framework, no build step
-- **Storage permission only** — that's it; no host permissions, no network
-- Drawing coordinates are stored in *text-scaled pixels*, so notes survive
-  font-size and content-width changes without their strokes drifting
-
----
-
-## ✦ Roadmap ideas
-
-- Export a page (or all of them) to Markdown / PDF
-- Page search across all tabs
-- Optional Markdown rendering inside the canvas
-- Per-page theme override
+- Manifest V3, service-worker action handler.
+- Strict CSP (`script-src 'self'`), zero dependencies, no build step.
+- `storage` permission only — no host permissions, no network.
+- Drawing coordinates stored in *text-scaled pixels* so strokes don't drift when font size or content width changes.
 
 PRs welcome — keep it small, keep it quiet.
 
----
-
-<div align="center">
-
-**Blackboard Text · v1.6.0**
-
-Made for people who like a blank page.
-
-</div>
+<div align="center"><sub><strong>Blackboard Text · v1.6.0</strong> · Made for people who like a blank page.</sub></div>

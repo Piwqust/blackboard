@@ -1,77 +1,27 @@
 /* Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inter+Tight:wght@100..900&display=swap');
 
-/* Unica 77 Cyr Fonts */
+/* BoardGrotesque Sans */
 @font-face {
-  font-family: 'Unica 77 Cyr';
-  src: url('fonts/Unica77LLCyr-Regular.otf') format('opentype');
+  font-family: 'BoardGrotesque Sans';
+  src: url('fonts/BoardGrotesqueSans-Regular.otf') format('opentype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Unica 77 Cyr';
-  src: url('fonts/Unica77LLCyr-Light.otf') format('opentype');
+  font-family: 'BoardGrotesque Sans';
+  src: url('fonts/BoardGrotesqueSans-Light.otf') format('opentype');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Unica 77 Cyr';
-  src: url('fonts/Unica77LLCyr-Medium.otf') format('opentype');
+  font-family: 'BoardGrotesque Sans';
+  src: url('fonts/BoardGrotesqueSans-Medium.otf') format('opentype');
   font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* PP Right Grotesk Display Fonts */
-@font-face {
-  font-family: 'PP Right Grotesk Tight';
-  src: url('fonts/PPRightGrotesk-TightMedium.otf') format('opentype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'PP Right Grotesk';
-  src: url('fonts/PPRightGrotesk-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'PP Right Grotesk Wide';
-  src: url('fonts/PPRightGrotesk-WideMedium.otf') format('opentype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* PP Right Grotesk Text Fonts */
-@font-face {
-  font-family: 'PP Right Text';
-  src: url('fonts/PPRightGroteskText-Regular.otf') format('opentype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'PP Right Text Compact';
-  src: url('fonts/PPRightGroteskText-CompactMedium.otf') format('opentype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'PP Right Text Wide';
-  src: url('fonts/PPRightGroteskText-WideBold.otf') format('opentype');
-  font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
@@ -1472,8 +1422,14 @@ button.controls-icon {
 
 .page-tab {
   position: relative;
+  flex: 0 0 44px;
+  box-sizing: border-box;
   width: 44px;
+  min-width: 44px;
+  max-width: 44px;
   height: 44px;
+  min-height: 44px;
+  max-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1483,6 +1439,7 @@ button.controls-icon {
   cursor: pointer;
   transition: all 0.15s ease;
   opacity: 0.8;
+  overflow: hidden;
 }
 
 .page-tab.active::after {
@@ -1559,8 +1516,14 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
 }
 
 .add-page-btn {
+  flex: 0 0 40px;
+  box-sizing: border-box;
   width: 40px;
+  min-width: 40px;
+  max-width: 40px;
   height: 40px;
+  min-height: 40px;
+  max-height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1982,18 +1945,28 @@ body.is-scrolling .drawing-tool-button:hover {
   }
   
   .page-tab {
+    flex: 0 0 40px;
     width: 40px;
+    min-width: 40px;
+    max-width: 40px;
     height: 40px;
+    min-height: 40px;
+    max-height: 40px;
     border-radius: 9px;
   }
-  
+
   .page-tab-emoji {
     font-size: 20px;
   }
-  
+
   .add-page-btn {
+    flex: 0 0 40px;
     width: 40px;
+    min-width: 40px;
+    max-width: 40px;
     height: 40px;
+    min-height: 40px;
+    max-height: 40px;
   }
   
   .emoji-picker {

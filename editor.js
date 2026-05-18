@@ -52,7 +52,7 @@ const THEMES = {
 
 // Default settings
 const DEFAULT_SETTINGS = {
-  fontFamily: "'Unica 77 Cyr', sans-serif",
+  fontFamily: "'BoardGrotesque Sans', sans-serif",
   fontSize: 40,
   lineHeight: 1.6,
   letterSpacing: 0,
@@ -566,9 +566,9 @@ const FONT_GROUPS = [
     ]
   },
   {
-    label: 'Unica 77 Cyr',
+    label: 'BoardGrotesque Sans',
     fonts: [
-      { value: "'Unica 77 Cyr', sans-serif", name: 'Unica 77 Cyr' }
+      { value: "'BoardGrotesque Sans', sans-serif", name: 'BoardGrotesque Sans' }
     ]
   },
   {
@@ -576,17 +576,6 @@ const FONT_GROUPS = [
     fonts: [
       { value: "'Inter', sans-serif", name: 'Inter' },
       { value: "'Inter Tight', sans-serif", name: 'Inter Tight' }
-    ]
-  },
-  {
-    label: 'PP Right Grotesk',
-    fonts: [
-      { value: "'PP Right Grotesk Tight', sans-serif", name: 'PP Right Grotesk Tight' },
-      { value: "'PP Right Grotesk', sans-serif", name: 'PP Right Grotesk' },
-      { value: "'PP Right Grotesk Wide', sans-serif", name: 'PP Right Grotesk Wide' },
-      { value: "'PP Right Text Compact', sans-serif", name: 'PP Right Text Compact' },
-      { value: "'PP Right Text', sans-serif", name: 'PP Right Text' },
-      { value: "'PP Right Text Wide', sans-serif", name: 'PP Right Text Wide' }
     ]
   }
 ];
