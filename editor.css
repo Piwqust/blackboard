@@ -88,9 +88,9 @@
   --line-height: 1.8;
   --letter-spacing: 0em;
   --max-width: 900px;
-  --text-color: #6D68B3;
-  --bg-color: #ECEDE7;
-  --selection-color: #6D68B3;
+  --text-color: #5B4FA8;
+  --bg-color: #F2F0F8;
+  --selection-color: #5B4FA8;
   
   /* Panel theming */
   --panel-bg: #FFFFFF;
@@ -245,15 +245,15 @@ body.drawing-mode #editor {
   font-style: italic;
 }
 
-/* Text selection styling */
+/* Text selection styling — inverse of theme (bg = text color, text = bg color) */
 #editor::selection {
-  background-color: var(--selection-color);
-  color: white;
+  background-color: var(--text-color);
+  color: var(--bg-color);
 }
 
 #editor *::selection {
-  background-color: var(--selection-color);
-  color: white;
+  background-color: var(--text-color);
+  color: var(--bg-color);
 }
 
 /* Controls Container */
@@ -1434,6 +1434,8 @@ button.controls-icon {
   gap: 3px;
   max-height: min(70vh, calc(100vh - 140px));
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
   padding: 5px;
@@ -1441,6 +1443,31 @@ button.controls-icon {
   box-shadow: none;
   backdrop-filter: blur(18px) saturate(135%);
   -webkit-backdrop-filter: blur(18px) saturate(135%);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+}
+
+.page-tabs-list.is-at-top {
+  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 12px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 12px), transparent 100%);
+}
+
+.page-tabs-list.is-at-bottom {
+  mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 100%);
+}
+
+.page-tabs-list.is-at-top.is-at-bottom {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+.page-tabs-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .page-tab {

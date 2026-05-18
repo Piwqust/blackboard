@@ -2,67 +2,67 @@
 const THEMES = {
   lavender: {
     name: 'Lavender',
-    textColor: '#6D68B3',
-    backgroundColor: '#ECEDE7',
-    selectionColor: '#6D68B3'
+    textColor: '#5B4FA8',
+    backgroundColor: '#F2F0F8',
+    selectionColor: '#5B4FA8'
   },
   midnight: {
     name: 'Midnight',
-    textColor: '#E8E6E3',
-    backgroundColor: '#1A1A2E',
-    selectionColor: '#E8E6E3'
+    textColor: '#E4DFD0',
+    backgroundColor: '#10172A',
+    selectionColor: '#E4DFD0'
   },
   sepia: {
     name: 'Sepia',
-    textColor: '#5C4033',
-    backgroundColor: '#F4ECD8',
-    selectionColor: '#5C4033'
+    textColor: '#4A2E1F',
+    backgroundColor: '#F6EAD3',
+    selectionColor: '#4A2E1F'
   },
   forest: {
     name: 'Forest',
-    textColor: '#2D5A27',
-    backgroundColor: '#F0F5E9',
-    selectionColor: '#2D5A27'
+    textColor: '#1F4D2B',
+    backgroundColor: '#EDF3E5',
+    selectionColor: '#1F4D2B'
   },
   ocean: {
     name: 'Ocean',
-    textColor: '#1E5162',
-    backgroundColor: '#E8F4F8',
-    selectionColor: '#1E5162'
+    textColor: '#0F4C5C',
+    backgroundColor: '#E0EEF2',
+    selectionColor: '#0F4C5C'
   },
   rose: {
     name: 'Rosé',
-    textColor: '#8E4A5C',
-    backgroundColor: '#FDF2F4',
-    selectionColor: '#8E4A5C'
+    textColor: '#7A3B4D',
+    backgroundColor: '#FCEDEF',
+    selectionColor: '#7A3B4D'
   },
   charcoal: {
     name: 'Charcoal',
-    textColor: '#D4D4D4',
-    backgroundColor: '#2D2D2D',
-    selectionColor: '#D4D4D4'
+    textColor: '#DDDAD2',
+    backgroundColor: '#1F1F23',
+    selectionColor: '#DDDAD2'
   },
   paper: {
     name: 'Paper',
-    textColor: '#333333',
-    backgroundColor: '#FFFFFF',
-    selectionColor: '#333333'
+    textColor: '#1A1A1A',
+    backgroundColor: '#FAFAF7',
+    selectionColor: '#1A1A1A'
   }
 };
 
 // Default settings
 const DEFAULT_SETTINGS = {
-  fontFamily: 'Georgia, serif',
-  fontSize: 18,
-  lineHeight: 1.8,
+  fontFamily: "'Unica 77 Cyr', sans-serif",
+  fontSize: 40,
+  lineHeight: 1.6,
   letterSpacing: 0,
-  maxWidth: 800,
+  maxWidth: 1600,
   drawSize: 4 / 18,
-  drawColor: '#6D68B3',
+  drawColor: '#5B4FA8',
   drawColorMode: 'theme',
-  textColor: '#6D68B3',
-  backgroundColor: '#ECEDE7',
-  selectionColor: '#6D68B3',
+  textColor: '#5B4FA8',
+  backgroundColor: '#F2F0F8',
+  selectionColor: '#5B4FA8',
   currentTheme: 'lavender'
 };
 
@@ -2169,8 +2169,33 @@ function renderPageTabs() {
     
     pageTabsList.appendChild(tab);
   });
-  
+
   updateWordCount();
+  updatePageTabsScrollState();
+  scrollActivePageTabIntoView();
+}
+
+function updatePageTabsScrollState() {
+  if (!pageTabsList) return;
+  const { scrollTop, scrollHeight, clientHeight } = pageTabsList;
+  const overflows = scrollHeight > clientHeight + 1;
+  pageTabsList.classList.toggle('is-at-top', !overflows || scrollTop <= 1);
+  pageTabsList.classList.toggle('is-at-bottom', !overflows || scrollTop + clientHeight >= scrollHeight - 1);
+}
+
+function scrollActivePageTabIntoView() {
+  if (!pageTabsList || !currentPageId) return;
+  const activeTab = pageTabsList.querySelector(`.page-tab[data-page-id="${currentPageId}"]`);
+  if (!activeTab) return;
+  const tabTop = activeTab.offsetTop;
+  const tabBottom = tabTop + activeTab.offsetHeight;
+  const viewTop = pageTabsList.scrollTop;
+  const viewBottom = viewTop + pageTabsList.clientHeight;
+  if (tabTop < viewTop) {
+    pageTabsList.scrollTop = Math.max(0, tabTop - 8);
+  } else if (tabBottom > viewBottom) {
+    pageTabsList.scrollTop = tabBottom - pageTabsList.clientHeight + 8;
+  }
 }
 
 // Drag and drop state
@@ -2928,8 +2953,11 @@ window.addEventListener('scroll', () => {
 
 if (pageTabsList) {
   pageTabsList.addEventListener('scroll', () => {
+    updatePageTabsScrollState();
     handleScrollActivity({ repositionEmojiPicker: true });
   }, { passive: true });
+
+  window.addEventListener('resize', updatePageTabsScrollState, { passive: true });
 }
 
 if (emojiPicker) {
