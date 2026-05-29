@@ -10,7 +10,7 @@ A minimalist note-taking Chrome extension — elegant typography, multi-page
 tabs, themeable colors, and a freehand drawing layer that sits right on top
 of your words.
 
-![Version](https://img.shields.io/badge/version-1.6.0-5B4FA8?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.6.1-5B4FA8?style=flat-square)
 ![Manifest](https://img.shields.io/badge/manifest-v3-5B4FA8?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-5B4FA8?style=flat-square)
 
@@ -27,7 +27,7 @@ of your words.
 - **8 curated themes** + an *Advanced* drawer for fully custom text, background, and selection colors via a real HSV picker.
 - **Pages with personality** — each tab is an emoji, drag-and-drop reorderable, with a scrollable rail and soft fade edges.
 - **Drawing layer** — brush + eraser, fine stroke control, undo, per-page strokes that stay anchored to text when the window resizes.
-- **Local & private** — `chrome.storage` only. No accounts, no network, no telemetry.
+- **Local & private** — `chrome.storage` only. No accounts, no network, no telemetry. Notes live in `chrome.storage.local` (per-device); typography, themes, and brush preferences live in `chrome.storage.sync` (follow your Chrome profile across devices).
 
 ---
 
@@ -109,4 +109,4 @@ The extension opens `editor.html` in a new tab — that's the whole UI.
 
 PRs welcome — keep it small, keep it quiet.
 
-<div align="center"><sub><strong>Blackboard Text · v1.6.0</strong> · Made for people who like a blank page.</sub></div>
+<div align="center"><sub><strong>Blackboard Text · v1.6.1</strong> · Made for people who like a blank page.</sub></div>

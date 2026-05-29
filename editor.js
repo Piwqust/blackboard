@@ -114,6 +114,10 @@ const deletePageConfirm = document.getElementById('deletePageConfirm');
 const cancelDeletePageBtn = document.getElementById('cancelDeletePageBtn');
 const confirmDeletePageBtn = document.getElementById('confirmDeletePageBtn');
 const themeGrid = document.getElementById('themeGrid');
+const clearDrawingsConfirm = document.getElementById('clearDrawingsConfirm');
+const cancelClearDrawingsBtn = document.getElementById('cancelClearDrawingsBtn');
+const confirmClearDrawingsBtn = document.getElementById('confirmClearDrawingsBtn');
+const colorPickerMatchTheme = document.getElementById('colorPickerMatchTheme');
 
 // Setting controls
 const controls = {
@@ -131,7 +135,8 @@ const controls = {
 const drawSizeSlider = document.getElementById('drawSize');
 const drawSizeValue = document.getElementById('drawSizeValue');
 const drawSizeMarkers = document.getElementById('drawSizeMarkers');
-const drawSizeButtons = Array.from(document.querySelectorAll('[data-draw-size]'));
+// Marker buttons live in `drawSizeMarkerButtons` once `initBrushSizeMarkers`
+// runs — they don't exist at module load, so there's no top-level handle.
 const DRAW_SIZE_MARKERS = [0.08, 0.14, 0.22, 0.32, 0.46, 0.66, 0.92, 1.22];
 
 // Hex input controls
@@ -237,6 +242,18 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// Pick black or white based on the WCAG relative luminance of a hex color.
+// Used to keep selected text readable regardless of the highlight color.
+function getContrastingTextColor(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const channel = c => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  const luminance = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+  return luminance > 0.5 ? '#000000' : '#FFFFFF';
+}
+
 // Keep HSL functions for backwards compatibility
 function hslToHex(h, s, l) {
   s /= 100;
@@ -297,7 +314,7 @@ function initColorPickerSwatches() {
 
 // Color picker functions
 function openColorPicker(colorKey, triggerElement) {
-  const labels = { textColor: 'Text Color', backgroundColor: 'Background', selectionColor: 'Selection', drawColor: 'Brush Color' };
+  const labels = { textColor: 'Text Color', backgroundColor: 'Background', selectionColor: 'Highlight', drawColor: 'Brush Color' };
 
   closeDrawSizePopover();
 
@@ -309,7 +326,14 @@ function openColorPicker(colorKey, triggerElement) {
 
   colorPickerState.activeColorKey = colorKey;
   colorPickerState.isOpen = true;
-  
+
+  // "Match theme" is only meaningful for the brush color (where mode='custom'
+  // means the brush no longer follows theme changes). Hide it elsewhere.
+  if (colorPickerMatchTheme) {
+    const isBrushCustom = colorKey === 'drawColor' && drawingState.currentBrushColorMode === 'custom';
+    colorPickerMatchTheme.hidden = !isBrushCustom;
+  }
+
   // Set title
   if (colorPickerTitle) colorPickerTitle.textContent = labels[colorKey] || 'Color';
   
@@ -414,6 +438,10 @@ function applyColorLive() {
   
   if (colorKey === 'drawColor') {
     setBrushColor(hex, { persist: true, mode: 'custom' });
+    // The brush just stopped following theme — reveal "Match theme color".
+    if (colorPickerMatchTheme) {
+      colorPickerMatchTheme.hidden = false;
+    }
   } else {
     // Apply settings live
     handleColorChange();
@@ -481,6 +509,24 @@ if (colorPickerHexInput) {
 }
 
 document.getElementById('colorPickerClose')?.addEventListener('click', closeColorPicker);
+
+// "Match theme color" — only relevant for brush color. Pulls the current
+// theme's text color and flips brush mode back to 'theme' so future theme
+// switches keep the brush in sync.
+colorPickerMatchTheme?.addEventListener('click', () => {
+  const themeColor = controls.textColor?.value || DEFAULT_SETTINGS.textColor;
+  setBrushColor(themeColor, { persist: true, mode: 'theme' });
+
+  // Sync the picker's internal HSB state to the new color so the cursor
+  // jumps to the right swatch and "New" preview updates.
+  const hsb = hexToHsb(themeColor);
+  colorPickerState.hue = hsb.h;
+  colorPickerState.sat = hsb.s;
+  colorPickerState.brightness = hsb.b;
+  if (colorPickerHue) colorPickerHue.value = hsb.h;
+  updateColorPickerDisplay();
+  if (colorPickerMatchTheme) colorPickerMatchTheme.hidden = true;
+});
 
 // Initialize swatches
 initColorPickerSwatches();
@@ -620,14 +666,37 @@ function initFontDropdown() {
   updateFontDropdownSelection();
 }
 
+function positionFontDropdown() {
+  if (!fontDropdownTrigger || !fontDropdownMenu) return;
+
+  const triggerRect = fontDropdownTrigger.getBoundingClientRect();
+  const viewportH = window.innerHeight;
+  const gap = 8;
+  const spaceBelow = viewportH - triggerRect.bottom - gap;
+  const spaceAbove = triggerRect.top - gap;
+
+  // Measure the menu's natural height by temporarily neutralizing constraints.
+  const prevMaxHeight = fontDropdownMenu.style.maxHeight;
+  fontDropdownMenu.style.maxHeight = 'none';
+  const naturalHeight = fontDropdownMenu.scrollHeight;
+  fontDropdownMenu.style.maxHeight = prevMaxHeight;
+
+  const flipUp = spaceBelow < naturalHeight && spaceAbove > spaceBelow;
+  fontDropdownMenu.classList.toggle('flip-up', flipUp);
+  const cap = Math.max(120, Math.floor((flipUp ? spaceAbove : spaceBelow)));
+  fontDropdownMenu.style.maxHeight = `${Math.min(naturalHeight, cap)}px`;
+}
+
 function toggleFontDropdown() {
   fontDropdownOpen = !fontDropdownOpen;
   fontDropdownTrigger.classList.toggle('open', fontDropdownOpen);
-  fontDropdownMenu.classList.toggle('visible', fontDropdownOpen);
-  
+
   if (fontDropdownOpen) {
+    positionFontDropdown();
     updateFontDropdownSelection();
   }
+
+  fontDropdownMenu.classList.toggle('visible', fontDropdownOpen);
 }
 
 function closeFontDropdown() {
@@ -697,6 +766,9 @@ let currentPageId = null;
 let editingPageId = null;
 let hoverResetTimeout = null;
 let scrollRestoreTimeout = null;
+let scrollRestoreFrame = null;
+let scrollRestoreNestedFrame = null;
+let isRestoringPageScroll = false;
 let hoverResetOnPointerMove = false;
 let drawSizeMarkerButtons = [];
 
@@ -704,7 +776,8 @@ let drawSizeMarkerButtons = [];
 const uiState = {
   settingsOpen: false,
   deleteConfirmOpen: false,
-  drawSizePopoverOpen: false
+  drawSizePopoverOpen: false,
+  clearDrawingsConfirmOpen: false
 };
 
 // Drawing state
@@ -797,8 +870,7 @@ function formatBrushSizeLabel(size = drawingState.currentBrushSize, fontSize = g
   const pixelValue = getBrushSizeInPixels(size, fontSize);
   const roundedPixels = pixelValue >= 10 ? pixelValue.toFixed(0) : pixelValue.toFixed(1);
   const normalizedPixels = roundedPixels.replace(/\.0$/, '');
-  const relativePercent = Math.round(clampBrushSize(size) * 100);
-  return `${normalizedPixels}px · ${relativePercent}%`;
+  return `${normalizedPixels}px`;
 }
 
 function getClosestBrushMarkerSize(size = drawingState.currentBrushSize) {
@@ -863,10 +935,6 @@ function updateBrushSizeButtons() {
   const brushSizeLabel = formatBrushSizeLabel(normalizedBrushSize);
 
   drawingState.currentBrushSize = normalizedBrushSize;
-  drawSizeButtons.forEach(button => {
-    const size = normalizeBrushSizeSetting(button.dataset.drawSize);
-    button.classList.toggle('active', Math.abs(size - normalizedBrushSize) < 0.01);
-  });
 
   if (drawSizeSlider) {
     drawSizeSlider.value = normalizedBrushSize;
@@ -975,6 +1043,12 @@ function syncCurrentPageScrollPosition() {
     return;
   }
 
+  // While a page-switch restore is mid-flight, the viewport may briefly hold a
+  // clamped scroll value that doesn't represent the user's intent yet.
+  if (isRestoringPageScroll) {
+    return;
+  }
+
   page.scrollTop = getViewportScrollTop();
 }
 
@@ -1000,13 +1074,30 @@ function restorePageScrollPosition(scrollTop = 0) {
     }
   };
 
+  // Cancel any pending restore from a previous switch so it can't overwrite this one.
   if (scrollRestoreTimeout) {
     clearTimeout(scrollRestoreTimeout);
+    scrollRestoreTimeout = null;
+  }
+  if (scrollRestoreFrame !== null) {
+    cancelAnimationFrame(scrollRestoreFrame);
+    scrollRestoreFrame = null;
+  }
+  if (scrollRestoreNestedFrame !== null) {
+    cancelAnimationFrame(scrollRestoreNestedFrame);
+    scrollRestoreNestedFrame = null;
   }
 
-  requestAnimationFrame(() => {
+  // Block the scroll-event listener from overwriting page.scrollTop with the
+  // intermediate clamped values that fire while layout is still settling.
+  isRestoringPageScroll = true;
+  applyScroll();
+
+  scrollRestoreFrame = requestAnimationFrame(() => {
+    scrollRestoreFrame = null;
     applyScroll();
-    requestAnimationFrame(() => {
+    scrollRestoreNestedFrame = requestAnimationFrame(() => {
+      scrollRestoreNestedFrame = null;
       applyScroll();
     });
   });
@@ -1014,6 +1105,7 @@ function restorePageScrollPosition(scrollTop = 0) {
   scrollRestoreTimeout = setTimeout(() => {
     applyScroll();
     scrollRestoreTimeout = null;
+    isRestoringPageScroll = false;
   }, 120);
 }
 
@@ -1062,20 +1154,6 @@ function handleScrollActivity({ repositionEmojiPicker = false, persistPageScroll
   if (persistPageScroll) {
     persistCurrentPageScrollPosition();
   }
-}
-
-function syncSelectionColorControl(color = controls.textColor?.value || DEFAULT_SETTINGS.textColor) {
-  const normalizedColor = normalizeHex(color);
-
-  if (controls.selectionColor) {
-    controls.selectionColor.value = normalizedColor;
-  }
-
-  if (hexInputs.selectionColor) {
-    hexInputs.selectionColor.value = normalizedColor;
-  }
-
-  return normalizedColor;
 }
 
 function getCurrentBrushColor() {
@@ -1218,20 +1296,13 @@ function clearDrawingSurface() {
   drawingContext.restore();
 }
 
-function drawStroke(stroke) {
-  if (!drawingContext || !stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) {
-    return;
-  }
+// Shared canvas paint path. Treats a single-point stroke as a tiny dot so it
+// still renders. `tailPoints` is the array of vertices to lineTo *after* the
+// starting point — keeps `drawStroke` and `drawStrokeRange` on one code path.
+function paintPath(stroke, startPoint, tailPoints, fontSize) {
+  if (!drawingContext || !startPoint) return;
 
   const isEraserStroke = stroke.tool === 'eraser';
-  const fontSize = getNormalizedFontSize();
-  const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
-  const renderedPoints = stroke.points.map(point => convertPointToCanvasPixels(point, referenceFontSize, fontSize));
-  const firstPoint = renderedPoints[0];
-
-  if (!firstPoint) {
-    return;
-  }
 
   drawingContext.save();
   drawingContext.globalCompositeOperation = isEraserStroke ? 'destination-out' : 'source-over';
@@ -1240,16 +1311,29 @@ function drawStroke(stroke) {
   drawingContext.lineCap = 'round';
   drawingContext.lineJoin = 'round';
   drawingContext.beginPath();
-  drawingContext.moveTo(firstPoint.x, firstPoint.y);
+  drawingContext.moveTo(startPoint.x, startPoint.y);
 
-  if (renderedPoints.length === 1) {
-    drawingContext.lineTo(firstPoint.x + 0.01, firstPoint.y + 0.01);
+  if (!tailPoints || tailPoints.length === 0) {
+    // Single-point stroke — nudge a hair so a dot renders.
+    drawingContext.lineTo(startPoint.x + 0.01, startPoint.y + 0.01);
   } else {
-    renderedPoints.slice(1).forEach(point => drawingContext.lineTo(point.x, point.y));
+    tailPoints.forEach(point => drawingContext.lineTo(point.x, point.y));
   }
 
   drawingContext.stroke();
   drawingContext.restore();
+}
+
+function drawStroke(stroke) {
+  if (!drawingContext || !stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) {
+    return;
+  }
+
+  const fontSize = getNormalizedFontSize();
+  const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
+  const renderedPoints = stroke.points.map(point => convertPointToCanvasPixels(point, referenceFontSize, fontSize));
+  const [firstPoint, ...tail] = renderedPoints;
+  paintPath(stroke, firstPoint, tail, fontSize);
 }
 
 function redrawDrawings() {
@@ -1310,32 +1394,12 @@ function drawStrokeRange(stroke, startIndex = 0) {
   const fontSize = getNormalizedFontSize();
   const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
   const startPoint = convertPointToCanvasPixels(stroke.points[pathStartIndex], referenceFontSize, fontSize);
-  const segmentPoints = stroke.points
+  const tailPoints = stroke.points
     .slice(clampedStartIndex > 0 ? clampedStartIndex : 1)
     .map(point => convertPointToCanvasPixels(point, referenceFontSize, fontSize));
   const isSinglePointStroke = stroke.points.length === 1 && clampedStartIndex === 0;
 
-  if (!startPoint) {
-    return;
-  }
-
-  drawingContext.save();
-  drawingContext.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
-  drawingContext.strokeStyle = stroke.tool === 'eraser' ? '#000000' : (stroke.color || getCurrentBrushColor());
-  drawingContext.lineWidth = getBrushSizeInPixels(stroke.width, fontSize);
-  drawingContext.lineCap = 'round';
-  drawingContext.lineJoin = 'round';
-  drawingContext.beginPath();
-  drawingContext.moveTo(startPoint.x, startPoint.y);
-
-  if (isSinglePointStroke) {
-    drawingContext.lineTo(startPoint.x + 0.01, startPoint.y + 0.01);
-  } else {
-    segmentPoints.forEach(point => drawingContext.lineTo(point.x, point.y));
-  }
-
-  drawingContext.stroke();
-  drawingContext.restore();
+  paintPath(stroke, startPoint, isSinglePointStroke ? [] : tailPoints, fontSize);
 }
 
 function flushPendingStrokeRender() {
@@ -1483,16 +1547,72 @@ function undoLastStroke() {
 function clearCurrentPageDrawings() {
   const page = getCurrentPage();
   if (!page || !Array.isArray(page.drawings) || page.drawings.length === 0) {
-    return;
-  }
-
-  if (!window.confirm('Clear all drawings from this page?')) {
+    closeClearDrawingsConfirm();
     return;
   }
 
   page.drawings = [];
   redrawDrawings();
   saveContent();
+  closeClearDrawingsConfirm({ restoreFocus: true });
+}
+
+// Confirm popover for the "clear drawings" toolbar button — mirrors the page
+// delete confirmation pattern so both destructive actions feel consistent.
+function positionClearDrawingsConfirm() {
+  if (!clearDrawingsConfirm || clearDrawingsConfirm.hidden || !clearDrawingsBtn) {
+    return;
+  }
+
+  const triggerRect = clearDrawingsBtn.getBoundingClientRect();
+  const popoverWidth = Math.min(clearDrawingsConfirm.offsetWidth || 244, window.innerWidth - 24);
+  const popoverHeight = Math.min(clearDrawingsConfirm.offsetHeight || 120, window.innerHeight - 24);
+  const viewportPadding = 12;
+  const gutter = 10;
+
+  let left = triggerRect.right - popoverWidth;
+  left = Math.min(Math.max(viewportPadding, left), window.innerWidth - popoverWidth - viewportPadding);
+
+  let top = triggerRect.bottom + gutter;
+  if (top + popoverHeight > window.innerHeight - viewportPadding) {
+    top = Math.max(viewportPadding, triggerRect.top - popoverHeight - gutter);
+  }
+
+  clearDrawingsConfirm.style.left = `${left}px`;
+  clearDrawingsConfirm.style.top = `${top}px`;
+}
+
+function openClearDrawingsConfirm() {
+  const page = getCurrentPage();
+  if (!clearDrawingsConfirm || !page || !Array.isArray(page.drawings) || page.drawings.length === 0) {
+    return;
+  }
+
+  closeDrawSizePopover();
+  closeColorPicker();
+  uiState.clearDrawingsConfirmOpen = true;
+  clearDrawingsConfirm.hidden = false;
+  clearDrawingsConfirm.classList.add('visible');
+  clearDrawingsBtn?.setAttribute('aria-expanded', 'true');
+  positionClearDrawingsConfirm();
+}
+
+function closeClearDrawingsConfirm({ restoreFocus = false } = {}) {
+  uiState.clearDrawingsConfirmOpen = false;
+
+  if (clearDrawingsConfirm) {
+    clearDrawingsConfirm.classList.remove('visible');
+    clearDrawingsConfirm.hidden = true;
+    clearDrawingsConfirm.style.left = '';
+    clearDrawingsConfirm.style.top = '';
+  }
+
+  if (clearDrawingsBtn) {
+    clearDrawingsBtn.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) {
+      clearDrawingsBtn.focus();
+    }
+  }
 }
 
 function positionDrawSizePopover() {
@@ -1818,6 +1938,11 @@ function cancelActiveStroke() {
 }
 
 function isUndoShortcut(event) {
+  // Skip IME composition — Ctrl/Cmd+Z while a CJK IME is composing belongs
+  // to the IME (cancel composition), not to our undo handler.
+  if (event.isComposing || event.keyCode === 229) {
+    return false;
+  }
   return (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'z';
 }
 
@@ -1889,26 +2014,31 @@ function debounce(func, wait) {
   };
 }
 
-const persistPagesState = debounce(async () => {
+// Single funnel for every `chrome.storage.local.set` call so quota errors
+// (QUOTA_BYTES, QUOTA_BYTES_PER_ITEM) surface in the save indicator instead
+// of dying silently in a fire-and-forget promise.
+async function safeLocalSet(payload, context = 'saving') {
   try {
-    await chrome.storage.local.set({ pages, currentPageId });
+    await chrome.storage.local.set(payload);
+    return true;
   } catch (error) {
-    console.error('Error saving page state:', error);
+    handleStorageError(error, context);
+    return false;
   }
+}
+
+const persistPagesState = debounce(() => {
+  safeLocalSet({ pages, currentPageId }, 'saving pages');
 }, 200);
 
 async function persistPagesStateImmediately() {
-  try {
-    await chrome.storage.local.set({ pages, currentPageId });
-  } catch (error) {
-    console.error('Error saving page state immediately:', error);
-  }
+  await safeLocalSet({ pages, currentPageId }, 'saving pages');
 }
 
 // Apply settings to CSS custom properties
 function applySettings(settings) {
   const root = document.documentElement;
-  const selectionColor = normalizeHex(settings.textColor || settings.selectionColor || DEFAULT_SETTINGS.textColor);
+  const selectionColor = normalizeHex(settings.selectionColor || settings.textColor || DEFAULT_SETTINGS.selectionColor);
   root.style.setProperty('--font-family', settings.fontFamily);
   root.style.setProperty('--font-size', settings.fontSize + 'px');
   root.style.setProperty('--line-height', settings.lineHeight);
@@ -1917,6 +2047,7 @@ function applySettings(settings) {
   root.style.setProperty('--text-color', settings.textColor);
   root.style.setProperty('--bg-color', settings.backgroundColor);
   root.style.setProperty('--selection-color', selectionColor);
+  root.style.setProperty('--selection-text-color', getContrastingTextColor(selectionColor));
   root.style.setProperty('--ui-surface', hexToRgba(settings.backgroundColor, 0.56));
   root.style.setProperty('--ui-surface-strong', hexToRgba(settings.backgroundColor, 0.72));
   root.style.setProperty('--ui-surface-soft', hexToRgba(settings.backgroundColor, 0.44));
@@ -1934,7 +2065,7 @@ function applySettings(settings) {
 
 // Update control values in UI
 function updateControlValues(settings) {
-  const selectionColor = normalizeHex(settings.textColor || settings.selectionColor || DEFAULT_SETTINGS.textColor);
+  const selectionColor = normalizeHex(settings.selectionColor || settings.textColor || DEFAULT_SETTINGS.selectionColor);
   const normalizedDrawSize = normalizeBrushSizeSetting(settings.drawSize, settings.fontSize);
 
   controls.fontFamily.value = settings.fontFamily;
@@ -1984,15 +2115,36 @@ async function saveContent() {
     }
     pages[pageIndex].content = content;
     pages[pageIndex].drawings = Array.isArray(pages[pageIndex].drawings) ? pages[pageIndex].drawings : [];
-    await chrome.storage.local.set({ 
-      pages: pages,
-      lastSaved: Date.now()
-    });
-    showSaveIndicator();
+    if (await safeLocalSet({ pages }, 'saving page content')) {
+      showSaveIndicator();
+    }
     updateWordCount();
   } catch (error) {
     console.error('Error saving content:', error);
   }
+}
+
+// Surface storage quota / write failures so the user notices when their notes
+// stop being saved instead of silently losing edits.
+function handleStorageError(error, context = 'saving') {
+  console.error(`Error ${context}:`, error);
+  if (!saveIndicator) return;
+
+  saveIndicator.classList.add('error', 'visible');
+  saveIndicator.title = error?.message
+    ? `Save failed: ${error.message}`
+    : 'Save failed. Storage quota may be full.';
+  saveIndicator.setAttribute('aria-label', saveIndicator.title);
+
+  // Auto-clear the error after a few seconds so the next successful save can
+  // overwrite it with the normal indicator state.
+  setTimeout(() => {
+    if (saveIndicator.classList.contains('error')) {
+      saveIndicator.classList.remove('error', 'visible');
+      saveIndicator.title = '';
+      saveIndicator.removeAttribute('aria-label');
+    }
+  }, 4000);
 }
 
 // Debounced save
@@ -2000,6 +2152,10 @@ const debouncedSave = debounce(saveContent, 1000);
 
 // Show save indicator briefly
 function showSaveIndicator() {
+  // A successful save clears any lingering error state.
+  saveIndicator.classList.remove('error');
+  saveIndicator.title = '';
+  saveIndicator.removeAttribute('aria-label');
   saveIndicator.classList.add('visible');
   setTimeout(() => {
     saveIndicator.classList.remove('visible');
@@ -2010,11 +2166,16 @@ function showSaveIndicator() {
 async function saveSettings(settings) {
   try {
     await chrome.storage.sync.set({ settings });
-    // Mark that user has set a theme (for dark mode detection)
-    document.documentElement.setAttribute('data-theme-set', 'true');
   } catch (error) {
-    console.error('Error saving settings:', error);
+    handleStorageError(error, 'saving settings');
   }
+}
+
+// Mark theme as explicit so the prefers-color-scheme dark-mode override stops
+// applying. Called only when the user actively picks a theme or color — not
+// on every font/size tweak (which previously locked dark mode out forever).
+function markThemeExplicit() {
+  document.documentElement.setAttribute('data-theme-set', 'true');
 }
 
 // Load saved data
@@ -2025,7 +2186,7 @@ async function loadSavedData() {
     const syncData = await chrome.storage.sync.get(['settings']);
     const settings = { ...DEFAULT_SETTINGS, ...syncData.settings };
     settings.drawSize = normalizeBrushSizeSetting(settings.drawSize, settings.fontSize);
-    settings.selectionColor = normalizeHex(settings.textColor || DEFAULT_SETTINGS.textColor);
+    settings.selectionColor = normalizeHex(settings.selectionColor || settings.textColor || DEFAULT_SETTINGS.selectionColor);
     const pagesNeedMigration = Array.isArray(localData.pages) && localData.pages.some(page =>
       Array.isArray(page?.drawings) && page.drawings.some(stroke =>
         stroke?.coordinateSpace !== DRAWING_COORDINATE_SPACE || !Number.isFinite(Number(stroke?.referenceFontSize))
@@ -2041,7 +2202,7 @@ async function loadSavedData() {
         content: localData.noteContent
       }, settings.fontSize)];
       currentPageId = pages[0].id;
-      await chrome.storage.local.set({ pages, currentPageId });
+      await safeLocalSet({ pages, currentPageId }, 'migrating note to pages');
       await chrome.storage.local.remove(['noteContent']);
     } else if (localData.pages && localData.pages.length > 0) {
       pages = localData.pages.map(page => normalizePage(page, settings.fontSize));
@@ -2054,7 +2215,7 @@ async function loadSavedData() {
         content: ''
       }, settings.fontSize)];
       currentPageId = pages[0].id;
-      await chrome.storage.local.set({ pages, currentPageId });
+      await safeLocalSet({ pages, currentPageId }, 'seeding default page');
     }
 
     // Set current theme
@@ -2090,14 +2251,63 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
 
+// Strip anything an attacker could use to execute script if the stored
+// content was ever tampered with by an external party (another extension
+// writing to chrome.storage, a buggy migration, an imported file, etc).
+// Paste-into-editor is already sanitized to plain text, but we don't want
+// `editor.innerHTML = page.content` to be a code-execution sink.
+const UNSAFE_TAGS = new Set([
+  'SCRIPT', 'IFRAME', 'OBJECT', 'EMBED', 'LINK', 'META', 'STYLE',
+  'BASE', 'FORM', 'INPUT', 'BUTTON', 'TEXTAREA', 'SELECT', 'OPTION'
+]);
+const UNSAFE_URL_ATTRS = new Set(['href', 'src', 'action', 'formaction', 'xlink:href']);
+
+function sanitizeStoredContent(html) {
+  if (typeof html !== 'string' || html.length === 0) {
+    return '';
+  }
+
+  const template = document.createElement('template');
+  template.innerHTML = html;
+
+  const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT);
+  const doomed = [];
+  let node = walker.nextNode();
+
+  while (node) {
+    if (UNSAFE_TAGS.has(node.tagName)) {
+      doomed.push(node);
+    } else {
+      // Drop inline event handlers (onclick, onerror, …) and javascript: URLs.
+      for (const attr of Array.from(node.attributes)) {
+        const name = attr.name.toLowerCase();
+        if (name.startsWith('on')) {
+          node.removeAttribute(attr.name);
+          continue;
+        }
+        if (UNSAFE_URL_ATTRS.has(name)) {
+          const value = attr.value.trim().toLowerCase();
+          if (value.startsWith('javascript:') || value.startsWith('data:text/html')) {
+            node.removeAttribute(attr.name);
+          }
+        }
+      }
+    }
+    node = walker.nextNode();
+  }
+
+  doomed.forEach(el => el.remove());
+  return template.innerHTML;
+}
+
 // Load page content
 function loadPageContent(pageId) {
   const page = pages.find(p => p.id === pageId);
   if (page) {
     resetCurrentStrokeState();
-    editor.innerHTML = page.content;
+    editor.innerHTML = sanitizeStoredContent(page.content);
     currentPageId = pageId;
-    chrome.storage.local.set({ currentPageId });
+    safeLocalSet({ currentPageId }, 'updating active page');
     renderPageTabs();
     updateWordCount();
     scheduleDrawingLayerSync({ forceRedraw: true });
@@ -2252,7 +2462,7 @@ function handleDrop(e) {
   draggedPageId = null;
   clearPageTabDragState();
   setPageReorderingState(false);
-  chrome.storage.local.set({ pages, currentPageId });
+  safeLocalSet({ pages, currentPageId }, 'saving pages');
   renderPageTabs();
 }
 
@@ -2287,11 +2497,15 @@ function addNewPage() {
   editor.innerHTML = '';
   redrawDrawings();
   
-  chrome.storage.local.set({ pages, currentPageId });
+  safeLocalSet({ pages, currentPageId }, 'saving pages');
   renderPageTabs();
   scheduleDrawingLayerSync({ forceRedraw: true });
   restorePageScrollPosition(0);
-  editor.focus();
+  try {
+    editor.focus({ preventScroll: true });
+  } catch (error) {
+    editor.focus();
+  }
 }
 
 // Delete page
@@ -2308,7 +2522,7 @@ function deletePage(pageId) {
     loadPageContent(currentPageId);
   }
   
-  chrome.storage.local.set({ pages, currentPageId });
+  safeLocalSet({ pages, currentPageId }, 'saving pages');
   renderPageTabs();
 }
 
@@ -2388,7 +2602,7 @@ function clearPageEmoji() {
   }
 
   page.emoji = '';
-  chrome.storage.local.set({ pages, currentPageId });
+  safeLocalSet({ pages, currentPageId }, 'saving pages');
   renderPageTabs();
   closeEmojiPicker({ restoreFocus: true });
 }
@@ -2400,7 +2614,7 @@ function selectEmoji(emoji) {
   const page = getPageById(editingPageId);
   if (page) {
     page.emoji = emoji;
-    chrome.storage.local.set({ pages, currentPageId });
+    safeLocalSet({ pages, currentPageId }, 'saving pages');
     renderPageTabs();
   }
   
@@ -2488,7 +2702,7 @@ function getCurrentSettings() {
     drawColorMode: drawingState.currentBrushColorMode,
     textColor: controls.textColor.value,
     backgroundColor: controls.backgroundColor.value,
-    selectionColor: syncSelectionColorControl(controls.textColor.value),
+    selectionColor: normalizeHex(controls.selectionColor.value || controls.textColor.value),
     currentTheme: currentTheme
   };
 }
@@ -2515,14 +2729,15 @@ function initThemeGrid() {
     regularText.className = 'theme-swatch-text theme-swatch-text-regular';
     regularText.textContent = 'Aa';
 
+    const themeHighlight = theme.selectionColor || theme.textColor;
     const highlightedText = document.createElement('span');
     highlightedText.className = 'theme-swatch-highlight';
-    highlightedText.style.backgroundColor = theme.textColor;
+    highlightedText.style.backgroundColor = themeHighlight;
 
     const highlightedTextLabel = document.createElement('span');
     highlightedTextLabel.className = 'theme-swatch-text theme-swatch-text-highlighted';
     regularText.style.color = theme.textColor;
-    highlightedTextLabel.style.color = '#FFFFFF';
+    highlightedTextLabel.style.color = theme.backgroundColor;
     highlightedTextLabel.textContent = 'Aa';
 
     highlightedText.appendChild(highlightedTextLabel);
@@ -2550,19 +2765,21 @@ function selectTheme(themeKey) {
   const theme = THEMES[themeKey];
   
   // Update color controls
+  const themeSelection = theme.selectionColor || theme.textColor;
   controls.textColor.value = theme.textColor;
   controls.backgroundColor.value = theme.backgroundColor;
-  controls.selectionColor.value = theme.textColor;
-  
+  controls.selectionColor.value = themeSelection;
+
   // Update hex inputs
   if (hexInputs.textColor) hexInputs.textColor.value = theme.textColor;
   if (hexInputs.backgroundColor) hexInputs.backgroundColor.value = theme.backgroundColor;
-  if (hexInputs.selectionColor) hexInputs.selectionColor.value = theme.textColor;
+  if (hexInputs.selectionColor) hexInputs.selectionColor.value = themeSelection;
 
   if (drawingState.currentBrushColorMode !== 'custom') {
     setBrushColor(theme.textColor, { persist: false, mode: 'theme' });
   }
-  
+
+  markThemeExplicit();
   // Apply and save
   handleSettingChange();
   updateThemeGridSelection();
@@ -2585,18 +2802,19 @@ function handleColorChange() {
   // Check if current colors match any theme
   const textColor = controls.textColor.value.toUpperCase();
   const bgColor = controls.backgroundColor.value.toUpperCase();
-  const selColor = syncSelectionColorControl(textColor).toUpperCase();
-  
+  const selColor = normalizeHex(controls.selectionColor.value || controls.textColor.value).toUpperCase();
+
   // Sync hex inputs
-  if (hexInputs.textColor) hexInputs.textColor.value = controls.textColor.value;
-  if (hexInputs.backgroundColor) hexInputs.backgroundColor.value = controls.backgroundColor.value;
+  if (hexInputs.textColor) hexInputs.textColor.value = controls.textColor.value.toUpperCase();
+  if (hexInputs.backgroundColor) hexInputs.backgroundColor.value = controls.backgroundColor.value.toUpperCase();
   if (hexInputs.selectionColor) hexInputs.selectionColor.value = selColor;
-  
+
   let matchedTheme = null;
   for (const [key, theme] of Object.entries(THEMES)) {
+    const themeSel = (theme.selectionColor || theme.textColor).toUpperCase();
     if (theme.textColor.toUpperCase() === textColor &&
         theme.backgroundColor.toUpperCase() === bgColor &&
-        theme.textColor.toUpperCase() === selColor) {
+        themeSel === selColor) {
       matchedTheme = key;
       break;
     }
@@ -2606,6 +2824,7 @@ function handleColorChange() {
   if (drawingState.currentBrushColorMode !== 'custom') {
     setBrushColor(controls.textColor.value, { persist: false, mode: 'theme' });
   }
+  markThemeExplicit();
   updateThemeGridSelection();
   handleSettingChange();
 }
@@ -2616,11 +2835,6 @@ function handleHexInputChange(colorKey) {
   const colorInput = controls[colorKey];
   if (!hexInput || !colorInput) return;
 
-  if (colorKey === 'selectionColor') {
-    syncSelectionColorControl();
-    return;
-  }
-  
   let value = hexInput.value.trim();
   
   // Add # if missing
@@ -2661,7 +2875,7 @@ function handleSettingChange() {
 // Reset settings to defaults
 function resetSettings() {
   currentTheme = 'lavender';
-  const resetSettingsValues = { ...DEFAULT_SETTINGS, selectionColor: DEFAULT_SETTINGS.textColor };
+  const resetSettingsValues = { ...DEFAULT_SETTINGS };
   applySettings(resetSettingsValues);
   updateControlValues(resetSettingsValues);
   saveSettings(resetSettingsValues);
@@ -2801,7 +3015,7 @@ function handleUnindent(selection) {
 });
 
 // Color controls - use special handler
-['textColor', 'backgroundColor'].forEach(key => {
+['textColor', 'backgroundColor', 'selectionColor'].forEach(key => {
   controls[key].addEventListener('input', handleColorChange);
   controls[key].addEventListener('change', handleColorChange);
 });
@@ -2865,13 +3079,6 @@ if (drawSizeToggleBtn) {
   });
 }
 
-drawSizeButtons.forEach(button => {
-  button.addEventListener('click', (event) => {
-    setBrushSize(button.dataset.drawSize);
-    event.currentTarget.blur();
-  });
-});
-
 if (drawSizeSlider) {
   drawSizeSlider.addEventListener('input', () => {
     setBrushSize(drawSizeSlider.value);
@@ -2892,8 +3099,31 @@ if (undoDrawingBtn) {
 
 if (clearDrawingsBtn) {
   clearDrawingsBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const page = getCurrentPage();
+    if (!page || !Array.isArray(page.drawings) || page.drawings.length === 0) {
+      // Nothing to clear — quietly do nothing.
+      return;
+    }
+    if (uiState.clearDrawingsConfirmOpen) {
+      closeClearDrawingsConfirm({ restoreFocus: false });
+    } else {
+      openClearDrawingsConfirm();
+    }
+  });
+}
+
+if (cancelClearDrawingsBtn) {
+  cancelClearDrawingsBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    closeClearDrawingsConfirm({ restoreFocus: true });
+  });
+}
+
+if (confirmClearDrawingsBtn) {
+  confirmClearDrawingsBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
     clearCurrentPageDrawings();
-    event.currentTarget.blur();
   });
 }
 
@@ -2914,6 +3144,9 @@ window.addEventListener('resize', () => {
   }
   if (uiState.deleteConfirmOpen) {
     positionDeletePageConfirm();
+  }
+  if (uiState.clearDrawingsConfirmOpen) {
+    positionClearDrawingsConfirm();
   }
 });
 
@@ -2937,7 +3170,7 @@ window.addEventListener('wheel', (event) => {
 }, { passive: false });
 
 window.addEventListener('scroll', () => {
-  handleScrollActivity({ persistPageScroll: true });
+  handleScrollActivity({ persistPageScroll: !isRestoringPageScroll });
 }, { passive: true });
 
 if (pageTabsList) {
@@ -2977,6 +3210,10 @@ document.addEventListener('click', (event) => {
   if (uiState.deleteConfirmOpen && !event.target.closest('#deletePageConfirm') && !event.target.closest('#emojiPickerDelete')) {
     closeDeletePageConfirm();
   }
+
+  if (uiState.clearDrawingsConfirmOpen && !event.target.closest('#clearDrawingsConfirm') && !event.target.closest('#clearDrawingsBtn')) {
+    closeClearDrawingsConfirm();
+  }
 });
 
 if (window.ResizeObserver && board) {
@@ -3008,8 +3245,17 @@ function updateWordCount() {
   if (!wordCountEl) return;
   const text = editor.innerText || '';
   const chars = text.length;
-  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  wordCountEl.textContent = `${words} words · ${chars} chars`;
+  const trimmed = text.trim();
+  const words = trimmed ? trimmed.split(/\s+/).length : 0;
+
+  // Don't show "0 words · 0 chars" on an empty page — keep the canvas quiet.
+  if (chars === 0) {
+    wordCountEl.textContent = '';
+    wordCountEl.classList.add('is-empty');
+  } else {
+    wordCountEl.textContent = `${words} words · ${chars} chars`;
+    wordCountEl.classList.remove('is-empty');
+  }
 }
 
 // Debounced word count update
@@ -3018,12 +3264,23 @@ editor.addEventListener('input', debouncedWordCount);
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
+  // Never hijack keys while an IME is composing.
+  if (e.isComposing || e.keyCode === 229) {
+    return;
+  }
+
   const isModifierPressed = e.ctrlKey || e.metaKey;
 
   if (e.key === 'Escape') {
     if (uiState.deleteConfirmOpen) {
       e.preventDefault();
       closeDeletePageConfirm({ restoreFocus: true });
+      return;
+    }
+
+    if (uiState.clearDrawingsConfirmOpen) {
+      e.preventDefault();
+      closeClearDrawingsConfirm({ restoreFocus: true });
       return;
     }
 
@@ -3102,9 +3359,27 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// Dev-time sanity check — flags themes missing required color fields before
+// they ship a broken swatch. Cheap, runs once.
+(function validateThemes() {
+  const REQUIRED = ['name', 'textColor', 'backgroundColor', 'selectionColor'];
+  for (const [key, theme] of Object.entries(THEMES)) {
+    for (const field of REQUIRED) {
+      if (!theme || typeof theme[field] !== 'string' || !theme[field]) {
+        console.warn(`[THEMES] "${key}" is missing required field "${field}".`);
+      }
+    }
+  }
+})();
+
 // Initialize
 loadSavedData();
 scheduleDrawingLayerSync({ forceRedraw: true });
 
-// Focus editor on load
-editor.focus();
+// Focus editor on load without auto-scrolling to top, so the per-page scroll
+// restore inside loadSavedData isn't overridden.
+try {
+  editor.focus({ preventScroll: true });
+} catch (error) {
+  editor.focus();
+}

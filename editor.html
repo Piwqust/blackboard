@@ -11,7 +11,7 @@
     <div id="editorShell">
       <div id="editor" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Note editor"></div>
     </div>
-    <canvas id="drawingLayer" aria-label="Drawing annotations" role="img"></canvas>
+    <canvas id="drawingLayer" aria-label="Drawing canvas — toggle the brush tool to draw"></canvas>
   </div>
 
   <div class="top-right-rail">
@@ -58,7 +58,7 @@
           </svg>
         </button>
 
-        <button id="clearDrawingsBtn" class="drawing-tool-button drawing-tool-button-danger" type="button" title="Clear page drawings">
+        <button id="clearDrawingsBtn" class="drawing-tool-button drawing-tool-button-danger" type="button" title="Clear page drawings" aria-haspopup="dialog" aria-expanded="false" aria-controls="clearDrawingsConfirm">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M9 4.75h6"/>
             <path d="M10.25 4.75V3.7c0-.52.43-.95.95-.95h1.6c.52 0 .95.43.95.95v1.05"/>
@@ -71,22 +71,28 @@
       </div>
     </div>
 
+    <div id="clearDrawingsConfirm" class="delete-confirm-popover" role="dialog" aria-modal="false" aria-labelledby="clearDrawingsConfirmTitle" hidden>
+      <p id="clearDrawingsConfirmTitle" class="delete-confirm-title">Clear drawings?</p>
+      <p class="delete-confirm-text">This removes every stroke on this page. Text is untouched.</p>
+      <div class="delete-confirm-actions">
+        <button id="cancelClearDrawingsBtn" class="delete-confirm-cancel" type="button">Cancel</button>
+        <button id="confirmClearDrawingsBtn" class="delete-confirm-delete" type="button">Clear</button>
+      </div>
+    </div>
+
     <input type="color" id="drawColor" value="#5B4FA8" hidden>
 
     <div class="drawing-size-popover" id="drawSizePopover" role="dialog" aria-modal="false" aria-labelledby="drawSizePopoverTitle" hidden>
       <div class="drawing-size-popover-header">
-        <div class="drawing-size-popover-copy">
-          <p id="drawSizePopoverTitle" class="drawing-size-popover-title">Brush size</p>
-          <p class="drawing-size-popover-hint">Fine-tune stroke width with minimalist slider ticks.</p>
-        </div>
-        <span id="drawSizeValue" class="drawing-size-value">4px</span>
+        <p id="drawSizePopoverTitle" class="drawing-size-popover-title">Brush size</p>
+        <span id="drawSizeValue" class="drawing-size-value" title="Stroke width">4px</span>
       </div>
 
       <label class="drawing-size-control" for="drawSize">
         <input type="range" id="drawSize" class="drawing-size-slider" min="0.08" max="1.4" step="0.01" value="0.22" aria-label="Brush size">
       </label>
 
-      <div class="drawing-size-markers" id="drawSizeMarkers" role="list" aria-label="Brush size markers"></div>
+      <div class="drawing-size-markers" id="drawSizeMarkers" role="list" aria-label="Brush size presets"></div>
     </div>
 
     <!-- Page tabs -->
@@ -146,12 +152,10 @@
         <div class="theme-grid" id="themeGrid"></div>
       </div>
 
-      <div class="control-divider"></div>
-
-      <!-- Typography Section -->
+      <!-- Layout Section -->
       <div class="control-section">
-        <div class="section-label">Type</div>
-        
+        <div class="section-label">Layout</div>
+
         <div class="control-group">
           <label for="fontFamily">Font</label>
           <!-- Hidden native select for form compatibility -->
@@ -185,71 +189,64 @@
           </div>
         </div>
 
-        <div class="control-group">
-          <label for="fontSize">Size <span id="fontSizeValue">40px</span></label>
-          <input type="range" id="fontSize" min="12" max="128" value="40">
+        <div class="control-row">
+          <div class="control-group">
+            <label for="fontSize">Size <span id="fontSizeValue">40px</span></label>
+            <input type="range" id="fontSize" min="12" max="128" value="40">
+          </div>
+
+          <div class="control-group">
+            <label for="maxWidth">Width <span id="maxWidthValue">1600px</span></label>
+            <input type="range" id="maxWidth" min="400" max="2400" step="50" value="1600">
+          </div>
         </div>
 
-        <div class="control-group">
-          <label for="lineHeight">Line Height <span id="lineHeightValue">1.6</span></label>
-          <input type="range" id="lineHeight" min="1" max="3" step="0.1" value="1.6">
-        </div>
+        <div class="control-row">
+          <div class="control-group">
+            <label for="lineHeight">Line Height <span id="lineHeightValue">1.6</span></label>
+            <input type="range" id="lineHeight" min="1" max="3" step="0.1" value="1.6">
+          </div>
 
-        <div class="control-group">
-          <label for="letterSpacing">Letter Spacing <span id="letterSpacingValue">0em</span></label>
-          <input type="range" id="letterSpacing" min="-0.05" max="0.2" step="0.01" value="0">
+          <div class="control-group">
+            <label for="letterSpacing">Tracking <span id="letterSpacingValue">0em</span></label>
+            <input type="range" id="letterSpacing" min="-0.05" max="0.2" step="0.01" value="0">
+          </div>
         </div>
       </div>
 
-      <div class="control-divider"></div>
-
-      <!-- Layout Section -->
+      <!-- Colors Section -->
       <div class="control-section">
-        <div class="section-label">Canvas</div>
-        
-        <div class="control-group">
-          <label for="maxWidth">Content Width <span id="maxWidthValue">1600px</span></label>
-          <input type="range" id="maxWidth" min="400" max="2400" step="50" value="1600">
-        </div>
-      </div>
-
-      <div class="control-divider"></div>
-
-      <!-- Custom Colors Section -->
-      <div class="control-section control-section-advanced">
-        <details class="control-disclosure">
-          <summary class="control-disclosure-summary">Advanced</summary>
-
-          <div class="color-controls">
-            <div class="color-control" data-color-type="textColor">
-              <label>Text</label>
-              <div class="color-input-wrapper">
-                <input type="color" id="textColor" value="#5B4FA8">
-                <input type="text" class="color-hex-input" id="textColorHex" value="#5B4FA8" maxlength="7" placeholder="#000000">
-              </div>
-            </div>
-            
-            <div class="color-control" data-color-type="backgroundColor">
-              <label>Background</label>
-              <div class="color-input-wrapper">
-                <input type="color" id="backgroundColor" value="#F2F0F8">
-                <input type="text" class="color-hex-input" id="backgroundColorHex" value="#F2F0F8" maxlength="7" placeholder="#FFFFFF">
-              </div>
-            </div>
-            
-            <div class="color-control" data-color-type="selectionColor">
-              <label>Selection</label>
-              <div class="color-input-wrapper">
-                <input type="color" id="selectionColor" value="#5B4FA8">
-                <input type="text" class="color-hex-input" id="selectionColorHex" value="#5B4FA8" maxlength="7" placeholder="#0000FF">
-              </div>
+        <div class="section-label">Colors</div>
+        <div class="color-controls">
+          <div class="color-control" data-color-type="textColor">
+            <label for="textColor">Text</label>
+            <div class="color-input-wrapper">
+              <input type="text" class="color-hex-input" id="textColorHex" value="#5B4FA8" maxlength="7" placeholder="#000000" spellcheck="false">
+              <input type="color" id="textColor" value="#5B4FA8" aria-label="Text color">
             </div>
           </div>
-          <p class="color-note">Highlights match the text color automatically.</p>
-        </details>
+
+          <div class="color-control" data-color-type="backgroundColor">
+            <label for="backgroundColor">Background</label>
+            <div class="color-input-wrapper">
+              <input type="text" class="color-hex-input" id="backgroundColorHex" value="#F2F0F8" maxlength="7" placeholder="#FFFFFF" spellcheck="false">
+              <input type="color" id="backgroundColor" value="#F2F0F8" aria-label="Background color">
+            </div>
+          </div>
+
+          <div class="color-control" data-color-type="selectionColor">
+            <label for="selectionColor">Highlight</label>
+            <div class="color-input-wrapper">
+              <input type="text" class="color-hex-input" id="selectionColorHex" value="#5B4FA8" maxlength="7" placeholder="#0000FF" spellcheck="false">
+              <input type="color" id="selectionColor" value="#5B4FA8" aria-label="Highlight color">
+            </div>
+          </div>
+        </div>
       </div>
 
-      <button id="resetSettings" class="reset-btn">Reset to Defaults</button>
+      <div class="controls-panel-footer">
+        <button id="resetSettings" class="reset-btn" type="button">Reset to defaults</button>
+      </div>
     </div>
 
     <button id="settingsToggleBtn" class="controls-icon" title="Settings" aria-label="Open settings" aria-expanded="false" type="button">
@@ -292,12 +289,21 @@
     
     <!-- Preset Swatches -->
     <div class="color-picker-swatches" id="colorPickerSwatches"></div>
+
+    <!-- Brush-only: revert custom color back to the theme's text color -->
+    <button type="button" id="colorPickerMatchTheme" class="color-picker-match-theme" hidden>
+      Match theme color
+    </button>
   </div>
 
   <!-- Save indicator -->
-  <div id="saveIndicator" class="save-indicator">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <div id="saveIndicator" class="save-indicator" role="status" aria-live="polite">
+    <svg class="save-indicator-ok" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M3 8.5l3.5 3.5 6.5-7"/>
+    </svg>
+    <svg class="save-indicator-err" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden>
+      <circle cx="8" cy="8" r="6.5"/>
+      <path d="M8 5v3.5M8 11v.01"/>
     </svg>
   </div>
 
