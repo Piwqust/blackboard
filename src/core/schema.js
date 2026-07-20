@@ -10,15 +10,16 @@ export const DEFAULT_WORKSPACE_SETTINGS = Object.freeze({
   letterSpacing: 0,
   maxWidth: 1600,
   drawSize: 4 / 18,
-  drawColor: '#5B4FA8',
+  drawColor: '#DDDAD2',
   drawColorMode: 'theme',
-  textColor: '#5B4FA8',
-  backgroundColor: '#F2F0F8',
-  selectionColor: '#5B4FA8',
-  currentTheme: 'lavender'
+  textColor: '#DDDAD2',
+  backgroundColor: '#0B0B0D',
+  selectionColor: '#3D47FF',
+  currentTheme: 'blackboard'
 });
 
-const LEGACY_FONT_PATTERN = /boardgrotesque|unica\s*77/i;
+const BOARD_GROTESK_FONT_FAMILY = "'BoardGrotesque Sans', sans-serif";
+const LEGACY_BOARD_GROTESK_PATTERN = /boardgrotesque|unica\s*77/i;
 
 function finiteNumber(value, fallback, minimum, maximum) {
   const parsed = Number(value);
@@ -49,8 +50,8 @@ export function migrateFontFamily(value) {
     return DEFAULT_WORKSPACE_SETTINGS.fontFamily;
   }
 
-  return LEGACY_FONT_PATTERN.test(value)
-    ? DEFAULT_WORKSPACE_SETTINGS.fontFamily
+  return LEGACY_BOARD_GROTESK_PATTERN.test(value)
+    ? BOARD_GROTESK_FONT_FAMILY
     : value;
 }
 
@@ -58,6 +59,9 @@ export function normalizeSettings(input = {}, defaults = DEFAULT_WORKSPACE_SETTI
   const source = input && typeof input === 'object' ? input : {};
   const baseline = { ...DEFAULT_WORKSPACE_SETTINGS, ...defaults };
   const textColor = normalizeHex(source.textColor, baseline.textColor);
+  const selectionFallback = source.selectionColor === undefined && source.textColor === undefined
+    ? baseline.selectionColor
+    : textColor;
 
   return {
     fontFamily: migrateFontFamily(source.fontFamily ?? baseline.fontFamily),
@@ -70,7 +74,7 @@ export function normalizeSettings(input = {}, defaults = DEFAULT_WORKSPACE_SETTI
     drawColorMode: source.drawColorMode === 'custom' ? 'custom' : 'theme',
     textColor,
     backgroundColor: normalizeHex(source.backgroundColor, baseline.backgroundColor),
-    selectionColor: normalizeHex(source.selectionColor, textColor),
+    selectionColor: normalizeHex(source.selectionColor, selectionFallback),
     currentTheme: typeof source.currentTheme === 'string' && source.currentTheme.trim()
       ? source.currentTheme.trim().slice(0, 40)
       : baseline.currentTheme

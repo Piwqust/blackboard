@@ -31,6 +31,9 @@ async function copyRuntime(destination, { includePwaWorker }) {
   await cp(path.join(root, 'icons'), path.join(destination, 'icons'), { recursive: true });
   await copyFile('fonts/InterVariable.woff2', destination);
   await copyFile('fonts/InterTight-Variable.ttf', destination);
+  await copyFile('fonts/BoardGrotesqueSans-Light.otf', destination);
+  await copyFile('fonts/BoardGrotesqueSans-Regular.otf', destination);
+  await copyFile('fonts/BoardGrotesqueSans-Medium.otf', destination);
 
   if (includePwaWorker) {
     const worker = await readFile(path.join(root, 'pwa-sw.js'), 'utf8');

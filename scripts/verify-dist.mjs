@@ -11,6 +11,7 @@ const required = [
   'dist/pwa/pwa-sw.js',
   'dist/pwa/src/core/workspace-store.js',
   'dist/pwa/fonts/InterVariable.woff2',
+  'dist/pwa/fonts/BoardGrotesqueSans-Regular.otf',
   'dist/pwa/icons/icon-192.png',
   'dist/pwa/icons/icon-512.png',
   'dist/edge-extension/editor.html',
@@ -25,6 +26,6 @@ if (!edgeManifest.options_ui?.open_in_tab || edgeManifest.version !== JSON.parse
 }
 
 const pwaCss = await readFile(path.join(root, 'dist/pwa/editor.css'), 'utf8');
-if (pwaCss.includes('BoardGrotesque')) throw new Error('The PWA still contains a removed legacy font reference.');
+if (!pwaCss.includes('BoardGrotesque Sans')) throw new Error('The PWA is missing the Board Grotesk font declaration.');
 
 console.log('Generated PWA and Edge extension artifacts are structurally valid.');

@@ -40,9 +40,21 @@ test('migrates a legacy Chrome note without deleting its drawing data', () => {
   });
 
   assert.equal(workspace.currentPageId, 'legacy-page');
-  assert.equal(workspace.settings.fontFamily, "'Inter Tight', sans-serif");
+  assert.equal(workspace.settings.fontFamily, "'BoardGrotesque Sans', sans-serif");
   assert.deepEqual(workspace.pages[0].drawings[0].points, drawing.points);
   assert.equal(workspace.pages[0].drawings[0].coordinateSpace, 'text-scaled-px');
+});
+
+test('uses the blackboard palette for new workspaces without changing a saved font choice', () => {
+  const workspace = normalizeWorkspace({
+    settings: { fontFamily: "'BoardGrotesque Sans', sans-serif" }
+  });
+
+  assert.equal(workspace.settings.fontFamily, "'BoardGrotesque Sans', sans-serif");
+  assert.equal(workspace.settings.currentTheme, 'blackboard');
+  assert.equal(workspace.settings.textColor, '#DDDAD2');
+  assert.equal(workspace.settings.backgroundColor, '#0B0B0D');
+  assert.equal(workspace.settings.selectionColor, '#3D47FF');
 });
 
 test('creates a portable versioned backup and restores the same pages', () => {

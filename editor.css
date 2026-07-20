@@ -1,4 +1,4 @@
-/* Inter & Inter Tight — bundled variable fonts, no network requests */
+/* Bundled fonts — no network requests */
 @font-face {
   font-family: 'Inter';
   src: url('fonts/InterVariable.woff2') format('woff2');
@@ -15,6 +15,31 @@
   font-display: swap;
 }
 
+/* Board Grotesk is a project-owner supplied font. */
+@font-face {
+  font-family: 'BoardGrotesque Sans';
+  src: url('fonts/BoardGrotesqueSans-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'BoardGrotesque Sans';
+  src: url('fonts/BoardGrotesqueSans-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'BoardGrotesque Sans';
+  src: url('fonts/BoardGrotesqueSans-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -22,39 +47,39 @@
 }
 
 :root {
-  --font-family: Georgia, serif;
-  --font-size: 18px;
-  --line-height: 1.8;
+  --font-family: 'Inter Tight', sans-serif;
+  --font-size: 40px;
+  --line-height: 1.6;
   --letter-spacing: 0em;
-  --max-width: 900px;
-  --text-color: #5B4FA8;
-  --bg-color: #F2F0F8;
-  --selection-color: #5B4FA8;
+  --max-width: 1600px;
+  --text-color: #DDDAD2;
+  --bg-color: #0B0B0D;
+  --selection-color: #3D47FF;
   --selection-text-color: #FFFFFF;
   
   /* Panel theming */
-  --panel-bg: #FFFFFF;
-  --panel-border: rgba(109, 104, 179, 0.2);
-  --panel-text: #6D68B3;
-  --panel-text-secondary: rgba(109, 104, 179, 0.6);
-  --control-bg: #FAFAFA;
-  --control-border: rgba(109, 104, 179, 0.15);
-  --control-hover: rgba(109, 104, 179, 0.08);
+  --panel-bg: rgba(11, 11, 13, 0.92);
+  --panel-border: rgba(221, 218, 210, 0.2);
+  --panel-text: #DDDAD2;
+  --panel-text-secondary: rgba(221, 218, 210, 0.6);
+  --control-bg: rgba(11, 11, 13, 0.78);
+  --control-border: rgba(221, 218, 210, 0.15);
+  --control-hover: rgba(221, 218, 210, 0.08);
 
   /* Shared floating UI */
-  --ui-surface: rgba(236, 237, 231, 0.56);
-  --ui-surface-strong: rgba(236, 237, 231, 0.72);
-  --ui-surface-soft: rgba(236, 237, 231, 0.44);
-  --ui-section-surface: rgba(236, 237, 231, 0.34);
-  --ui-border: rgba(109, 104, 179, 0.12);
-  --ui-border-strong: rgba(109, 104, 179, 0.2);
-  --ui-text: rgba(109, 104, 179, 0.88);
-  --ui-text-muted: rgba(109, 104, 179, 0.6);
-  --ui-hover: rgba(109, 104, 179, 0.08);
-  --ui-hover-strong: rgba(109, 104, 179, 0.14);
-  --ui-track: rgba(109, 104, 179, 0.12);
-  --ui-shadow-soft: 0 18px 42px rgba(15, 23, 42, 0.06);
-  --ui-shadow-subtle: 0 10px 24px rgba(15, 23, 42, 0.04);
+  --ui-surface: rgba(11, 11, 13, 0.56);
+  --ui-surface-strong: rgba(11, 11, 13, 0.72);
+  --ui-surface-soft: rgba(11, 11, 13, 0.44);
+  --ui-section-surface: rgba(11, 11, 13, 0.34);
+  --ui-border: rgba(221, 218, 210, 0.12);
+  --ui-border-strong: rgba(221, 218, 210, 0.2);
+  --ui-text: rgba(221, 218, 210, 0.88);
+  --ui-text-muted: rgba(221, 218, 210, 0.6);
+  --ui-hover: rgba(221, 218, 210, 0.08);
+  --ui-hover-strong: rgba(221, 218, 210, 0.14);
+  --ui-track: rgba(221, 218, 210, 0.12);
+  --ui-shadow-soft: 0 18px 42px rgba(0, 0, 0, 0.28);
+  --ui-shadow-subtle: 0 10px 24px rgba(0, 0, 0, 0.2);
   --ui-danger-text: #8C4A4A;
   --ui-danger-surface: rgba(172, 92, 92, 0.14);
   --ui-danger-border: rgba(172, 92, 92, 0.24);
@@ -63,18 +88,9 @@
 html, body {
   height: 100%;
   background-color: var(--bg-color);
-  color-scheme: light;
+  color-scheme: dark;
   transition: background-color 0.3s ease;
   overflow: auto;
-}
-
-/* Dark mode auto-detection */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme-set]) {
-    --text-color: #D4D4D4;
-    --bg-color: #2D2D2D;
-    --selection-color: #505050;
-  }
 }
 
 /* Custom Scrollbar - Overlay style */

@@ -1,9 +1,9 @@
 {
   "name": "blackboard-text",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "type": "module",
-  "description": "Local-first PWA and Microsoft Edge extension for quiet note taking.",
+  "description": "Local-first PWA and personal browser extension for quiet note taking.",
   "scripts": {
     "build": "node scripts/build.mjs",
     "lint": "node scripts/check.mjs",

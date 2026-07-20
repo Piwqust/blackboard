@@ -6,10 +6,16 @@ import { acquireWorkspaceLock, createWorkspaceChannel } from './src/core/workspa
 import { createStatusAnnouncer } from './src/ui/app-status.js';
 import { registerPwaUpdates } from './src/ui/pwa-updates.js';
 
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.0.1';
 
 // Theme presets
 const THEMES = {
+  blackboard: {
+    name: 'Blackboard',
+    textColor: '#DDDAD2',
+    backgroundColor: '#0B0B0D',
+    selectionColor: '#3D47FF'
+  },
   lavender: {
     name: 'Lavender',
     textColor: '#5B4FA8',
@@ -68,12 +74,12 @@ const DEFAULT_SETTINGS = {
   letterSpacing: 0,
   maxWidth: 1600,
   drawSize: 4 / 18,
-  drawColor: '#5B4FA8',
+  drawColor: '#DDDAD2',
   drawColorMode: 'theme',
-  textColor: '#5B4FA8',
-  backgroundColor: '#F2F0F8',
-  selectionColor: '#5B4FA8',
-  currentTheme: 'lavender'
+  textColor: '#DDDAD2',
+  backgroundColor: '#0B0B0D',
+  selectionColor: '#3D47FF',
+  currentTheme: 'blackboard'
 };
 
 const DRAWING_COORDINATE_SPACE = 'text-scaled-px';
@@ -621,6 +627,7 @@ const FONT_GROUPS = [
   {
     label: 'Bundled fonts',
     fonts: [
+      { value: "'BoardGrotesque Sans', sans-serif", name: 'Board Grotesk' },
       { value: "'Inter', sans-serif", name: 'Inter' },
       { value: "'Inter Tight', sans-serif", name: 'Inter Tight' }
     ]
@@ -752,7 +759,7 @@ document.addEventListener('click', (e) => {
 });
 
 // Current theme state
-let currentTheme = 'lavender';
+let currentTheme = 'blackboard';
 
 // Value displays
 const valueDisplays = {
@@ -2141,6 +2148,13 @@ function applySettings(settings) {
   root.style.setProperty('--ui-track', hexToRgba(settings.textColor, 0.12));
   root.style.setProperty('--ui-shadow-soft', '0 18px 42px rgba(15, 23, 42, 0.06)');
   root.style.setProperty('--ui-shadow-subtle', '0 10px 24px rgba(15, 23, 42, 0.04)');
+  root.style.setProperty('--panel-bg', hexToRgba(settings.backgroundColor, 0.92));
+  root.style.setProperty('--panel-border', hexToRgba(settings.textColor, 0.2));
+  root.style.setProperty('--panel-text', settings.textColor);
+  root.style.setProperty('--panel-text-secondary', hexToRgba(settings.textColor, 0.6));
+  root.style.setProperty('--control-bg', hexToRgba(settings.backgroundColor, 0.78));
+  root.style.setProperty('--control-border', hexToRgba(settings.textColor, 0.15));
+  root.style.setProperty('--control-hover', hexToRgba(settings.textColor, 0.08));
 }
 
 // Update control values in UI
@@ -2332,7 +2346,7 @@ async function loadSavedData() {
     if (!pages.some(page => page.id === currentPageId)) currentPageId = pages[0].id;
 
     // Set current theme
-    currentTheme = settings.currentTheme || 'lavender';
+    currentTheme = settings.currentTheme || 'blackboard';
     
     applySettings(settings);
     updateControlValues(settings);

@@ -5,8 +5,8 @@
   "start_url": "./editor.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#F2F0F8",
-  "theme_color": "#F2F0F8",
+  "background_color": "#0B0B0D",
+  "theme_color": "#0B0B0D",
   "icons": [
     {
       "src": "icons/icon-192.png",

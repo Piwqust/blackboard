@@ -1,4 +1,4 @@
-name: Release PWA and Edge package
+name: Release PWA
 
 on:
   push:
@@ -26,15 +26,6 @@ jobs:
       - run: npm ci
       - run: node scripts/verify-release-version.mjs
       - run: npm run verify
-      - name: Package Edge extension
-        run: |
-          cd dist/edge-extension
-          zip -r ../blackboard-text-edge-${{ github.ref_name }}.zip .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: blackboard-text-edge-${{ github.ref_name }}
-          path: dist/blackboard-text-edge-${{ github.ref_name }}.zip
-          if-no-files-found: error
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/pwa
