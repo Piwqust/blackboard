@@ -1,27 +1,16 @@
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inter+Tight:wght@100..900&display=swap');
-
-/* BoardGrotesque Sans */
+/* Inter & Inter Tight — bundled variable fonts, no network requests */
 @font-face {
-  font-family: 'BoardGrotesque Sans';
-  src: url('fonts/BoardGrotesqueSans-Regular.otf') format('opentype');
-  font-weight: 400;
+  font-family: 'Inter';
+  src: url('fonts/InterVariable.woff2') format('woff2');
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'BoardGrotesque Sans';
-  src: url('fonts/BoardGrotesqueSans-Light.otf') format('opentype');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'BoardGrotesque Sans';
-  src: url('fonts/BoardGrotesqueSans-Medium.otf') format('opentype');
-  font-weight: 500;
+  font-family: 'Inter Tight';
+  src: url('fonts/InterTight-Variable.ttf') format('truetype');
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
@@ -515,7 +504,10 @@ body.drawing-mode #editor {
   bottom: calc(100% + 8px);
   right: 0;
   width: min(280px, calc(100vw - 32px));
-  overflow: visible;
+  max-height: min(680px, calc(100dvh - 92px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 12px;
   display: grid;
   gap: 2px;
@@ -534,7 +526,12 @@ body.drawing-mode #editor {
 }
 
 .controls-panel::-webkit-scrollbar {
-  width: 0;
+  width: 4px;
+}
+
+.controls-panel::-webkit-scrollbar-thumb {
+  background: var(--ui-border-strong);
+  border-radius: 999px;
 }
 
 .controls-container.open .controls-panel,
@@ -901,6 +898,7 @@ button.controls-icon {
   border-radius: 8px;
   cursor: crosshair;
   overflow: hidden;
+  touch-action: none;
   background: linear-gradient(to bottom, transparent, #000),
               linear-gradient(to right, #fff, transparent);
   background-color: #ff0000;
@@ -1332,6 +1330,69 @@ button.controls-icon {
   color: var(--ui-text-muted);
 }
 
+/* Local backup controls stay compact so the writing surface remains primary. */
+.data-section {
+  border-top: 1px solid var(--ui-border);
+}
+
+.data-copy,
+.data-hint {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--ui-text-muted);
+}
+
+.data-copy {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.data-hint {
+  margin-top: 7px;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.data-hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.94em;
+}
+
+.data-hint a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.data-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.data-action {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.data-action-wide {
+  grid-column: 1 / -1;
+}
+
+.secondary-btn:disabled,
+.drawing-tool-button:disabled,
+.add-page-btn:disabled,
+.theme-swatch:disabled,
+.emoji-option:disabled,
+.font-dropdown-trigger:disabled,
+.controls-icon:disabled,
+.controls-close:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
 /* Footer */
 .controls-panel-footer {
   display: flex;
@@ -1689,6 +1750,44 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   color: var(--ui-text-muted);
 }
 
+/* Page name field */
+.emoji-picker-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.emoji-picker-name-label {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ui-text-muted);
+}
+
+.emoji-picker-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 9px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  color: var(--ui-text);
+  background: var(--ui-surface-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.emoji-picker-name-input::placeholder {
+  color: var(--ui-text-muted);
+  opacity: 0.7;
+}
+
+.emoji-picker-name-input:focus {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-strong);
+}
+
 .emoji-picker-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1939,9 +2038,199 @@ body.is-scrolling .drawing-tool-button:hover {
 .color-hex-input:focus-visible,
 .color-picker-hex:focus-visible,
 .color-picker-close:focus-visible,
-.emoji-option:focus-visible {
+.emoji-option:focus-visible,
+.secondary-btn:focus-visible,
+.backup-dialog button:focus-visible {
   outline: 2px solid var(--ui-border-strong);
   outline-offset: 2px;
+}
+
+.workspace-mode-notice,
+.app-status,
+.update-ready-notice {
+  position: fixed;
+  z-index: 20;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 9px 11px;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 10px;
+  background: var(--ui-surface-strong);
+  box-shadow: var(--ui-shadow-subtle);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ui-text);
+}
+
+.workspace-mode-notice {
+  right: 24px;
+  bottom: 78px;
+}
+
+.app-status {
+  left: 24px;
+  bottom: 24px;
+}
+
+.app-status[data-kind="error"] {
+  color: var(--ui-danger-text);
+  border-color: var(--ui-danger-border);
+  background: color-mix(in srgb, var(--ui-danger-surface) 78%, var(--ui-surface-strong));
+}
+
+.update-ready-notice {
+  right: 80px;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.update-ready-notice[hidden] {
+  display: none;
+}
+
+.update-ready-notice button {
+  appearance: none;
+  padding: 4px 7px;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 6px;
+  background: var(--ui-surface-soft);
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.update-ready-notice button:hover {
+  background: var(--ui-surface-strong);
+}
+
+.backup-dialog {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.24);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.backup-dialog[hidden] {
+  display: none;
+}
+
+.backup-dialog-surface {
+  width: min(390px, 100%);
+  padding: 20px;
+  border: 1px solid var(--ui-border);
+  border-radius: 14px;
+  background: var(--ui-surface-strong);
+  box-shadow: var(--ui-shadow-soft);
+  color: var(--ui-text);
+}
+
+.backup-dialog-eyebrow {
+  margin: 0 0 5px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-text-muted);
+}
+
+.backup-dialog h2 {
+  margin: 0;
+  font-family: 'Inter Tight', system-ui, sans-serif;
+  font-size: 21px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.backup-dialog p:not(.backup-dialog-eyebrow) {
+  margin: 9px 0 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ui-text-muted);
+}
+
+.backup-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+body.workspace-readonly #editor {
+  cursor: default;
+}
+
+body.workspace-readonly #drawingLayer {
+  pointer-events: none;
+}
+
+.legal-page-body {
+  min-height: 100%;
+  padding: 64px 24px;
+  background: var(--bg-color);
+}
+
+.legal-page {
+  width: min(680px, 100%);
+  margin: 0 auto;
+  color: var(--text-color);
+}
+
+.legal-back,
+.legal-eyebrow,
+.legal-page p,
+.legal-page h2 {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.legal-back {
+  display: inline-block;
+  margin-bottom: 36px;
+  color: inherit;
+  font-size: 13px;
+  text-underline-offset: 3px;
+}
+
+.legal-eyebrow {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.legal-page h1 {
+  max-width: 13ch;
+  margin: 0;
+  font-family: 'Inter Tight', system-ui, sans-serif;
+  font-size: clamp(38px, 8vw, 64px);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+}
+
+.legal-page h2 {
+  margin: 38px 0 8px;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.legal-page p:not(.legal-eyebrow) {
+  max-width: 62ch;
+  margin: 14px 0 0;
+  font-size: 16px;
+  line-height: 1.65;
 }
 
 /* Responsive */
@@ -2048,6 +2337,17 @@ body.is-scrolling .drawing-tool-button:hover {
   .word-count {
     bottom: 26px;
     right: 66px;
+  }
+
+  .workspace-mode-notice,
+  .update-ready-notice {
+    right: 16px;
+    bottom: 72px;
+  }
+
+  .app-status {
+    left: 16px;
+    bottom: 16px;
   }
 }
 

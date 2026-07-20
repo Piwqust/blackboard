@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Blackboard Text</title>
+  <meta name="description" content="A quiet, local-first place to write, draw, and keep your notes on this device.">
+  <meta name="theme-color" content="#F2F0F8">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="icon" href="icons/icon-48.png" sizes="48x48">
   <link rel="stylesheet" href="editor.css">
 </head>
 <body>
@@ -97,8 +101,8 @@
 
     <!-- Page tabs -->
     <div class="page-tabs">
-      <div class="page-tabs-list" id="pageTabsList" role="tablist" aria-label="Note pages"></div>
-      <button class="add-page-btn" id="addPageBtn" title="Add page (Ctrl+N)">
+      <div class="page-tabs-list" id="pageTabsList" role="tablist" aria-label="Note pages" aria-orientation="vertical"></div>
+      <button class="add-page-btn" id="addPageBtn" title="Add page (Alt+Shift+N)">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
           <path d="M8 3v10M3 8h10"/>
         </svg>
@@ -108,13 +112,19 @@
       <div class="emoji-picker" id="emojiPicker" role="dialog" aria-modal="false" aria-labelledby="emojiPickerTitle" aria-describedby="emojiPickerHint">
         <div class="emoji-picker-header">
           <div class="emoji-picker-copy">
-            <p class="emoji-picker-title" id="emojiPickerTitle">Page emoji</p>
-            <p class="emoji-picker-hint" id="emojiPickerHint">Choose a new emoji, reset it, or delete the page.</p>
+            <p class="emoji-picker-title" id="emojiPickerTitle">Page settings</p>
+            <p class="emoji-picker-hint" id="emojiPickerHint">Name the page, pick an emoji, or delete it.</p>
           </div>
+
+          <label class="emoji-picker-name" for="pageTitleInput">
+            <span class="emoji-picker-name-label">Name</span>
+            <input type="text" id="pageTitleInput" class="emoji-picker-name-input" maxlength="80" placeholder="Untitled page" spellcheck="false" autocomplete="off">
+          </label>
 
           <div class="emoji-picker-actions">
             <button class="emoji-picker-action" id="emojiPickerClear" type="button">Reset emoji</button>
             <button class="emoji-picker-action emoji-picker-action-danger" id="emojiPickerDelete" type="button" aria-controls="deletePageConfirm" aria-expanded="false">Delete page…</button>
+            <button class="emoji-picker-action" id="emojiPickerClose" type="button">Done</button>
           </div>
         </div>
 
@@ -169,10 +179,7 @@
               <option value="'Segoe UI', sans-serif">Segoe UI</option>
               <option value="system-ui, sans-serif">System UI</option>
             </optgroup>
-            <optgroup label="BoardGrotesque Sans">
-              <option value="'BoardGrotesque Sans', sans-serif">BoardGrotesque Sans</option>
-            </optgroup>
-            <optgroup label="Inter">
+            <optgroup label="Bundled fonts">
               <option value="'Inter', sans-serif">Inter</option>
               <option value="'Inter Tight', sans-serif">Inter Tight</option>
             </optgroup>
@@ -244,6 +251,19 @@
         </div>
       </div>
 
+      <div class="control-section data-section" aria-labelledby="dataSectionLabel">
+        <div class="section-label" id="dataSectionLabel">Your data</div>
+        <p class="data-copy" id="storageSummary">Stored only in this browser on this device.</p>
+        <div class="data-actions">
+          <button id="exportWorkspaceBtn" class="secondary-btn data-action" type="button">Export backup</button>
+          <button id="importWorkspaceBtn" class="secondary-btn data-action" type="button">Import backup</button>
+          <button id="restoreSnapshotBtn" class="secondary-btn data-action data-action-wide" type="button" disabled>Restore latest snapshot</button>
+          <input id="importWorkspaceInput" type="file" accept="application/json,.json,.blackboard.json" hidden>
+        </div>
+        <p class="data-hint">Export creates a portable <code>.blackboard.json</code> file. Import replaces this workspace after a recovery snapshot is saved. <a href="privacy.html">Privacy</a></p>
+        <p class="data-hint" id="recoverySummary">Recovery snapshots appear here after an import or destructive change.</p>
+      </div>
+
       <div class="controls-panel-footer">
         <button id="resetSettings" class="reset-btn" type="button">Reset to defaults</button>
       </div>
@@ -310,6 +330,38 @@
   <!-- Word/character count -->
   <div id="wordCount" class="word-count"></div>
 
-  <script src="editor.js"></script>
+  <div id="workspaceModeNotice" class="workspace-mode-notice" role="status" aria-live="polite" hidden></div>
+  <div id="appStatus" class="app-status" role="status" aria-live="polite" hidden></div>
+
+  <div id="updateReadyNotice" class="update-ready-notice" role="status" aria-live="polite" hidden>
+    <span>A new version is ready.</span>
+    <button id="reloadForUpdateBtn" type="button">Reload</button>
+  </div>
+
+  <div id="importConfirmDialog" class="backup-dialog" role="dialog" aria-modal="true" aria-labelledby="importConfirmTitle" aria-describedby="importConfirmText" hidden>
+    <div class="backup-dialog-surface">
+      <p class="backup-dialog-eyebrow">Import backup</p>
+      <h2 id="importConfirmTitle">Replace this workspace?</h2>
+      <p id="importConfirmText">Your current notes will be saved as a local recovery snapshot first.</p>
+      <div class="backup-dialog-actions">
+        <button id="cancelImportBtn" class="delete-confirm-cancel" type="button">Cancel</button>
+        <button id="confirmImportBtn" class="delete-confirm-delete" type="button">Replace workspace</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="restoreConfirmDialog" class="backup-dialog" role="dialog" aria-modal="true" aria-labelledby="restoreConfirmTitle" aria-describedby="restoreConfirmText" hidden>
+    <div class="backup-dialog-surface">
+      <p class="backup-dialog-eyebrow">Recovery snapshot</p>
+      <h2 id="restoreConfirmTitle">Restore this snapshot?</h2>
+      <p id="restoreConfirmText">The current workspace will be saved as a new recovery snapshot first.</p>
+      <div class="backup-dialog-actions">
+        <button id="cancelRestoreBtn" class="delete-confirm-cancel" type="button">Cancel</button>
+        <button id="confirmRestoreBtn" class="delete-confirm-delete" type="button">Restore snapshot</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="editor.js"></script>
 </body>
 </html>

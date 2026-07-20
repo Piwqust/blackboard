@@ -4,109 +4,126 @@
 
 # Blackboard Text
 
-**A quiet, beautiful place to think.**
+**A quiet, local-first place to think.**
 
-A minimalist note-taking Chrome extension — elegant typography, multi-page
-tabs, themeable colors, and a freehand drawing layer that sits right on top
-of your words.
+Write, sketch, and keep your notes in the browser profile you control. No
+account, telemetry, cloud database, or note sync service.
 
-![Version](https://img.shields.io/badge/version-1.6.1-5B4FA8?style=flat-square)
-![Manifest](https://img.shields.io/badge/manifest-v3-5B4FA8?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.0.0-5B4FA8?style=flat-square)
+![PWA](https://img.shields.io/badge/PWA-offline--ready-5B4FA8?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-5B4FA8?style=flat-square)
 
 </div>
 
 ![Blackboard Text — default Lavender theme](./screenshots/01-hero-lavender.png)
 
----
+## What ships in v2
 
-## ✦ Features
+- A desktop PWA for Chrome and Edge, designed for GitHub Pages and offline use after the first visit.
+- A full Edge extension package for Microsoft Edge Add-ons. The action focuses the existing editor page instead of opening competing writer tabs.
+- IndexedDB storage: pages are individual records rather than one giant `chrome.storage` object.
+- A single-writer lock. If the same workspace is opened in another tab, the new tab is clearly read-only, so it cannot overwrite the first tab's notes.
+- Portable `.blackboard.json` export/import, with validation and a recovery snapshot before every import.
+- Recovery snapshots before import, deleting a page, clearing drawings, and restoring a snapshot. The seven most recent are kept locally.
+- Existing writing tools: emoji-labelled pages, optional page names, page reordering, custom typography, themes, drawing, undo/redo, and word count.
 
-- **Distraction-free canvas** — generous default whitespace, autosave, word + character counter tucked in the corner.
-- **Typography that means it** — 3 bundled weights of BoardGrotesque Sans plus Inter / Inter Tight and system serifs/sans, with adjustable size (12–128 px), line height, letter spacing, and content width up to 2400 px.
-- **8 curated themes** + an *Advanced* drawer for fully custom text, background, and selection colors via a real HSV picker.
-- **Pages with personality** — each tab is an emoji, drag-and-drop reorderable, with a scrollable rail and soft fade edges.
-- **Drawing layer** — brush + eraser, fine stroke control, undo, per-page strokes that stay anchored to text when the window resizes.
-- **Local & private** — `chrome.storage` only. No accounts, no network, no telemetry. Notes live in `chrome.storage.local` (per-device); typography, themes, and brush preferences live in `chrome.storage.sync` (follow your Chrome profile across devices).
+## Where to use it
 
----
+| Surface | Intended use | Updates |
+| --- | --- | --- |
+| PWA on GitHub Pages | Main app for Chrome and Edge desktop | A small **Reload** prompt appears when a new deployed version is ready. |
+| Microsoft Edge Add-ons | Full Edge extension | Edge delivers public store updates automatically. |
+| Unpacked Chrome extension | One-time migration/export path for older local data | Consumer self-hosted automatic updates are not available. |
 
-## ✦ Themes
+The PWA and Edge extension intentionally keep separate local browser storage.
+Move notes between them through an exported backup; this avoids accounts and
+silent cloud sync.
 
-![Eight themes — Lavender, Midnight, Sepia, Forest, Ocean, Rosé, Charcoal, Paper](./screenshots/02-midnight.png)
+## Backups and recovery
 
-| Lavender | Midnight | Sepia | Forest |
-|:---:|:---:|:---:|:---:|
-| `#5B4FA8` on `#F2F0F8` | `#E4DFD0` on `#10172A` | `#4A2E1F` on `#F6EAD3` | `#1F4D2B` on `#EDF3E5` |
-| Ocean | Rosé | Charcoal | Paper |
-| `#0F4C5C` on `#E0EEF2` | `#7A3B4D` on `#FCEDEF` | `#DDDAD2` on `#1F1F23` | `#1A1A1A` on `#FAFAF7` |
+Open **Settings → Your data**:
 
-<table>
-<tr>
-<td><img src="./screenshots/03-sepia.png" alt="Sepia theme" /></td>
-<td><img src="./screenshots/04-forest.png" alt="Forest theme" /></td>
-</tr>
-</table>
+1. **Export backup** downloads a `blackboard-text_*.blackboard.json` file.
+2. **Import backup** validates the file, tells you how many pages it contains,
+   and only replaces the current workspace after a local recovery snapshot is
+   saved.
+3. **Restore latest snapshot** lets you undo a destructive import, page delete,
+   drawing clear, or earlier restore. Restoring itself first snapshots the
+   workspace it replaces.
 
----
+Browser storage can be removed by clearing site data, uninstalling an
+extension, or deleting a browser profile. Export a backup before doing any of
+those things. See [Privacy](./docs/privacy.md) for the exact data boundary.
 
-## ✦ Pages & drawing
+## Migrating an existing unpacked Chrome extension
 
-One page per emoji, switch in a click, sketch right on top.
+The old extension data is never deleted automatically.
 
-<table>
-<tr>
-<td width="50%"><img src="./screenshots/05-pages.png" alt="Scrollable emoji page tabs" /></td>
-<td width="50%"><img src="./screenshots/07-drawing.png" alt="Brush strokes over text" /></td>
-</tr>
-</table>
+1. In the original unpacked extension folder, update the project files to v2
+   and press **Reload** on `chrome://extensions` so the extension keeps its
+   existing extension identity and can still read its old `chrome.storage`.
+2. Open Blackboard Text. It copies the legacy workspace into IndexedDB and
+   leaves the old Chrome storage records in place.
+3. Open **Settings → Your data → Export backup**.
+4. Open the PWA or install the Edge package, then import that backup there.
 
----
+Do not expect a newly loaded, different unpacked extension to see the old
+extension's storage: browser extension storage is isolated by extension ID.
 
-## ✦ Settings
+## Development
 
-Themes, fonts, sizing, and the *Advanced* color drawer — all in one popover.
-
-![Settings panel](./screenshots/06-settings.png)
-
-| Setting | Default |
-|---|---|
-| Font | **BoardGrotesque Sans** · 40 px · line-height 1.6 |
-| Width | **1600 px** |
-| Theme | **Lavender** |
-
----
-
-## ✦ Shortcuts
-
-| Shortcut | Action |
-|---|---|
-| `Ctrl` / `Cmd` + `N` | New page |
-| `Ctrl` / `Cmd` + `Z` | Undo last brush stroke |
-| `Alt` + `Shift` + `B` / `E` | Toggle brush / eraser |
-| `Tab` / `Shift` + `Tab` | Indent / outdent |
-| `Esc` | Close any popover |
-
----
-
-## ✦ Install locally
+Requires Node 20 or later.
 
 ```bash
-git clone https://github.com/Piwqust/blackboard-text.git
-# chrome://extensions → Developer mode → Load unpacked → select the folder
+npm ci
+npm run verify
 ```
 
-The extension opens `editor.html` in a new tab — that's the whole UI.
+`npm run verify` runs syntax/JSON checks, core migration and backup tests,
+builds both targets, and checks the generated artifacts.
 
----
+```text
+dist/pwa/             GitHub Pages artifact
+dist/edge-extension/  ZIP this directory for Edge Add-ons
+```
 
-## ✦ Tech notes
+`dist/` is generated and intentionally not committed.
 
-- Manifest V3, service-worker action handler.
-- Strict CSP (`script-src 'self'`), zero dependencies, no build step.
-- `storage` permission only — no host permissions, no network.
-- Drawing coordinates stored in *text-scaled pixels* so strokes don't drift when font size or content width changes.
+## Publishing the PWA
 
-PRs welcome — keep it small, keep it quiet.
+1. In the repository's GitHub settings, enable **Pages** and choose **GitHub
+   Actions** as the deployment source.
+2. Change the version in `package.json` and create a matching tag such as
+   `v2.0.1`.
+3. Push the tag. The release workflow verifies it, builds the PWA, deploys it
+   to GitHub Pages, and uploads an Edge ZIP artifact.
+4. Visit `https://<account>.github.io/<repository>/` once while
+   online. After that, the app shell works offline. Later deployments appear
+   as an explicit Reload prompt rather than interrupting unsaved writing.
 
-<div align="center"><sub><strong>Blackboard Text · v1.6.1</strong> · Made for people who like a blank page.</sub></div>
+## Publishing the Edge extension
+
+The package and store-copy draft are ready in this repository, but Edge Partner
+Center account verification and the actual public submission are external
+steps. Microsoft states that there is [no Edge-program registration fee](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/create-dev-account).
+Follow [`docs/edge-store-listing.md`](./docs/edge-store-listing.md),
+upload the workflow's Edge ZIP artifact with **Public** visibility, then verify
+the first store-delivered update with a subsequent tiny release.
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+| --- | --- |
+| `Alt` + `Shift` + `N` | New page |
+| `Ctrl` / `Cmd` + `Z` | Undo text, or the last brush stroke in drawing mode |
+| `Ctrl` / `Cmd` + `Shift` + `Z` or `Ctrl` + `Y` | Redo text |
+| `Alt` + `Shift` + `B` / `E` | Toggle brush / eraser |
+| `Tab` / `Shift` + `Tab` | Indent / outdent |
+| `↑` `↓` on page tabs | Move focus between tabs (`Alt` + arrow reorders) |
+| `Esc` | Close a picker or confirmation dialog |
+
+## Licensing
+
+The application code is available under the [MIT License](./LICENSE). Inter
+and Inter Tight are bundled under the SIL Open Font License 1.1; see
+[`fonts/Inter-OFL.txt`](./fonts/Inter-OFL.txt).

@@ -10,5 +10,6 @@
 
 # Build / scratch
 .tmp/
+dist/
 node_modules/
 *.log
