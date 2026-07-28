@@ -108,6 +108,14 @@ export function normalizeStroke(stroke = {}, fallbackFontSize = DEFAULT_WORKSPAC
   };
 }
 
+// Page timestamps travel as ISO strings; anything unparsable becomes null so a
+// hand-edited backup can't put a bogus date on the page card.
+export function normalizeTimestamp(value) {
+  if (typeof value !== 'string' || value === '') return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
+}
+
 export function normalizePage(page = {}, {
   index = 0,
   fontSize = DEFAULT_WORKSPACE_SETTINGS.fontSize,
@@ -127,6 +135,8 @@ export function normalizePage(page = {}, {
       ? source.drawings.map(stroke => normalizeStroke(stroke, fontSize))
       : [],
     scrollTop: finiteNumber(source.scrollTop, 0, 0, Number.MAX_SAFE_INTEGER),
+    createdAt: normalizeTimestamp(source.createdAt),
+    editedAt: normalizeTimestamp(source.editedAt),
     position: Number.isInteger(source.position) && source.position >= 0 ? source.position : index
   };
 }

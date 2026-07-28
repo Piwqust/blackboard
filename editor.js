@@ -6,7 +6,7 @@ import { acquireWorkspaceLock, createWorkspaceChannel } from './src/core/workspa
 import { createStatusAnnouncer } from './src/ui/app-status.js';
 import { registerPwaUpdates } from './src/ui/pwa-updates.js';
 
-const APP_VERSION = '2.0.1';
+const APP_VERSION = '2.1.0';
 
 // Theme presets
 const THEMES = {
@@ -110,6 +110,8 @@ const editorShell = document.getElementById('editorShell');
 const editor = document.getElementById('editor');
 const drawingLayer = document.getElementById('drawingLayer');
 const drawingToolbar = document.getElementById('drawingToolbar');
+const topRightRail = document.querySelector('.top-right-rail');
+const drawingToolbarVisibilityToggleBtn = document.getElementById('drawingToolbarVisibilityToggleBtn');
 const drawToggleBtn = document.getElementById('drawToggleBtn');
 const eraseToggleBtn = document.getElementById('eraseToggleBtn');
 const drawColorBtn = document.getElementById('drawColorBtn');
@@ -134,6 +136,14 @@ const emojiPickerClose = document.getElementById('emojiPickerClose');
 const deletePageConfirm = document.getElementById('deletePageConfirm');
 const cancelDeletePageBtn = document.getElementById('cancelDeletePageBtn');
 const confirmDeletePageBtn = document.getElementById('confirmDeletePageBtn');
+const pagePreview = document.getElementById('pagePreview');
+const pagePreviewContent = document.getElementById('pagePreviewContent');
+const pagePreviewGhost = document.getElementById('pagePreviewGhost');
+const pagePreviewEmoji = document.getElementById('pagePreviewEmoji');
+const pagePreviewTitle = document.getElementById('pagePreviewTitle');
+const pagePreviewSnippet = document.getElementById('pagePreviewSnippet');
+const pagePreviewCreated = document.getElementById('pagePreviewCreated');
+const pagePreviewEdited = document.getElementById('pagePreviewEdited');
 const themeGrid = document.getElementById('themeGrid');
 const clearDrawingsConfirm = document.getElementById('clearDrawingsConfirm');
 const cancelClearDrawingsBtn = document.getElementById('cancelClearDrawingsBtn');
@@ -793,7 +803,8 @@ const uiState = {
   settingsOpen: false,
   deleteConfirmOpen: false,
   drawSizePopoverOpen: false,
-  clearDrawingsConfirmOpen: false
+  clearDrawingsConfirmOpen: false,
+  drawingToolbarCollapsed: false
 };
 
 // Drawing state
@@ -1012,39 +1023,56 @@ function normalizePage(page = {}, fontSize = DEFAULT_SETTINGS.fontSize) {
     title: typeof page.title === 'string' ? page.title.slice(0, MAX_PAGE_TITLE_LENGTH) : '',
     content: typeof page.content === 'string' ? page.content : '',
     drawings: Array.isArray(page.drawings) ? page.drawings.map(stroke => normalizeStroke(stroke, fontSize)) : [],
-    scrollTop: Number.isFinite(parsedScrollTop) && parsedScrollTop > 0 ? parsedScrollTop : 0
+    scrollTop: Number.isFinite(parsedScrollTop) && parsedScrollTop > 0 ? parsedScrollTop : 0,
+    // Pages written before these existed stay null rather than claiming a
+    // timestamp they never had — the preview shows "—" for those.
+    createdAt: normalizeTimestamp(page.createdAt),
+    editedAt: normalizeTimestamp(page.editedAt)
   };
+}
+
+// Timestamps are stored as ISO strings so they survive JSON backups intact.
+function normalizeTimestamp(value) {
+  if (typeof value !== 'string' || value === '') {
+    return null;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
+}
+
+// Records "last edited" on a page. Called from the places that actually change
+// a page — typing, strokes, renames — not from every save, so switching pages
+// doesn't look like an edit.
+function touchPageEdited(page = getCurrentPage()) {
+  if (!page || !workspaceWritable) {
+    return;
+  }
+
+  page.editedAt = new Date().toISOString();
 }
 
 function getPageDisplayTitle(page) {
   return typeof page?.title === 'string' ? page.title.trim() : '';
 }
 
-// Tooltip + accessible name for a tab, built from the optional page name.
-function getPageTabLabels(page, index, isActive) {
+// Accessible name for a tab, built from the optional page name. Tabs carry no
+// title attribute — the hover preview card is the tooltip now, and a native
+// one would cover it with a second, plainer box.
+function getPageTabAriaLabel(page, index, isActive) {
   const name = getPageDisplayTitle(page);
 
   if (isActive) {
-    return {
-      title: name
-        ? `${name} — current page. Click to change emoji or name. Drag to reorder.`
-        : 'Current page. Click to change emoji. Drag to reorder.',
-      ariaLabel: name
-        ? `Current page: ${name}. Click to change the emoji or name.`
-        : `Current page ${index + 1}. Click to change the emoji.`
-    };
+    return name
+      ? `Current page: ${name}. Click to change the emoji or name.`
+      : `Current page ${index + 1}. Click to change the emoji.`;
   }
 
-  return {
-    title: name
-      ? `${name} — click to switch pages. Drag to reorder.`
-      : 'Click to switch pages. Drag to reorder.',
-    ariaLabel: name ? `Open page: ${name}.` : `Open page ${index + 1}.`
-  };
+  return name ? `Open page: ${name}.` : `Open page ${index + 1}.`;
 }
 
-// Refresh one tab's tooltip/aria-label in place (used while typing a name, so
-// the whole rail doesn't re-render on every keystroke).
+// Refresh one tab's accessible name in place (used while typing a name, so the
+// whole rail doesn't re-render on every keystroke).
 function updatePageTabLabels(pageId) {
   const page = getPageById(pageId);
   const tab = getPageTabButton(pageId);
@@ -1053,9 +1081,7 @@ function updatePageTabLabels(pageId) {
   }
 
   const index = pages.indexOf(page);
-  const labels = getPageTabLabels(page, index, page.id === currentPageId);
-  tab.title = labels.title;
-  tab.setAttribute('aria-label', labels.ariaLabel);
+  tab.setAttribute('aria-label', getPageTabAriaLabel(page, index, page.id === currentPageId));
 }
 
 function getCurrentPage() {
@@ -1270,6 +1296,29 @@ function updateDrawingToolButtons() {
   }
 
   document.body.classList.toggle('eraser-mode', isEraserActive);
+}
+
+function setDrawingToolbarCollapsed(collapsed) {
+  const isCollapsed = Boolean(collapsed);
+  uiState.drawingToolbarCollapsed = isCollapsed;
+
+  // The collapse animation lives on the rail so the arrow (a sibling of the
+  // toolbar) can flip direction from the same state class.
+  if (topRightRail) {
+    topRightRail.classList.toggle('tools-collapsed', isCollapsed);
+  }
+
+  if (drawingToolbarVisibilityToggleBtn) {
+    drawingToolbarVisibilityToggleBtn.setAttribute('aria-expanded', String(!isCollapsed));
+    drawingToolbarVisibilityToggleBtn.setAttribute('aria-label', isCollapsed ? 'Show drawing tools' : 'Hide drawing tools');
+    drawingToolbarVisibilityToggleBtn.title = isCollapsed ? 'Show drawing tools' : 'Hide drawing tools';
+  }
+
+  if (isCollapsed) {
+    closeDrawSizePopover();
+    closeClearDrawingsConfirm();
+    closeColorPicker();
+  }
 }
 
 function setDrawingTool(tool) {
@@ -1593,6 +1642,7 @@ function finishStroke(event) {
   }
 
   resetCurrentStrokeState();
+  touchPageEdited();
   saveContent();
 }
 
@@ -1604,6 +1654,7 @@ function undoLastStroke() {
   }
 
   if (drawingState.currentStroke && cancelActiveStroke()) {
+    touchPageEdited(page);
     saveContent();
     return true;
   }
@@ -1614,6 +1665,7 @@ function undoLastStroke() {
 
   page.drawings.pop();
   redrawDrawings();
+  touchPageEdited(page);
   saveContent();
   return true;
 }
@@ -1628,6 +1680,7 @@ async function clearCurrentPageDrawings() {
 
   await captureDestructiveSnapshot('Before clearing page drawings');
   page.drawings = [];
+  touchPageEdited(page);
   redrawDrawings();
   await safeLocalSet({ pages, currentPageId }, 'clearing page drawings');
   closeClearDrawingsConfirm({ restoreFocus: true });
@@ -2207,6 +2260,9 @@ async function saveContent() {
       console.warn('Current page not found in pages array');
       return;
     }
+    if (pages[pageIndex].content !== content) {
+      touchPageEdited(pages[pageIndex]);
+    }
     pages[pageIndex].content = content;
     pages[pageIndex].drawings = Array.isArray(pages[pageIndex].drawings) ? pages[pageIndex].drawings : [];
     await workspaceStore.savePage({ ...pages[pageIndex], position: pageIndex }, currentPageId);
@@ -2335,10 +2391,13 @@ async function loadSavedData() {
       pages = storedWorkspace.pages.map(page => normalizePage(page, settings.fontSize));
       currentPageId = storedWorkspace.currentPageId || pages[0].id;
     } else {
+      const firstPageCreatedAt = new Date().toISOString();
       pages = [normalizePage({
         id: generateId(),
         emoji: DEFAULT_PAGE_EMOJI,
-        content: ''
+        content: '',
+        createdAt: firstPageCreatedAt,
+        editedAt: firstPageCreatedAt
       }, settings.fontSize)];
       currentPageId = pages[0].id;
     }
@@ -2776,15 +2835,13 @@ function renderPageTabs() {
     const isActive = page.id === currentPageId;
     const emoji = getPageDisplayEmoji(page);
 
-    const labels = getPageTabLabels(page, index, isActive);
     tab.className = 'page-tab' + (isActive ? ' active' : '');
     tab.type = 'button';
-    tab.title = labels.title;
     tab.setAttribute('role', 'tab');
     tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
     tab.setAttribute('tabindex', isActive ? '0' : '-1');
     tab.setAttribute('draggable', 'true');
-    tab.setAttribute('aria-label', labels.ariaLabel);
+    tab.setAttribute('aria-label', getPageTabAriaLabel(page, index, isActive));
     tab.disabled = !workspaceWritable;
     tab.dataset.pageId = page.id;
     tab.dataset.pageIndex = index;
@@ -2800,10 +2857,17 @@ function renderPageTabs() {
     tab.addEventListener('dragover', handleDragOver);
     tab.addEventListener('drop', handleDrop);
     tab.addEventListener('dragend', handleDragEnd);
-    
+
+    // Hover/focus preview — keyboard users get it without the hover delay.
+    tab.addEventListener('mouseenter', () => schedulePagePreview(page.id));
+    tab.addEventListener('mouseleave', schedulePagePreviewHide);
+    tab.addEventListener('focus', () => schedulePagePreview(page.id, { immediate: true }));
+    tab.addEventListener('blur', schedulePagePreviewHide);
+
     // Single click to switch page
     tab.addEventListener('click', (e) => {
       e.preventDefault();
+      hidePagePreview();
 
       if (page.id === currentPageId) {
         openEmojiPicker(page.id);
@@ -2823,6 +2887,16 @@ function renderPageTabs() {
   updateWordCount();
   updatePageTabsScrollState();
   scrollActivePageTabIntoView();
+
+  // Re-rendering swaps every tab node, so a preview left over from a reorder
+  // either follows its tab to the new spot or goes away with a deleted page.
+  if (pagePreviewPageId) {
+    if (getPageById(pagePreviewPageId)) {
+      positionPagePreview(pagePreviewPageId);
+    } else {
+      hidePagePreview();
+    }
+  }
 }
 
 function updatePageTabsScrollState() {
@@ -2848,6 +2922,281 @@ function scrollActivePageTabIntoView() {
   }
 }
 
+// --- Page hover preview ----------------------------------------------------
+// Hovering a tab peeks at that page — name, dates, and the opening lines of its
+// text — so you can find a page without switching to it. Purely passive: the
+// card never takes pointer events and never touches page state.
+const PAGE_PREVIEW_DELAY_MS = 320;
+// Once a card is open, sliding across the rail should feel like one object
+// moving, so leaving a tab waits out this grace period before hiding — long
+// enough to cross the gap to the next tab, short enough to feel deliberate.
+const PAGE_PREVIEW_HIDE_GRACE_MS = 120;
+const PAGE_PREVIEW_SNIPPET_LENGTH = 260;
+let pagePreviewShowTimeout = null;
+let pagePreviewHideTimeout = null;
+let pagePreviewPageId = null;
+
+function getPagePlainText(page) {
+  if (!page) {
+    return '';
+  }
+
+  // The open page lives in the editor, where it may be newer than page.content.
+  if (page.id === currentPageId && editor) {
+    return editor.innerText || '';
+  }
+
+  if (typeof page.content !== 'string' || page.content === '') {
+    return '';
+  }
+
+  // textContent runs blocks together ("Grocery listOat milk"), so each block
+  // start becomes a newline before the text is pulled out — the editor writes
+  // one <div> per line, which lands exactly on the breaks you see on screen.
+  const template = document.createElement('template');
+  template.innerHTML = sanitizeStoredContent(page.content)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<(?:div|p|h[1-6]|li|blockquote|pre|tr)\b[^>]*>/gi, '\n');
+
+  return template.content.textContent || '';
+}
+
+// Heading + body for one card. The heading is the page name, or the page's
+// first line of text when it has no name — in which case the body picks up
+// after that line so the card never prints the same sentence twice.
+function buildPagePreviewCopy(page, index) {
+  const text = getPagePlainText(page)
+    .replace(/\r/g, '')
+    .replace(/[ \t\u00A0]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  const lines = text.split('\n');
+  const firstLineIndex = lines.findIndex(line => line.trim() !== '');
+  const firstLine = firstLineIndex === -1 ? '' : lines[firstLineIndex].trim();
+  const name = getPageDisplayTitle(page);
+  const headingFromContent = !name && firstLine !== '';
+
+  const body = headingFromContent
+    ? lines.slice(firstLineIndex + 1).join('\n').trim()
+    : text;
+
+  return {
+    // Hard caps only guard against one pathological line; the visible trim is
+    // CSS ellipsis for the heading and line clamping for the body.
+    heading: (name || firstLine || `Page ${index + 1}`).slice(0, 96),
+    body: body.length > PAGE_PREVIEW_SNIPPET_LENGTH
+      ? `${body.slice(0, PAGE_PREVIEW_SNIPPET_LENGTH).trimEnd()}…`
+      : body,
+    hasText: text !== ''
+  };
+}
+
+function formatPageDate(value) {
+  const time = value ? Date.parse(value) : NaN;
+  if (!Number.isFinite(time)) {
+    return '—';
+  }
+
+  const date = new Date(time);
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' })
+  });
+}
+
+function formatPageEditedAt(value) {
+  const time = value ? Date.parse(value) : NaN;
+  if (!Number.isFinite(time)) {
+    return '—';
+  }
+
+  const minutes = Math.round((Date.now() - time) / 60_000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes} min ago`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  if (hours < 48) return 'Yesterday';
+
+  return formatPageDate(value);
+}
+
+function positionPagePreview(pageId, heightOverride = 0) {
+  if (!pagePreview) {
+    return;
+  }
+
+  const anchor = getPageTabButton(pageId);
+  if (!anchor) {
+    return;
+  }
+
+  const anchorRect = anchor.getBoundingClientRect();
+  const previewWidth = Math.min(pagePreview.offsetWidth || 264, window.innerWidth - 24);
+  // During a switch the card's own height is still mid-transition, so the
+  // caller passes the height it is heading for.
+  const previewHeight = Math.min(heightOverride || pagePreview.offsetHeight || 160, window.innerHeight - 24);
+  const viewportPadding = 12;
+  const gutter = 10;
+
+  // Left of the rail by default, flipping to the right only if there's no room.
+  let left = anchorRect.left - previewWidth - gutter;
+  if (left < viewportPadding) {
+    left = anchorRect.right + gutter;
+  }
+  if (left + previewWidth > window.innerWidth - viewportPadding) {
+    left = window.innerWidth - previewWidth - viewportPadding;
+  }
+
+  const top = Math.min(
+    Math.max(viewportPadding, anchorRect.top + (anchorRect.height - previewHeight) / 2),
+    window.innerHeight - previewHeight - viewportPadding
+  );
+
+  pagePreview.style.left = `${Math.max(viewportPadding, left)}px`;
+  pagePreview.style.top = `${Math.max(viewportPadding, top)}px`;
+}
+
+function renderPagePreview(page) {
+  const copy = buildPagePreviewCopy(page, pages.indexOf(page));
+
+  if (pagePreviewEmoji) pagePreviewEmoji.textContent = getPageDisplayEmoji(page);
+  if (pagePreviewTitle) pagePreviewTitle.textContent = copy.heading;
+  if (pagePreviewSnippet) {
+    // A one-line page says everything in the heading already — drop the body
+    // rather than repeating it or claiming the page is empty.
+    pagePreviewSnippet.hidden = copy.hasText && copy.body === '';
+    pagePreviewSnippet.textContent = copy.body || 'Empty page';
+    pagePreviewSnippet.classList.toggle('is-empty', !copy.hasText);
+  }
+  if (pagePreviewCreated) pagePreviewCreated.textContent = formatPageDate(page.createdAt);
+  if (pagePreviewEdited) pagePreviewEdited.textContent = formatPageEditedAt(page.editedAt);
+}
+
+function showPagePreview(pageId) {
+  if (!pagePreview) {
+    return;
+  }
+
+  const page = getPageById(pageId);
+  if (!page) {
+    return;
+  }
+
+  pagePreviewPageId = pageId;
+  pagePreview.setAttribute('aria-hidden', 'false');
+
+  // Opening: render first, place it, then let it resolve out of the blur.
+  // left/top only animate while the card carries .visible, so this first card
+  // arrives in place instead of sliding in from wherever it last sat.
+  if (!pagePreview.classList.contains('visible')) {
+    pagePreview.style.height = '';
+    renderPagePreview(page);
+    positionPagePreview(pageId);
+    pagePreview.classList.add('visible');
+    return;
+  }
+
+  crossDissolvePagePreview(page, pageId);
+}
+
+// Switching tabs hands one page over to the next: the copy you were reading
+// stays on screen in the ghost layer and dissolves into the incoming copy while
+// the card glides and resizes. At no point is the card empty.
+function crossDissolvePagePreview(page, pageId) {
+  const previousHeight = pagePreview.getBoundingClientRect().height;
+  snapshotPagePreviewGhost();
+  renderPagePreview(page);
+
+  // Measure the incoming copy at its natural size before pinning a height for
+  // the transition to run against.
+  pagePreview.style.height = '';
+  const nextHeight = pagePreview.getBoundingClientRect().height;
+
+  // Paint the outgoing state once, unanimated, then release it — both layers
+  // and the height then transition together from exactly where they were.
+  pagePreview.classList.add('is-swapping');
+  pagePreview.style.height = `${previousHeight}px`;
+  void pagePreview.offsetWidth;
+
+  pagePreview.classList.remove('is-swapping');
+  pagePreview.style.height = `${nextHeight}px`;
+  positionPagePreview(pageId, nextHeight);
+}
+
+// Copies the card's current contents into the ghost layer. Ids are stripped so
+// the clone can't shadow the live elements getElementById hands back.
+function snapshotPagePreviewGhost() {
+  if (!pagePreviewGhost || !pagePreviewContent) {
+    return;
+  }
+
+  const clone = pagePreviewContent.cloneNode(true);
+  clone.removeAttribute('id');
+  clone.querySelectorAll('[id]').forEach(element => element.removeAttribute('id'));
+  pagePreviewGhost.replaceChildren(...clone.childNodes);
+}
+
+function schedulePagePreview(pageId, { immediate = false } = {}) {
+  if (!pagePreview || !pageId) {
+    return;
+  }
+
+  // A picker, a drag, or a confirm popover always wins over the preview.
+  if (draggedPageId || emojiPicker?.classList.contains('visible') || uiState.deleteConfirmOpen) {
+    return;
+  }
+
+  // Crossing onto a new tab cancels the pending hide instead of restarting the
+  // whole fade-out/fade-in cycle.
+  clearTimeout(pagePreviewHideTimeout);
+  pagePreviewHideTimeout = null;
+  clearTimeout(pagePreviewShowTimeout);
+  pagePreviewShowTimeout = null;
+
+  if (pagePreviewPageId === pageId && pagePreview.classList.contains('visible')) {
+    return;
+  }
+
+  // Only the first card waits: with one already open, the swap is instant.
+  if (immediate || pagePreview.classList.contains('visible')) {
+    showPagePreview(pageId);
+    return;
+  }
+
+  pagePreviewShowTimeout = setTimeout(() => showPagePreview(pageId), PAGE_PREVIEW_DELAY_MS);
+}
+
+// Leaving a tab — the card lingers briefly so moving to a neighbour keeps it.
+function schedulePagePreviewHide() {
+  clearTimeout(pagePreviewShowTimeout);
+  pagePreviewShowTimeout = null;
+
+  if (!pagePreview || !pagePreview.classList.contains('visible')) {
+    hidePagePreview();
+    return;
+  }
+
+  clearTimeout(pagePreviewHideTimeout);
+  pagePreviewHideTimeout = setTimeout(hidePagePreview, PAGE_PREVIEW_HIDE_GRACE_MS);
+}
+
+function hidePagePreview() {
+  clearTimeout(pagePreviewShowTimeout);
+  clearTimeout(pagePreviewHideTimeout);
+  pagePreviewShowTimeout = null;
+  pagePreviewHideTimeout = null;
+  pagePreviewPageId = null;
+
+  if (pagePreview) {
+    pagePreview.classList.remove('visible', 'is-swapping');
+    pagePreview.setAttribute('aria-hidden', 'true');
+  }
+}
+
 // Drag and drop state
 let draggedPageId = null;
 
@@ -2868,6 +3217,7 @@ function handleDragStart(e) {
   }
 
   draggedPageId = tab.dataset.pageId;
+  hidePagePreview();
   clearPageTabDragState();
   setPageReorderingState(true);
   tab.classList.add('dragging');
@@ -3023,13 +3373,16 @@ function addNewPage() {
   syncCurrentPageScrollPosition();
   saveContent();
 
+  const createdAt = new Date().toISOString();
   const newPage = {
     id: generateId(),
     emoji: emoji,
     title: '',
     content: '',
     drawings: [],
-    scrollTop: 0
+    scrollTop: 0,
+    createdAt,
+    editedAt: createdAt
   };
 
   pages.push(newPage);
@@ -3076,6 +3429,7 @@ async function deletePage(pageId) {
 // Open emoji picker
 function openEmojiPicker(pageId) {
   editingPageId = pageId;
+  hidePagePreview();
   closeDeletePageConfirm();
 
   if (pageTitleInput) {
@@ -3153,6 +3507,7 @@ function clearPageEmoji() {
   }
 
   page.emoji = '';
+  touchPageEdited(page);
   safeLocalSet({ pages, currentPageId }, 'saving pages');
   renderPageTabs();
   closeEmojiPicker({ restoreFocus: true });
@@ -3165,6 +3520,7 @@ function selectEmoji(emoji) {
   const page = getPageById(editingPageId);
   if (page) {
     page.emoji = emoji;
+    touchPageEdited(page);
     safeLocalSet({ pages, currentPageId }, 'saving pages');
     renderPageTabs();
   }
@@ -3242,6 +3598,7 @@ function initEmojiPicker() {
       }
 
       page.title = pageTitleInput.value.slice(0, MAX_PAGE_TITLE_LENGTH);
+      touchPageEdited(page);
       updatePageTabLabels(page.id);
       persistPageTitle();
     });
@@ -3875,6 +4232,12 @@ if (pageTabsList) {
 }
 
 // Drawing mode controls
+if (drawingToolbarVisibilityToggleBtn) {
+  drawingToolbarVisibilityToggleBtn.addEventListener('click', () => {
+    setDrawingToolbarCollapsed(!uiState.drawingToolbarCollapsed);
+  });
+}
+
 if (drawToggleBtn) {
   drawToggleBtn.addEventListener('click', (event) => {
     toggleDrawingTool('brush');
@@ -3954,6 +4317,7 @@ if (drawingLayer) {
 
 window.addEventListener('resize', () => {
   scheduleDrawingLayerSync({ forceRedraw: true });
+  hidePagePreview();
   if (emojiPicker?.classList.contains('visible')) {
     positionEmojiPicker(editingPageId);
   }
@@ -3994,6 +4358,7 @@ window.addEventListener('scroll', () => {
 if (pageTabsList) {
   pageTabsList.addEventListener('scroll', () => {
     updatePageTabsScrollState();
+    hidePagePreview();
     handleScrollActivity({ repositionEmojiPicker: true });
   }, { passive: true });
 

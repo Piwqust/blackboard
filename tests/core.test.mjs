@@ -100,6 +100,40 @@ test('rejects malformed and unsupported backups before workspace replacement', (
   })), /cannot be imported/);
 });
 
+test('carries page created/edited timestamps through a backup round trip', () => {
+  const original = normalizeWorkspace({
+    pages: [{
+      id: 'dated',
+      content: '<p>Timed</p>',
+      createdAt: '2026-07-01T09:30:00.000Z',
+      editedAt: '2026-07-20T18:05:00.000Z'
+    }],
+    currentPageId: 'dated'
+  });
+
+  assert.equal(original.pages[0].createdAt, '2026-07-01T09:30:00.000Z');
+  assert.equal(original.pages[0].editedAt, '2026-07-20T18:05:00.000Z');
+
+  const restored = parseWorkspaceBackup(serializeWorkspaceBackup(original));
+  assert.equal(restored.workspace.pages[0].createdAt, '2026-07-01T09:30:00.000Z');
+  assert.equal(restored.workspace.pages[0].editedAt, '2026-07-20T18:05:00.000Z');
+});
+
+test('leaves page timestamps null when they are missing or unparsable', () => {
+  const workspace = normalizeWorkspace({
+    pages: [
+      { id: 'legacy', content: 'No dates recorded' },
+      { id: 'bogus', content: 'Bad dates', createdAt: 'not a date', editedAt: 42 }
+    ],
+    currentPageId: 'legacy'
+  });
+
+  assert.equal(workspace.pages[0].createdAt, null);
+  assert.equal(workspace.pages[0].editedAt, null);
+  assert.equal(workspace.pages[1].createdAt, null);
+  assert.equal(workspace.pages[1].editedAt, null);
+});
+
 test('normalizes duplicate page ids so an imported backup cannot overwrite a sibling page', () => {
   const workspace = normalizeWorkspace({
     pages: [{ id: 'same', content: 'first' }, { id: 'same', content: 'second' }],

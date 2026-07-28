@@ -9,7 +9,7 @@
 Write, sketch, and keep your notes in the browser profile you control. No
 account, telemetry, cloud database, or note sync service.
 
-![Version](https://img.shields.io/badge/version-2.0.1-3D47FF?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.1.0-3D47FF?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-offline--ready-3D47FF?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-5B4FA8?style=flat-square)
 
@@ -94,7 +94,7 @@ dist/edge-extension/  Load this directory as your local unpacked extension
 1. In the repository's GitHub settings, enable **Pages** and choose **GitHub
    Actions** as the deployment source.
 2. Change the version in `package.json` and create a matching tag such as
-   `v2.0.1`.
+   `v2.1.0`.
 3. Push the tag. The release workflow verifies the project, builds the PWA,
    and deploys it to GitHub Pages.
 4. Visit `https://<account>.github.io/<repository>/` once while

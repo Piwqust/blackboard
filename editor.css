@@ -230,7 +230,19 @@ body.drawing-mode #editor {
   z-index: 2500;
 }
 
+/* Holds the toolbar and its arrow. Only the arrow occupies space here; the
+   toolbar hangs off the left edge so showing and hiding it moves nothing. */
+.rail-tools {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  flex: 0 0 auto;
+}
+
 .drawing-toolbar {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 12px);
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -242,6 +254,63 @@ body.drawing-mode #editor {
   box-shadow: none;
   backdrop-filter: blur(18px) saturate(135%);
   -webkit-backdrop-filter: blur(18px) saturate(135%);
+  filter: blur(0);
+  transform: translate3d(0, 0, 0);
+  transition: opacity 0.26s ease,
+              filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear 0s;
+}
+
+/* Collapsed: the tools dissolve out of focus rather than folding shut, drifting
+   a little to the right so they read as tucking in behind the arrow. Out of
+   flow, so the drift moves nothing else. */
+.top-right-rail.tools-collapsed .drawing-toolbar {
+  opacity: 0;
+  filter: blur(28px);
+  transform: translate3d(18px, 0, 0);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.26s ease,
+              filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear 0.34s;
+}
+
+/* Adjacent collapse arrow — same glass chrome as the toolbar so the pair reads
+   as one control. The chevron flips to point back at whatever it will reveal. */
+.rail-collapse-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 54px;
+  padding: 0;
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: 13px;
+  cursor: pointer;
+  opacity: 0.72;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+}
+
+.rail-collapse-toggle:hover {
+  opacity: 1;
+  background: var(--ui-surface-strong);
+}
+
+.rail-collapse-chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.top-right-rail.tools-collapsed .rail-collapse-chevron {
+  transform: rotate(180deg);
 }
 
 .drawing-toolbar.active {
@@ -283,8 +352,8 @@ body.drawing-mode #editor {
 }
 
 .drawing-size-toggle svg {
-  width: 18px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .drawing-size-toggle-stroke {
@@ -462,6 +531,18 @@ body.drawing-mode #editor {
   height: 18px;
 }
 
+.drawing-toggle-button .drawing-tool-icon-bulk {
+  display: none;
+}
+
+.drawing-toggle-button.active .drawing-tool-icon-light {
+  display: none;
+}
+
+.drawing-toggle-button.active .drawing-tool-icon-bulk {
+  display: block;
+}
+
 .drawing-tool-button.active,
 .drawing-size-button.active {
   opacity: 1;
@@ -602,6 +683,11 @@ button.controls-icon {
   color: var(--ui-text-muted);
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease;
+}
+
+.controls-close svg {
+  width: 16px;
+  height: 16px;
 }
 
 .controls-close:hover {
@@ -901,6 +987,11 @@ button.controls-icon {
   transition: all 0.15s ease;
 }
 
+.color-picker-close svg {
+  width: 16px;
+  height: 16px;
+}
+
 .color-picker-close:hover {
   background: var(--ui-hover);
   color: var(--ui-text);
@@ -1101,7 +1192,7 @@ button.controls-icon {
   transition: all 0.15s ease;
   -webkit-appearance: none;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23999' d='M2 3.5L5 6.5L8 3.5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M18 9L12 15L6 9' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
   padding-right: 24px;
@@ -1158,8 +1249,8 @@ button.controls-icon {
 }
 
 .font-dropdown-arrow {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
   margin-left: 6px;
   transition: transform 0.2s ease;
@@ -1490,6 +1581,11 @@ button.controls-icon {
   pointer-events: none;
 }
 
+.save-indicator svg {
+  width: 16px;
+  height: 16px;
+}
+
 .save-indicator.visible {
   opacity: 0.35;
   transform: scale(1);
@@ -1679,13 +1775,184 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
 }
 
 .add-page-btn svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
 }
 
 .add-page-btn:hover {
   opacity: 1;
   background: var(--ui-surface-strong);
+}
+
+/* Page hover preview — a passive card that peeks at a tab's page without
+   switching to it. Pointer-events stay off so it can never eat a tab click. */
+.page-preview {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: 264px;
+  max-width: calc(100vw - 24px);
+  padding: 12px 14px;
+  /* Clips the outgoing copy to the card's rounded edge while the two overlap. */
+  overflow: hidden;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: 14px;
+  box-shadow: var(--ui-shadow-subtle);
+  backdrop-filter: blur(20px) saturate(135%);
+  -webkit-backdrop-filter: blur(20px) saturate(135%);
+  box-sizing: border-box;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  /* No sliding in from the side: the card resolves out of a heavy defocus,
+     the same way the drawing tools do. Blur is GPU-composited and only runs
+     for the length of the transition, so it stays cheap on a card this size. */
+  filter: blur(26px);
+  transition: opacity 0.26s ease,
+              filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear 0.34s;
+  z-index: 90;
+}
+
+/* While open the card animates its own left/top/height: hovering along the
+   rail moves and reshapes one card instead of replacing it at each tab. */
+.page-preview.visible {
+  opacity: 1;
+  visibility: visible;
+  filter: blur(0);
+  transition: opacity 0.26s ease,
+              filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear 0s,
+              top 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              left 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-preview-content,
+.page-preview-ghost {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* The outgoing page sits exactly where it was drawn, on top of the incoming
+   one, so the two overlap through the change and nothing ever goes blank. */
+.page-preview-ghost {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  right: 14px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.page-preview-content {
+  opacity: 1;
+}
+
+.page-preview-content,
+.page-preview-ghost {
+  transition: opacity 0.22s ease;
+}
+
+/* The start of a switch: the copy you were reading is still the one on screen.
+   Dropping the class hands it over to the new copy across both transitions. */
+.page-preview.is-swapping .page-preview-content {
+  opacity: 0;
+  transition: none;
+}
+
+.page-preview.is-swapping .page-preview-ghost {
+  opacity: 1;
+  transition: none;
+}
+
+.page-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.page-preview-emoji {
+  font-size: 16px;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.page-preview-title {
+  margin: 0;
+  min-width: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ui-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The snippet borrows the note's own font so the peek looks like the page. */
+.page-preview-snippet {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-color);
+  opacity: 0.72;
+  white-space: pre-wrap;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  -webkit-box-orient: vertical;
+}
+
+/* The -webkit-box display above outranks the UA rule for [hidden]. */
+.page-preview-snippet[hidden] {
+  display: none;
+}
+
+.page-preview-snippet.is-empty {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.5;
+}
+
+.page-preview-meta {
+  margin: 0;
+  padding-top: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--ui-border);
+}
+
+.page-preview-meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+}
+
+.page-preview-meta-row dt {
+  color: var(--ui-text-muted);
+}
+
+.page-preview-meta-row dd {
+  margin: 0;
+  color: var(--ui-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Emoji Picker - Tooltip Style */
@@ -2040,6 +2307,7 @@ body.is-scrolling .drawing-tool-button:hover {
 }
 
 .drawing-tool-button:focus-visible,
+.rail-collapse-toggle:focus-visible,
 .drawing-size-marker:focus-visible,
 .controls-icon:focus-visible,
 .controls-close:focus-visible,
@@ -2263,8 +2531,12 @@ body.workspace-readonly #drawingLayer {
     gap: 10px;
   }
 
+  /* The toolbar keeps hanging to the left of its arrow here too — stacking it
+     above would push it off the top of the screen — it just wraps to fit. */
   .drawing-toolbar {
-    max-width: min(100vw - 32px, 236px);
+    right: calc(100% + 10px);
+    width: max-content;
+    max-width: min(100vw - 104px, 236px);
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 4px;
@@ -2337,6 +2609,11 @@ body.workspace-readonly #drawingLayer {
   .emoji-picker {
     width: min(280px, calc(100vw - 24px));
     padding: 14px;
+  }
+
+  .page-preview {
+    width: min(240px, calc(100vw - 32px));
+    padding: 11px 12px;
   }
   
   .emoji-grid {
