@@ -1,0 +1,33 @@
+{
+  "format": "BlackboardTextWorkspace",
+  "schemaVersion": 1,
+  "exportedAt": "2026-07-20T12:00:00.000Z",
+  "appVersion": "2.0.0-test",
+  "workspace": {
+    "settings": {
+      "fontFamily": "'Inter Tight', sans-serif",
+      "fontSize": 40,
+      "lineHeight": 1.6,
+      "letterSpacing": 0,
+      "maxWidth": 1600,
+      "drawSize": 0.2222222222,
+      "drawColor": "#5B4FA8",
+      "drawColorMode": "theme",
+      "textColor": "#5B4FA8",
+      "backgroundColor": "#F2F0F8",
+      "selectionColor": "#5B4FA8",
+      "currentTheme": "lavender"
+    },
+    "currentPageId": "imported-page",
+    "pages": [
+      {
+        "id": "imported-page",
+        "emoji": "📚",
+        "title": "Imported page",
+        "content": "<p>Imported backup content.</p>",
+        "drawings": [],
+        "scrollTop": 0
+      }
+    ]
+  }
+}

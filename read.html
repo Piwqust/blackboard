@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Published note — Blackboard Text</title>
+  <meta name="description" content="A note published from Blackboard Text. The note travels inside the link itself.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0B0B0D">
+  <link rel="icon" href="icons/icon-48.png" sizes="48x48">
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body class="reader-body">
+  <div id="readerBoard" class="reader-board">
+    <div id="readerShell" class="reader-shell">
+      <header class="reader-header" id="readerHeader" hidden>
+        <span class="reader-emoji" id="readerEmoji" aria-hidden="true"></span>
+        <h1 class="reader-title" id="readerTitle"></h1>
+        <p class="reader-meta" id="readerMeta"></p>
+      </header>
+
+      <article class="reader-content" id="readerContent"></article>
+    </div>
+
+    <canvas id="readerDrawings" class="reader-drawings" aria-hidden="true"></canvas>
+  </div>
+
+  <div class="reader-state" id="readerState" hidden>
+    <div class="reader-state-surface">
+      <p class="reader-state-eyebrow">Blackboard Text</p>
+      <h1 id="readerStateTitle">Opening note…</h1>
+      <p id="readerStateText">This page reads notes that were published as a link.</p>
+      <a class="reader-state-action" href="editor.html">Open Blackboard Text</a>
+    </div>
+  </div>
+
+  <footer class="reader-footer" id="readerFooter" hidden>
+    <a href="editor.html">Written in Blackboard Text</a>
+  </footer>
+
+  <script type="module" src="src/ui/reader.js"></script>
+</body>
+</html>

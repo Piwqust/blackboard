@@ -1,5 +1,42 @@
+import { createWorkspaceBackup, describeBackup, makeBackupFilename, parseWorkspaceBackup, serializeWorkspaceBackup } from './src/core/backup.js';
+import { isExtensionContext, readLegacyChromeWorkspace } from './src/core/legacy-chrome.js';
+import { migrateFontFamily, normalizeSettings } from './src/core/schema.js';
+import { sanitizeStoredContent } from './src/core/sanitize-html.js';
+import {
+  MAX_DRAW_SIZE,
+  clampBrushSize as clampBrushSizeValue,
+  convertPointToCanvasPixels as convertPointToCanvasPixelsValue,
+  getBrushSizeInPixels as getBrushSizeInPixelsValue,
+  getNormalizedFontSize as getNormalizedFontSizeValue,
+  getStrokeReferenceFontSize as getStrokeReferenceFontSizeValue,
+  normalizeStoredPoint
+} from './src/core/drawing-geometry.js';
+import {
+  buildPublishedNoteUrl,
+  createPublishedNote,
+  describePublishedLink,
+  encodePublishedNote
+} from './src/core/publish.js';
+import { createWorkspaceStore } from './src/core/workspace-store.js';
+import { acquireWorkspaceLock, createWorkspaceChannel } from './src/core/workspace-lock.js';
+import { createStatusAnnouncer } from './src/ui/app-status.js';
+import { registerPwaUpdates } from './src/ui/pwa-updates.js';
+
+const APP_VERSION = '2.2.0';
+
+// Links published from the local unpacked extension have to point somewhere a
+// recipient can actually open, so they use the public deployment rather than
+// this browser's private extension origin.
+const PUBLIC_APP_BASE_URL = 'https://piwqust.github.io/blackboard/';
+
 // Theme presets
 const THEMES = {
+  blackboard: {
+    name: 'Blackboard',
+    textColor: '#DDDAD2',
+    backgroundColor: '#0B0B0D',
+    selectionColor: '#3D47FF'
+  },
   lavender: {
     name: 'Lavender',
     textColor: '#5B4FA8',
@@ -52,24 +89,24 @@ const THEMES = {
 
 // Default settings
 const DEFAULT_SETTINGS = {
-  fontFamily: "'BoardGrotesque Sans', sans-serif",
+  fontFamily: "'Inter Tight', sans-serif",
   fontSize: 40,
   lineHeight: 1.6,
   letterSpacing: 0,
   maxWidth: 1600,
   drawSize: 4 / 18,
-  drawColor: '#5B4FA8',
+  drawColor: '#DDDAD2',
   drawColorMode: 'theme',
-  textColor: '#5B4FA8',
-  backgroundColor: '#F2F0F8',
-  selectionColor: '#5B4FA8',
-  currentTheme: 'lavender'
+  textColor: '#DDDAD2',
+  backgroundColor: '#0B0B0D',
+  selectionColor: '#3D47FF',
+  currentTheme: 'blackboard'
 };
 
 const DRAWING_COORDINATE_SPACE = 'text-scaled-px';
 const LEGACY_DRAWING_COORDINATE_SPACE = 'font-relative';
-const MIN_DRAW_SIZE = 0.08;
-const MAX_DRAW_SIZE = 1.4;
+// Squared minimum distance (px²) between consecutive stored stroke points.
+const MIN_STROKE_POINT_DISTANCE_SQ = 1.5 * 1.5;
 
 // Static emoji collection for pages
 const PAGE_EMOJIS = [
@@ -84,6 +121,7 @@ const PAGE_EMOJIS = [
 ];
 
 const DEFAULT_PAGE_EMOJI = '📝';
+const MAX_PAGE_TITLE_LENGTH = 80;
 
 // DOM Elements
 const board = document.getElementById('board');
@@ -91,6 +129,8 @@ const editorShell = document.getElementById('editorShell');
 const editor = document.getElementById('editor');
 const drawingLayer = document.getElementById('drawingLayer');
 const drawingToolbar = document.getElementById('drawingToolbar');
+const topRightRail = document.querySelector('.top-right-rail');
+const drawingToolbarVisibilityToggleBtn = document.getElementById('drawingToolbarVisibilityToggleBtn');
 const drawToggleBtn = document.getElementById('drawToggleBtn');
 const eraseToggleBtn = document.getElementById('eraseToggleBtn');
 const drawColorBtn = document.getElementById('drawColorBtn');
@@ -108,12 +148,52 @@ const pageTabsList = document.getElementById('pageTabsList');
 const addPageBtn = document.getElementById('addPageBtn');
 const emojiPicker = document.getElementById('emojiPicker');
 const emojiGrid = document.getElementById('emojiGrid');
+const pageTitleInput = document.getElementById('pageTitleInput');
 const emojiPickerClear = document.getElementById('emojiPickerClear');
+const emojiPickerPublish = document.getElementById('emojiPickerPublish');
 const emojiPickerDelete = document.getElementById('emojiPickerDelete');
+const emojiPickerClose = document.getElementById('emojiPickerClose');
 const deletePageConfirm = document.getElementById('deletePageConfirm');
 const cancelDeletePageBtn = document.getElementById('cancelDeletePageBtn');
 const confirmDeletePageBtn = document.getElementById('confirmDeletePageBtn');
+const pagePreview = document.getElementById('pagePreview');
+const pagePreviewContent = document.getElementById('pagePreviewContent');
+const pagePreviewGhost = document.getElementById('pagePreviewGhost');
+const pagePreviewEmoji = document.getElementById('pagePreviewEmoji');
+const pagePreviewTitle = document.getElementById('pagePreviewTitle');
+const pagePreviewSnippet = document.getElementById('pagePreviewSnippet');
+const pagePreviewCreated = document.getElementById('pagePreviewCreated');
+const pagePreviewEdited = document.getElementById('pagePreviewEdited');
 const themeGrid = document.getElementById('themeGrid');
+const clearDrawingsConfirm = document.getElementById('clearDrawingsConfirm');
+const cancelClearDrawingsBtn = document.getElementById('cancelClearDrawingsBtn');
+const confirmClearDrawingsBtn = document.getElementById('confirmClearDrawingsBtn');
+const colorPickerMatchTheme = document.getElementById('colorPickerMatchTheme');
+const exportWorkspaceBtn = document.getElementById('exportWorkspaceBtn');
+const importWorkspaceBtn = document.getElementById('importWorkspaceBtn');
+const importWorkspaceInput = document.getElementById('importWorkspaceInput');
+const importConfirmDialog = document.getElementById('importConfirmDialog');
+const importConfirmText = document.getElementById('importConfirmText');
+const cancelImportBtn = document.getElementById('cancelImportBtn');
+const confirmImportBtn = document.getElementById('confirmImportBtn');
+const restoreSnapshotBtn = document.getElementById('restoreSnapshotBtn');
+const recoverySummary = document.getElementById('recoverySummary');
+const restoreConfirmDialog = document.getElementById('restoreConfirmDialog');
+const restoreConfirmText = document.getElementById('restoreConfirmText');
+const cancelRestoreBtn = document.getElementById('cancelRestoreBtn');
+const confirmRestoreBtn = document.getElementById('confirmRestoreBtn');
+const publishDialog = document.getElementById('publishDialog');
+const publishDrawingsOption = document.getElementById('publishDrawingsOption');
+const publishIncludeDrawings = document.getElementById('publishIncludeDrawings');
+const publishLinkInput = document.getElementById('publishLinkInput');
+const copyPublishLinkBtn = document.getElementById('copyPublishLinkBtn');
+const publishSizeHint = document.getElementById('publishSizeHint');
+const closePublishBtn = document.getElementById('closePublishBtn');
+const storageSummary = document.getElementById('storageSummary');
+const workspaceModeNotice = document.getElementById('workspaceModeNotice');
+const appStatus = document.getElementById('appStatus');
+const updateReadyNotice = document.getElementById('updateReadyNotice');
+const reloadForUpdateBtn = document.getElementById('reloadForUpdateBtn');
 
 // Setting controls
 const controls = {
@@ -131,7 +211,8 @@ const controls = {
 const drawSizeSlider = document.getElementById('drawSize');
 const drawSizeValue = document.getElementById('drawSizeValue');
 const drawSizeMarkers = document.getElementById('drawSizeMarkers');
-const drawSizeButtons = Array.from(document.querySelectorAll('[data-draw-size]'));
+// Marker buttons live in `drawSizeMarkerButtons` once `initBrushSizeMarkers`
+// runs — they don't exist at module load, so there's no top-level handle.
 const DRAW_SIZE_MARKERS = [0.08, 0.14, 0.22, 0.32, 0.46, 0.66, 0.92, 1.22];
 
 // Hex input controls
@@ -237,40 +318,16 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-// Keep HSL functions for backwards compatibility
-function hslToHex(h, s, l) {
-  s /= 100;
-  l /= 100;
-  const a = s * Math.min(l, 1 - l);
-  const f = n => {
-    const k = (n + h / 30) % 12;
-    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * color).toString(16).padStart(2, '0');
+// Pick black or white based on the WCAG relative luminance of a hex color.
+// Used to keep selected text readable regardless of the highlight color.
+function getContrastingTextColor(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const channel = c => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
   };
-  return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
-}
-
-function hexToHsl(hex) {
-  let r = parseInt(hex.slice(1, 3), 16) / 255;
-  let g = parseInt(hex.slice(3, 5), 16) / 255;
-  let b = parseInt(hex.slice(5, 7), 16) / 255;
-  
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h, s, l = (max + min) / 2;
-  
-  if (max === min) {
-    h = s = 0;
-  } else {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-      case g: h = ((b - r) / d + 2) / 6; break;
-      case b: h = ((r - g) / d + 4) / 6; break;
-    }
-  }
-  
-  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+  const luminance = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+  return luminance > 0.5 ? '#000000' : '#FFFFFF';
 }
 
 // Initialize preset swatches
@@ -297,7 +354,7 @@ function initColorPickerSwatches() {
 
 // Color picker functions
 function openColorPicker(colorKey, triggerElement) {
-  const labels = { textColor: 'Text Color', backgroundColor: 'Background', selectionColor: 'Selection', drawColor: 'Brush Color' };
+  const labels = { textColor: 'Text Color', backgroundColor: 'Background', selectionColor: 'Highlight', drawColor: 'Brush Color' };
 
   closeDrawSizePopover();
 
@@ -309,7 +366,14 @@ function openColorPicker(colorKey, triggerElement) {
 
   colorPickerState.activeColorKey = colorKey;
   colorPickerState.isOpen = true;
-  
+
+  // "Match theme" is only meaningful for the brush color (where mode='custom'
+  // means the brush no longer follows theme changes). Hide it elsewhere.
+  if (colorPickerMatchTheme) {
+    const isBrushCustom = colorKey === 'drawColor' && drawingState.currentBrushColorMode === 'custom';
+    colorPickerMatchTheme.hidden = !isBrushCustom;
+  }
+
   // Set title
   if (colorPickerTitle) colorPickerTitle.textContent = labels[colorKey] || 'Color';
   
@@ -330,10 +394,11 @@ function openColorPicker(colorKey, triggerElement) {
   // Update displays
   updateColorPickerDisplay();
   
-  // Position popup near trigger
+  // Position popup near trigger. The popup is hidden via opacity/visibility,
+  // not display, so its rendered size is measurable before it becomes visible.
   const rect = triggerElement.getBoundingClientRect();
-  const popupWidth = 220;
-  const popupHeight = 340;
+  const popupWidth = colorPickerPopup.offsetWidth || 220;
+  const popupHeight = colorPickerPopup.offsetHeight || 340;
   
   let left;
   let top;
@@ -414,6 +479,10 @@ function applyColorLive() {
   
   if (colorKey === 'drawColor') {
     setBrushColor(hex, { persist: true, mode: 'custom' });
+    // The brush just stopped following theme — reveal "Match theme color".
+    if (colorPickerMatchTheme) {
+      colorPickerMatchTheme.hidden = false;
+    }
   } else {
     // Apply settings live
     handleColorChange();
@@ -438,28 +507,38 @@ function handleAreaInteraction(e) {
   updateColorPickerDisplay();
 }
 
-// Color area mouse events
+// Color area pointer events — pointer capture keeps the drag alive even when
+// the pointer leaves the area, and works for mouse, touch, and pen alike.
 if (colorPickerArea) {
-  colorPickerArea.addEventListener('mousedown', (e) => {
+  colorPickerArea.addEventListener('pointerdown', (e) => {
     colorPickerState.isDragging = true;
+    if (colorPickerArea.setPointerCapture) {
+      try {
+        colorPickerArea.setPointerCapture(e.pointerId);
+      } catch (error) {
+        // Ignore capture errors (e.g. pointer already released).
+      }
+    }
     handleAreaInteraction(e);
   });
-  
-  document.addEventListener('mousemove', (e) => {
+
+  colorPickerArea.addEventListener('pointermove', (e) => {
     if (colorPickerState.isDragging) {
       handleAreaInteraction(e);
     }
   });
-  
-  document.addEventListener('mouseup', () => {
+
+  const endColorAreaDrag = () => {
     colorPickerState.isDragging = false;
-  });
+  };
+  colorPickerArea.addEventListener('pointerup', endColorAreaDrag);
+  colorPickerArea.addEventListener('pointercancel', endColorAreaDrag);
 }
 
 // Hue slider
 if (colorPickerHue) {
   colorPickerHue.addEventListener('input', () => {
-    colorPickerState.hue = parseInt(colorPickerHue.value);
+    colorPickerState.hue = parseInt(colorPickerHue.value, 10);
     updateColorPickerDisplay();
   });
 }
@@ -481,6 +560,24 @@ if (colorPickerHexInput) {
 }
 
 document.getElementById('colorPickerClose')?.addEventListener('click', closeColorPicker);
+
+// "Match theme color" — only relevant for brush color. Pulls the current
+// theme's text color and flips brush mode back to 'theme' so future theme
+// switches keep the brush in sync.
+colorPickerMatchTheme?.addEventListener('click', () => {
+  const themeColor = controls.textColor?.value || DEFAULT_SETTINGS.textColor;
+  setBrushColor(themeColor, { persist: true, mode: 'theme' });
+
+  // Sync the picker's internal HSB state to the new color so the cursor
+  // jumps to the right swatch and "New" preview updates.
+  const hsb = hexToHsb(themeColor);
+  colorPickerState.hue = hsb.h;
+  colorPickerState.sat = hsb.s;
+  colorPickerState.brightness = hsb.b;
+  if (colorPickerHue) colorPickerHue.value = hsb.h;
+  updateColorPickerDisplay();
+  if (colorPickerMatchTheme) colorPickerMatchTheme.hidden = true;
+});
 
 // Initialize swatches
 initColorPickerSwatches();
@@ -546,7 +643,6 @@ document.querySelector('.color-picker-popup')?.addEventListener('mouseleave', (e
 });
 
 // Font dropdown elements
-const fontDropdownWrapper = document.getElementById('fontDropdownWrapper');
 const fontDropdownTrigger = document.getElementById('fontDropdownTrigger');
 const fontDropdownMenu = document.getElementById('fontDropdownMenu');
 const fontDropdownPreview = document.getElementById('fontDropdownPreview');
@@ -566,14 +662,9 @@ const FONT_GROUPS = [
     ]
   },
   {
-    label: 'BoardGrotesque Sans',
+    label: 'Bundled fonts',
     fonts: [
-      { value: "'BoardGrotesque Sans', sans-serif", name: 'BoardGrotesque Sans' }
-    ]
-  },
-  {
-    label: 'Inter',
-    fonts: [
+      { value: "'BoardGrotesque Sans', sans-serif", name: 'Board Grotesk' },
       { value: "'Inter', sans-serif", name: 'Inter' },
       { value: "'Inter Tight', sans-serif", name: 'Inter Tight' }
     ]
@@ -620,14 +711,37 @@ function initFontDropdown() {
   updateFontDropdownSelection();
 }
 
+function positionFontDropdown() {
+  if (!fontDropdownTrigger || !fontDropdownMenu) return;
+
+  const triggerRect = fontDropdownTrigger.getBoundingClientRect();
+  const viewportH = window.innerHeight;
+  const gap = 8;
+  const spaceBelow = viewportH - triggerRect.bottom - gap;
+  const spaceAbove = triggerRect.top - gap;
+
+  // Measure the menu's natural height by temporarily neutralizing constraints.
+  const prevMaxHeight = fontDropdownMenu.style.maxHeight;
+  fontDropdownMenu.style.maxHeight = 'none';
+  const naturalHeight = fontDropdownMenu.scrollHeight;
+  fontDropdownMenu.style.maxHeight = prevMaxHeight;
+
+  const flipUp = spaceBelow < naturalHeight && spaceAbove > spaceBelow;
+  fontDropdownMenu.classList.toggle('flip-up', flipUp);
+  const cap = Math.max(120, Math.floor((flipUp ? spaceAbove : spaceBelow)));
+  fontDropdownMenu.style.maxHeight = `${Math.min(naturalHeight, cap)}px`;
+}
+
 function toggleFontDropdown() {
   fontDropdownOpen = !fontDropdownOpen;
   fontDropdownTrigger.classList.toggle('open', fontDropdownOpen);
-  fontDropdownMenu.classList.toggle('visible', fontDropdownOpen);
-  
+
   if (fontDropdownOpen) {
+    positionFontDropdown();
     updateFontDropdownSelection();
   }
+
+  fontDropdownMenu.classList.toggle('visible', fontDropdownOpen);
 }
 
 function closeFontDropdown() {
@@ -637,6 +751,7 @@ function closeFontDropdown() {
 }
 
 function selectFont(value, name) {
+  if (!workspaceWritable) return;
   controls.fontFamily.value = value;
   fontDropdownPreview.textContent = name;
   fontDropdownPreview.style.fontFamily = value;
@@ -681,7 +796,7 @@ document.addEventListener('click', (e) => {
 });
 
 // Current theme state
-let currentTheme = 'lavender';
+let currentTheme = 'blackboard';
 
 // Value displays
 const valueDisplays = {
@@ -697,14 +812,26 @@ let currentPageId = null;
 let editingPageId = null;
 let hoverResetTimeout = null;
 let scrollRestoreTimeout = null;
+let scrollRestoreFrame = null;
+let scrollRestoreNestedFrame = null;
+let isRestoringPageScroll = false;
 let hoverResetOnPointerMove = false;
 let drawSizeMarkerButtons = [];
+let workspaceWritable = true;
+let workspaceLock = null;
+let pendingWorkspaceImport = null;
+let pendingRecoverySnapshot = null;
+const workspaceStore = createWorkspaceStore();
+const workspaceChannel = createWorkspaceChannel();
+const statusAnnouncer = createStatusAnnouncer(appStatus);
 
 // Overlay/menu state
 const uiState = {
   settingsOpen: false,
   deleteConfirmOpen: false,
-  drawSizePopoverOpen: false
+  drawSizePopoverOpen: false,
+  clearDrawingsConfirmOpen: false,
+  drawingToolbarCollapsed: false
 };
 
 // Drawing state
@@ -727,19 +854,15 @@ const drawingState = {
   activePointerId: null
 };
 
+// These wrappers exist so the rest of the editor can keep calling with no
+// arguments; the maths itself lives in src/core/drawing-geometry.js so the
+// published-note reader renders identical strokes.
 function getNormalizedFontSize(fontSize = controls.fontSize?.value || DEFAULT_SETTINGS.fontSize) {
-  const parsedFontSize = Number(fontSize);
-  return Number.isFinite(parsedFontSize) && parsedFontSize > 0 ? parsedFontSize : DEFAULT_SETTINGS.fontSize;
+  return getNormalizedFontSizeValue(fontSize, DEFAULT_SETTINGS.fontSize);
 }
 
 function clampBrushSize(size) {
-  const parsedSize = Number(size);
-
-  if (!Number.isFinite(parsedSize)) {
-    return DEFAULT_SETTINGS.drawSize;
-  }
-
-  return Math.min(MAX_DRAW_SIZE, Math.max(MIN_DRAW_SIZE, parsedSize));
+  return clampBrushSizeValue(size, DEFAULT_SETTINGS.drawSize);
 }
 
 function normalizeBrushSizeSetting(size, fontSize = DEFAULT_SETTINGS.fontSize) {
@@ -753,18 +876,8 @@ function normalizeBrushSizeSetting(size, fontSize = DEFAULT_SETTINGS.fontSize) {
   return clampBrushSize(scaledSize);
 }
 
-function normalizeStoredPoint(point = {}) {
-  const x = Number(point?.x);
-  const y = Number(point?.y);
-
-  return {
-    x: Number.isFinite(x) ? x : 0,
-    y: Number.isFinite(y) ? y : 0
-  };
-}
-
 function getStrokeReferenceFontSize(stroke = {}, fallbackFontSize = DEFAULT_SETTINGS.fontSize) {
-  return getNormalizedFontSize(stroke.referenceFontSize ?? stroke.fontSize ?? fallbackFontSize);
+  return getStrokeReferenceFontSizeValue(stroke, fallbackFontSize);
 }
 
 function convertLegacyPointToStoredPixels(point, fontSize = DEFAULT_SETTINGS.fontSize) {
@@ -778,27 +891,18 @@ function convertLegacyPointToStoredPixels(point, fontSize = DEFAULT_SETTINGS.fon
 }
 
 function convertPointToCanvasPixels(point, referenceFontSize = DEFAULT_SETTINGS.fontSize, fontSize = getNormalizedFontSize()) {
-  const normalizedReferenceFontSize = getNormalizedFontSize(referenceFontSize);
-  const normalizedFontSize = getNormalizedFontSize(fontSize);
-  const normalizedPoint = normalizeStoredPoint(point);
-  const scaleFactor = normalizedFontSize / normalizedReferenceFontSize;
-
-  return {
-    x: normalizedPoint.x * scaleFactor,
-    y: normalizedPoint.y * scaleFactor
-  };
+  return convertPointToCanvasPixelsValue(point, referenceFontSize, fontSize);
 }
 
 function getBrushSizeInPixels(size = drawingState.currentBrushSize, fontSize = getNormalizedFontSize()) {
-  return Math.max(1, clampBrushSize(size) * getNormalizedFontSize(fontSize));
+  return getBrushSizeInPixelsValue(size, fontSize);
 }
 
 function formatBrushSizeLabel(size = drawingState.currentBrushSize, fontSize = getNormalizedFontSize()) {
   const pixelValue = getBrushSizeInPixels(size, fontSize);
   const roundedPixels = pixelValue >= 10 ? pixelValue.toFixed(0) : pixelValue.toFixed(1);
   const normalizedPixels = roundedPixels.replace(/\.0$/, '');
-  const relativePercent = Math.round(clampBrushSize(size) * 100);
-  return `${normalizedPixels}px · ${relativePercent}%`;
+  return `${normalizedPixels}px`;
 }
 
 function getClosestBrushMarkerSize(size = drawingState.currentBrushSize) {
@@ -863,10 +967,6 @@ function updateBrushSizeButtons() {
   const brushSizeLabel = formatBrushSizeLabel(normalizedBrushSize);
 
   drawingState.currentBrushSize = normalizedBrushSize;
-  drawSizeButtons.forEach(button => {
-    const size = normalizeBrushSizeSetting(button.dataset.drawSize);
-    button.classList.toggle('active', Math.abs(size - normalizedBrushSize) < 0.01);
-  });
 
   if (drawSizeSlider) {
     drawSizeSlider.value = normalizedBrushSize;
@@ -925,10 +1025,68 @@ function normalizePage(page = {}, fontSize = DEFAULT_SETTINGS.fontSize) {
   return {
     id: page.id || generateId(),
     emoji: typeof page.emoji === 'string' ? page.emoji : DEFAULT_PAGE_EMOJI,
+    title: typeof page.title === 'string' ? page.title.slice(0, MAX_PAGE_TITLE_LENGTH) : '',
     content: typeof page.content === 'string' ? page.content : '',
     drawings: Array.isArray(page.drawings) ? page.drawings.map(stroke => normalizeStroke(stroke, fontSize)) : [],
-    scrollTop: Number.isFinite(parsedScrollTop) && parsedScrollTop > 0 ? parsedScrollTop : 0
+    scrollTop: Number.isFinite(parsedScrollTop) && parsedScrollTop > 0 ? parsedScrollTop : 0,
+    // Pages written before these existed stay null rather than claiming a
+    // timestamp they never had — the preview shows "—" for those.
+    createdAt: normalizeTimestamp(page.createdAt),
+    editedAt: normalizeTimestamp(page.editedAt)
   };
+}
+
+// Timestamps are stored as ISO strings so they survive JSON backups intact.
+function normalizeTimestamp(value) {
+  if (typeof value !== 'string' || value === '') {
+    return null;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
+}
+
+// Records "last edited" on a page. Called from the places that actually change
+// a page — typing, strokes, renames — not from every save, so switching pages
+// doesn't look like an edit.
+function touchPageEdited(page = getCurrentPage()) {
+  if (!page || !workspaceWritable) {
+    return;
+  }
+
+  page.editedAt = new Date().toISOString();
+}
+
+function getPageDisplayTitle(page) {
+  return typeof page?.title === 'string' ? page.title.trim() : '';
+}
+
+// Accessible name for a tab, built from the optional page name. Tabs carry no
+// title attribute — the hover preview card is the tooltip now, and a native
+// one would cover it with a second, plainer box.
+function getPageTabAriaLabel(page, index, isActive) {
+  const name = getPageDisplayTitle(page);
+
+  if (isActive) {
+    return name
+      ? `Current page: ${name}. Click to change the emoji or name.`
+      : `Current page ${index + 1}. Click to change the emoji.`;
+  }
+
+  return name ? `Open page: ${name}.` : `Open page ${index + 1}.`;
+}
+
+// Refresh one tab's accessible name in place (used while typing a name, so the
+// whole rail doesn't re-render on every keystroke).
+function updatePageTabLabels(pageId) {
+  const page = getPageById(pageId);
+  const tab = getPageTabButton(pageId);
+  if (!page || !tab) {
+    return;
+  }
+
+  const index = pages.indexOf(page);
+  tab.setAttribute('aria-label', getPageTabAriaLabel(page, index, page.id === currentPageId));
 }
 
 function getCurrentPage() {
@@ -975,6 +1133,12 @@ function syncCurrentPageScrollPosition() {
     return;
   }
 
+  // While a page-switch restore is mid-flight, the viewport may briefly hold a
+  // clamped scroll value that doesn't represent the user's intent yet.
+  if (isRestoringPageScroll) {
+    return;
+  }
+
   page.scrollTop = getViewportScrollTop();
 }
 
@@ -1000,13 +1164,30 @@ function restorePageScrollPosition(scrollTop = 0) {
     }
   };
 
+  // Cancel any pending restore from a previous switch so it can't overwrite this one.
   if (scrollRestoreTimeout) {
     clearTimeout(scrollRestoreTimeout);
+    scrollRestoreTimeout = null;
+  }
+  if (scrollRestoreFrame !== null) {
+    cancelAnimationFrame(scrollRestoreFrame);
+    scrollRestoreFrame = null;
+  }
+  if (scrollRestoreNestedFrame !== null) {
+    cancelAnimationFrame(scrollRestoreNestedFrame);
+    scrollRestoreNestedFrame = null;
   }
 
-  requestAnimationFrame(() => {
+  // Block the scroll-event listener from overwriting page.scrollTop with the
+  // intermediate clamped values that fire while layout is still settling.
+  isRestoringPageScroll = true;
+  applyScroll();
+
+  scrollRestoreFrame = requestAnimationFrame(() => {
+    scrollRestoreFrame = null;
     applyScroll();
-    requestAnimationFrame(() => {
+    scrollRestoreNestedFrame = requestAnimationFrame(() => {
+      scrollRestoreNestedFrame = null;
       applyScroll();
     });
   });
@@ -1014,6 +1195,7 @@ function restorePageScrollPosition(scrollTop = 0) {
   scrollRestoreTimeout = setTimeout(() => {
     applyScroll();
     scrollRestoreTimeout = null;
+    isRestoringPageScroll = false;
   }, 120);
 }
 
@@ -1064,20 +1246,6 @@ function handleScrollActivity({ repositionEmojiPicker = false, persistPageScroll
   }
 }
 
-function syncSelectionColorControl(color = controls.textColor?.value || DEFAULT_SETTINGS.textColor) {
-  const normalizedColor = normalizeHex(color);
-
-  if (controls.selectionColor) {
-    controls.selectionColor.value = normalizedColor;
-  }
-
-  if (hexInputs.selectionColor) {
-    hexInputs.selectionColor.value = normalizedColor;
-  }
-
-  return normalizedColor;
-}
-
 function getCurrentBrushColor() {
   return controls.drawColor?.value || controls.textColor?.value || DEFAULT_SETTINGS.textColor;
 }
@@ -1089,6 +1257,7 @@ function updateDrawColorPreview() {
 }
 
 function setBrushColor(color, { persist = true, mode = 'custom' } = {}) {
+  if (!workspaceWritable) return;
   if (!controls.drawColor || !color) {
     return;
   }
@@ -1099,16 +1268,17 @@ function setBrushColor(color, { persist = true, mode = 'custom' } = {}) {
   redrawDrawings();
 
   if (persist) {
-    saveSettings(getCurrentSettings());
+    scheduleSettingsSave();
   }
 }
 
 function setBrushSize(size, persist = true) {
+  if (!workspaceWritable) return;
   drawingState.currentBrushSize = normalizeBrushSizeSetting(size, getNormalizedFontSize());
   updateBrushSizeButtons();
 
   if (persist) {
-    saveSettings(getCurrentSettings());
+    scheduleSettingsSave();
   }
 }
 
@@ -1133,6 +1303,29 @@ function updateDrawingToolButtons() {
   document.body.classList.toggle('eraser-mode', isEraserActive);
 }
 
+function setDrawingToolbarCollapsed(collapsed) {
+  const isCollapsed = Boolean(collapsed);
+  uiState.drawingToolbarCollapsed = isCollapsed;
+
+  // The collapse animation lives on the rail so the arrow (a sibling of the
+  // toolbar) can flip direction from the same state class.
+  if (topRightRail) {
+    topRightRail.classList.toggle('tools-collapsed', isCollapsed);
+  }
+
+  if (drawingToolbarVisibilityToggleBtn) {
+    drawingToolbarVisibilityToggleBtn.setAttribute('aria-expanded', String(!isCollapsed));
+    drawingToolbarVisibilityToggleBtn.setAttribute('aria-label', isCollapsed ? 'Show drawing tools' : 'Hide drawing tools');
+    drawingToolbarVisibilityToggleBtn.title = isCollapsed ? 'Show drawing tools' : 'Hide drawing tools';
+  }
+
+  if (isCollapsed) {
+    closeDrawSizePopover();
+    closeClearDrawingsConfirm();
+    closeColorPicker();
+  }
+}
+
 function setDrawingTool(tool) {
   drawingState.currentTool = tool === 'eraser' ? 'eraser' : 'brush';
   updateDrawingToolButtons();
@@ -1153,6 +1346,7 @@ function focusEditorWithoutScroll(scrollTop = getViewportScrollTop()) {
 }
 
 function toggleDrawingTool(tool) {
+  if (!workspaceWritable) return;
   const nextTool = tool === 'eraser' ? 'eraser' : 'brush';
 
   if (drawingState.enabled && drawingState.currentTool === nextTool) {
@@ -1165,6 +1359,7 @@ function toggleDrawingTool(tool) {
 }
 
 function setDrawMode(enabled) {
+  if (!workspaceWritable && enabled) return;
   const viewportScrollTop = getViewportScrollTop();
   drawingState.enabled = Boolean(enabled);
   document.body.classList.toggle('drawing-mode', drawingState.enabled);
@@ -1218,20 +1413,13 @@ function clearDrawingSurface() {
   drawingContext.restore();
 }
 
-function drawStroke(stroke) {
-  if (!drawingContext || !stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) {
-    return;
-  }
+// Shared canvas paint path. Treats a single-point stroke as a tiny dot so it
+// still renders. `tailPoints` is the array of vertices to lineTo *after* the
+// starting point — keeps `drawStroke` and `drawStrokeRange` on one code path.
+function paintPath(stroke, startPoint, tailPoints, fontSize) {
+  if (!drawingContext || !startPoint) return;
 
   const isEraserStroke = stroke.tool === 'eraser';
-  const fontSize = getNormalizedFontSize();
-  const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
-  const renderedPoints = stroke.points.map(point => convertPointToCanvasPixels(point, referenceFontSize, fontSize));
-  const firstPoint = renderedPoints[0];
-
-  if (!firstPoint) {
-    return;
-  }
 
   drawingContext.save();
   drawingContext.globalCompositeOperation = isEraserStroke ? 'destination-out' : 'source-over';
@@ -1240,16 +1428,29 @@ function drawStroke(stroke) {
   drawingContext.lineCap = 'round';
   drawingContext.lineJoin = 'round';
   drawingContext.beginPath();
-  drawingContext.moveTo(firstPoint.x, firstPoint.y);
+  drawingContext.moveTo(startPoint.x, startPoint.y);
 
-  if (renderedPoints.length === 1) {
-    drawingContext.lineTo(firstPoint.x + 0.01, firstPoint.y + 0.01);
+  if (!tailPoints || tailPoints.length === 0) {
+    // Single-point stroke — nudge a hair so a dot renders.
+    drawingContext.lineTo(startPoint.x + 0.01, startPoint.y + 0.01);
   } else {
-    renderedPoints.slice(1).forEach(point => drawingContext.lineTo(point.x, point.y));
+    tailPoints.forEach(point => drawingContext.lineTo(point.x, point.y));
   }
 
   drawingContext.stroke();
   drawingContext.restore();
+}
+
+function drawStroke(stroke) {
+  if (!drawingContext || !stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) {
+    return;
+  }
+
+  const fontSize = getNormalizedFontSize();
+  const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
+  const renderedPoints = stroke.points.map(point => convertPointToCanvasPixels(point, referenceFontSize, fontSize));
+  const [firstPoint, ...tail] = renderedPoints;
+  paintPath(stroke, firstPoint, tail, fontSize);
 }
 
 function redrawDrawings() {
@@ -1310,32 +1511,12 @@ function drawStrokeRange(stroke, startIndex = 0) {
   const fontSize = getNormalizedFontSize();
   const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
   const startPoint = convertPointToCanvasPixels(stroke.points[pathStartIndex], referenceFontSize, fontSize);
-  const segmentPoints = stroke.points
+  const tailPoints = stroke.points
     .slice(clampedStartIndex > 0 ? clampedStartIndex : 1)
     .map(point => convertPointToCanvasPixels(point, referenceFontSize, fontSize));
   const isSinglePointStroke = stroke.points.length === 1 && clampedStartIndex === 0;
 
-  if (!startPoint) {
-    return;
-  }
-
-  drawingContext.save();
-  drawingContext.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
-  drawingContext.strokeStyle = stroke.tool === 'eraser' ? '#000000' : (stroke.color || getCurrentBrushColor());
-  drawingContext.lineWidth = getBrushSizeInPixels(stroke.width, fontSize);
-  drawingContext.lineCap = 'round';
-  drawingContext.lineJoin = 'round';
-  drawingContext.beginPath();
-  drawingContext.moveTo(startPoint.x, startPoint.y);
-
-  if (isSinglePointStroke) {
-    drawingContext.lineTo(startPoint.x + 0.01, startPoint.y + 0.01);
-  } else {
-    segmentPoints.forEach(point => drawingContext.lineTo(point.x, point.y));
-  }
-
-  drawingContext.stroke();
-  drawingContext.restore();
+  paintPath(stroke, startPoint, isSinglePointStroke ? [] : tailPoints, fontSize);
 }
 
 function flushPendingStrokeRender() {
@@ -1381,6 +1562,7 @@ function resetCurrentStrokeState() {
 }
 
 function beginStroke(event) {
+  if (!workspaceWritable) return;
   if (!drawingState.enabled || event.button !== 0) return;
 
   const page = getCurrentPage();
@@ -1423,10 +1605,19 @@ function extendStroke(event) {
   const points = drawingState.currentStroke.points;
   const lastPoint = points[points.length - 1];
 
-  if (!lastPoint || lastPoint.x !== point.x || lastPoint.y !== point.y) {
-    points.push(point);
-    schedulePendingStrokeRender();
+  // Skip points closer than ~1.5px to the previous one — high-refresh pointers
+  // fire 120+ events/sec and the extra vertices are invisible but balloon the
+  // stored stroke data.
+  if (lastPoint) {
+    const dx = point.x - lastPoint.x;
+    const dy = point.y - lastPoint.y;
+    if ((dx * dx) + (dy * dy) < MIN_STROKE_POINT_DISTANCE_SQ) {
+      return;
+    }
   }
+
+  points.push(point);
+  schedulePendingStrokeRender();
 }
 
 function finishStroke(event) {
@@ -1456,16 +1647,19 @@ function finishStroke(event) {
   }
 
   resetCurrentStrokeState();
+  touchPageEdited();
   saveContent();
 }
 
 function undoLastStroke() {
+  if (!workspaceWritable) return false;
   const page = getCurrentPage();
   if (!page || !Array.isArray(page.drawings)) {
     return false;
   }
 
   if (drawingState.currentStroke && cancelActiveStroke()) {
+    touchPageEdited(page);
     saveContent();
     return true;
   }
@@ -1476,23 +1670,83 @@ function undoLastStroke() {
 
   page.drawings.pop();
   redrawDrawings();
+  touchPageEdited(page);
   saveContent();
   return true;
 }
 
-function clearCurrentPageDrawings() {
+async function clearCurrentPageDrawings() {
+  if (!workspaceWritable) return;
   const page = getCurrentPage();
   if (!page || !Array.isArray(page.drawings) || page.drawings.length === 0) {
+    closeClearDrawingsConfirm();
     return;
   }
 
-  if (!window.confirm('Clear all drawings from this page?')) {
-    return;
-  }
-
+  await captureDestructiveSnapshot('Before clearing page drawings');
   page.drawings = [];
+  touchPageEdited(page);
   redrawDrawings();
-  saveContent();
+  await safeLocalSet({ pages, currentPageId }, 'clearing page drawings');
+  closeClearDrawingsConfirm({ restoreFocus: true });
+}
+
+// Confirm popover for the "clear drawings" toolbar button — mirrors the page
+// delete confirmation pattern so both destructive actions feel consistent.
+function positionClearDrawingsConfirm() {
+  if (!clearDrawingsConfirm || clearDrawingsConfirm.hidden || !clearDrawingsBtn) {
+    return;
+  }
+
+  const triggerRect = clearDrawingsBtn.getBoundingClientRect();
+  const popoverWidth = Math.min(clearDrawingsConfirm.offsetWidth || 244, window.innerWidth - 24);
+  const popoverHeight = Math.min(clearDrawingsConfirm.offsetHeight || 120, window.innerHeight - 24);
+  const viewportPadding = 12;
+  const gutter = 10;
+
+  let left = triggerRect.right - popoverWidth;
+  left = Math.min(Math.max(viewportPadding, left), window.innerWidth - popoverWidth - viewportPadding);
+
+  let top = triggerRect.bottom + gutter;
+  if (top + popoverHeight > window.innerHeight - viewportPadding) {
+    top = Math.max(viewportPadding, triggerRect.top - popoverHeight - gutter);
+  }
+
+  clearDrawingsConfirm.style.left = `${left}px`;
+  clearDrawingsConfirm.style.top = `${top}px`;
+}
+
+function openClearDrawingsConfirm() {
+  const page = getCurrentPage();
+  if (!clearDrawingsConfirm || !page || !Array.isArray(page.drawings) || page.drawings.length === 0) {
+    return;
+  }
+
+  closeDrawSizePopover();
+  closeColorPicker();
+  uiState.clearDrawingsConfirmOpen = true;
+  clearDrawingsConfirm.hidden = false;
+  clearDrawingsConfirm.classList.add('visible');
+  clearDrawingsBtn?.setAttribute('aria-expanded', 'true');
+  positionClearDrawingsConfirm();
+}
+
+function closeClearDrawingsConfirm({ restoreFocus = false } = {}) {
+  uiState.clearDrawingsConfirmOpen = false;
+
+  if (clearDrawingsConfirm) {
+    clearDrawingsConfirm.classList.remove('visible');
+    clearDrawingsConfirm.hidden = true;
+    clearDrawingsConfirm.style.left = '';
+    clearDrawingsConfirm.style.top = '';
+  }
+
+  if (clearDrawingsBtn) {
+    clearDrawingsBtn.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) {
+      clearDrawingsBtn.focus();
+    }
+  }
 }
 
 function positionDrawSizePopover() {
@@ -1717,11 +1971,6 @@ function isTextEditingShortcutTarget(event) {
   return target === editor || target.closest('#editor') || target.isContentEditable;
 }
 
-function isFormFieldShortcutTarget(event) {
-  const target = getShortcutTarget(event);
-  return Boolean(target?.closest('input, textarea, select'));
-}
-
 function getControlRangeBounds(control) {
   const min = Number(control?.min);
   const max = Number(control?.max);
@@ -1733,6 +1982,7 @@ function getControlRangeBounds(control) {
 }
 
 function adjustFontSizeByStep(stepDelta) {
+  if (!workspaceWritable) return false;
   if (!controls.fontSize) {
     return false;
   }
@@ -1818,28 +2068,34 @@ function cancelActiveStroke() {
 }
 
 function isUndoShortcut(event) {
+  // Skip IME composition — Ctrl/Cmd+Z while a CJK IME is composing belongs
+  // to the IME (cancel composition), not to our undo handler.
+  if (event.isComposing || event.keyCode === 229) {
+    return false;
+  }
   return (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'z';
 }
 
-function shouldHandleGlobalShortcut(event) {
-  if (event.defaultPrevented) {
+function isRedoShortcut(event) {
+  if (event.isComposing || event.keyCode === 229) {
     return false;
   }
-
-  const target = event.target;
-  if (!(target instanceof HTMLElement)) {
-    return true;
+  if (!(event.ctrlKey || event.metaKey) || event.altKey) {
+    return false;
   }
+  const key = event.key.toLowerCase();
+  return (event.shiftKey && key === 'z') || (!event.shiftKey && key === 'y');
+}
 
-  if (target === editor || target === drawingLayer || target === document.body) {
-    return true;
+// Text undo/redo applies when the shortcut lands on the editor itself (or the
+// body, where it would otherwise do nothing) — not on inputs, which keep
+// their native undo.
+function isEditorHistoryTarget(event) {
+  const target = getShortcutTarget(event);
+  if (!target) {
+    return false;
   }
-
-  if (target.isContentEditable) {
-    return target === editor;
-  }
-
-  return !target.closest('input, textarea, select, button');
+  return target === editor || Boolean(target.closest('#editor')) || target === document.body;
 }
 
 function shouldHandleDrawingShortcut(event) {
@@ -1889,26 +2145,45 @@ function debounce(func, wait) {
   };
 }
 
-const persistPagesState = debounce(async () => {
-  try {
-    await chrome.storage.local.set({ pages, currentPageId });
-  } catch (error) {
-    console.error('Error saving page state:', error);
+// Every local write goes through IndexedDB. The editor keeps page objects in
+// memory for fast drawing, but each record is persisted independently and all
+// multi-page operations are serialized by the store.
+async function safeLocalSet(payload, context = 'saving') {
+  if (!workspaceWritable) {
+    return false;
   }
+
+  try {
+    if (Array.isArray(payload.pages)) {
+      await workspaceStore.saveWorkspace({
+        pages: payload.pages.map((page, position) => ({ ...page, position })),
+        currentPageId: payload.currentPageId || currentPageId,
+        settings: normalizeSettings(getCurrentSettings(), DEFAULT_SETTINGS)
+      });
+    } else if (typeof payload.currentPageId === 'string') {
+      await workspaceStore.saveCurrentPageId(payload.currentPageId);
+    }
+
+    workspaceChannel.post('workspace-saved', { context });
+    return true;
+  } catch (error) {
+    handleStorageError(error, context);
+    return false;
+  }
+}
+
+const persistPagesState = debounce(() => {
+  safeLocalSet({ pages, currentPageId }, 'saving pages');
 }, 200);
 
 async function persistPagesStateImmediately() {
-  try {
-    await chrome.storage.local.set({ pages, currentPageId });
-  } catch (error) {
-    console.error('Error saving page state immediately:', error);
-  }
+  await safeLocalSet({ pages, currentPageId }, 'saving pages');
 }
 
 // Apply settings to CSS custom properties
 function applySettings(settings) {
   const root = document.documentElement;
-  const selectionColor = normalizeHex(settings.textColor || settings.selectionColor || DEFAULT_SETTINGS.textColor);
+  const selectionColor = normalizeHex(settings.selectionColor || settings.textColor || DEFAULT_SETTINGS.selectionColor);
   root.style.setProperty('--font-family', settings.fontFamily);
   root.style.setProperty('--font-size', settings.fontSize + 'px');
   root.style.setProperty('--line-height', settings.lineHeight);
@@ -1917,6 +2192,7 @@ function applySettings(settings) {
   root.style.setProperty('--text-color', settings.textColor);
   root.style.setProperty('--bg-color', settings.backgroundColor);
   root.style.setProperty('--selection-color', selectionColor);
+  root.style.setProperty('--selection-text-color', getContrastingTextColor(selectionColor));
   root.style.setProperty('--ui-surface', hexToRgba(settings.backgroundColor, 0.56));
   root.style.setProperty('--ui-surface-strong', hexToRgba(settings.backgroundColor, 0.72));
   root.style.setProperty('--ui-surface-soft', hexToRgba(settings.backgroundColor, 0.44));
@@ -1930,11 +2206,18 @@ function applySettings(settings) {
   root.style.setProperty('--ui-track', hexToRgba(settings.textColor, 0.12));
   root.style.setProperty('--ui-shadow-soft', '0 18px 42px rgba(15, 23, 42, 0.06)');
   root.style.setProperty('--ui-shadow-subtle', '0 10px 24px rgba(15, 23, 42, 0.04)');
+  root.style.setProperty('--panel-bg', hexToRgba(settings.backgroundColor, 0.92));
+  root.style.setProperty('--panel-border', hexToRgba(settings.textColor, 0.2));
+  root.style.setProperty('--panel-text', settings.textColor);
+  root.style.setProperty('--panel-text-secondary', hexToRgba(settings.textColor, 0.6));
+  root.style.setProperty('--control-bg', hexToRgba(settings.backgroundColor, 0.78));
+  root.style.setProperty('--control-border', hexToRgba(settings.textColor, 0.15));
+  root.style.setProperty('--control-hover', hexToRgba(settings.textColor, 0.08));
 }
 
 // Update control values in UI
 function updateControlValues(settings) {
-  const selectionColor = normalizeHex(settings.textColor || settings.selectionColor || DEFAULT_SETTINGS.textColor);
+  const selectionColor = normalizeHex(settings.selectionColor || settings.textColor || DEFAULT_SETTINGS.selectionColor);
   const normalizedDrawSize = normalizeBrushSizeSetting(settings.drawSize, settings.fontSize);
 
   controls.fontFamily.value = settings.fontFamily;
@@ -1971,23 +2254,24 @@ function updateControlValues(settings) {
 
 // Save note content
 async function saveContent() {
-  if (!currentPageId) return;
+  if (!currentPageId || !workspaceWritable) return;
   
   try {
     syncCurrentPageScrollPosition();
 
-    const content = editor.innerHTML;
+    const content = sanitizeStoredContent(editor.innerHTML);
     const pageIndex = pages.findIndex(p => p.id === currentPageId);
     if (pageIndex === -1) {
       console.warn('Current page not found in pages array');
       return;
     }
+    if (pages[pageIndex].content !== content) {
+      touchPageEdited(pages[pageIndex]);
+    }
     pages[pageIndex].content = content;
     pages[pageIndex].drawings = Array.isArray(pages[pageIndex].drawings) ? pages[pageIndex].drawings : [];
-    await chrome.storage.local.set({ 
-      pages: pages,
-      lastSaved: Date.now()
-    });
+    await workspaceStore.savePage({ ...pages[pageIndex], position: pageIndex }, currentPageId);
+    workspaceChannel.post('page-saved', { pageId: currentPageId });
     showSaveIndicator();
     updateWordCount();
   } catch (error) {
@@ -1995,70 +2279,138 @@ async function saveContent() {
   }
 }
 
+// Surface storage quota / write failures so the user notices when their notes
+// stop being saved instead of silently losing edits.
+function handleStorageError(error, context = 'saving') {
+  console.error(`Error ${context}:`, error);
+  if (!saveIndicator) return;
+
+  saveIndicator.classList.add('error', 'visible');
+  saveIndicator.title = error?.message
+    ? `Save failed: ${error.message}`
+    : 'Save failed. Storage quota may be full.';
+  saveIndicator.setAttribute('aria-label', saveIndicator.title);
+  statusAnnouncer.show(saveIndicator.title, { kind: 'error', duration: 8_000 });
+
+  // Auto-clear the error after a few seconds so the next successful save can
+  // overwrite it with the normal indicator state.
+  setTimeout(() => {
+    if (saveIndicator.classList.contains('error')) {
+      saveIndicator.classList.remove('error', 'visible');
+      saveIndicator.title = '';
+      saveIndicator.removeAttribute('aria-label');
+    }
+  }, 4000);
+}
+
 // Debounced save
 const debouncedSave = debounce(saveContent, 1000);
 
 // Show save indicator briefly
 function showSaveIndicator() {
+  // A successful save clears any lingering error state.
+  saveIndicator.classList.remove('error');
+  saveIndicator.title = '';
+  saveIndicator.setAttribute('aria-label', 'Saved locally.');
   saveIndicator.classList.add('visible');
   setTimeout(() => {
     saveIndicator.classList.remove('visible');
+    saveIndicator.removeAttribute('aria-label');
   }, 1500);
 }
 
 // Save settings
 async function saveSettings(settings) {
+  settingsSaveDirty = false;
+  if (!workspaceWritable) return;
   try {
-    await chrome.storage.sync.set({ settings });
-    // Mark that user has set a theme (for dark mode detection)
-    document.documentElement.setAttribute('data-theme-set', 'true');
+    await workspaceStore.saveSettings(normalizeSettings(settings, DEFAULT_SETTINGS));
+    workspaceChannel.post('settings-saved');
   } catch (error) {
-    console.error('Error saving settings:', error);
+    handleStorageError(error, 'saving settings');
   }
+}
+
+// Slider drags fire `input` continuously. Debounce the IndexedDB writes so
+// changing a visual setting stays responsive; the dirty flag lets pagehide
+// flush anything still pending.
+let settingsSaveDirty = false;
+
+const debouncedSaveSettings = debounce(() => {
+  saveSettings(getCurrentSettings());
+}, 400);
+
+function scheduleSettingsSave() {
+  settingsSaveDirty = true;
+  debouncedSaveSettings();
+}
+
+function flushPendingSettingsSave() {
+  if (settingsSaveDirty) {
+    saveSettings(getCurrentSettings());
+  }
+}
+
+// Mark theme as explicit so the prefers-color-scheme dark-mode override stops
+// applying. Called only when the user actively picks a theme or color — not
+// on every font/size tweak (which previously locked dark mode out forever).
+function markThemeExplicit() {
+  document.documentElement.setAttribute('data-theme-set', 'true');
 }
 
 // Load saved data
 async function loadSavedData() {
   try {
-    // Load pages
-    const localData = await chrome.storage.local.get(['pages', 'currentPageId', 'noteContent']);
-    const syncData = await chrome.storage.sync.get(['settings']);
-    const settings = { ...DEFAULT_SETTINGS, ...syncData.settings };
+    let storedWorkspace = await workspaceStore.readWorkspace();
+    let importedLegacyWorkspace = false;
+
+    // A manually reloaded legacy unpacked extension has access to its old
+    // chrome.storage records. Copy them into IndexedDB, but never delete the
+    // source data: the user can still export it again if needed.
+    if (storedWorkspace.pages.length === 0 && isExtensionContext()) {
+      const legacyWorkspace = await readLegacyChromeWorkspace({
+        defaults: DEFAULT_SETTINGS,
+        sanitizeHtml: sanitizeStoredContent
+      });
+      if (legacyWorkspace?.pages.length) {
+        storedWorkspace = legacyWorkspace;
+        importedLegacyWorkspace = true;
+        if (workspaceWritable) {
+          await workspaceStore.saveWorkspace(storedWorkspace);
+        }
+      }
+    }
+
+    const settings = normalizeSettings(storedWorkspace.settings || DEFAULT_SETTINGS, DEFAULT_SETTINGS);
     settings.drawSize = normalizeBrushSizeSetting(settings.drawSize, settings.fontSize);
-    settings.selectionColor = normalizeHex(settings.textColor || DEFAULT_SETTINGS.textColor);
-    const pagesNeedMigration = Array.isArray(localData.pages) && localData.pages.some(page =>
+    settings.selectionColor = normalizeHex(settings.selectionColor || settings.textColor || DEFAULT_SETTINGS.selectionColor);
+    const pagesNeedMigration = Array.isArray(storedWorkspace.pages) && storedWorkspace.pages.some(page =>
       Array.isArray(page?.drawings) && page.drawings.some(stroke =>
         stroke?.coordinateSpace !== DRAWING_COORDINATE_SPACE || !Number.isFinite(Number(stroke?.referenceFontSize))
       )
     );
-    const settingsNeedMigration = syncData.settings?.drawSize !== settings.drawSize;
-    
-    // Migration: convert old single-note format to pages
-    if (!localData.pages && localData.noteContent) {
-      pages = [normalizePage({
-        id: generateId(),
-        emoji: DEFAULT_PAGE_EMOJI,
-        content: localData.noteContent
-      }, settings.fontSize)];
-      currentPageId = pages[0].id;
-      await chrome.storage.local.set({ pages, currentPageId });
-      await chrome.storage.local.remove(['noteContent']);
-    } else if (localData.pages && localData.pages.length > 0) {
-      pages = localData.pages.map(page => normalizePage(page, settings.fontSize));
-      currentPageId = localData.currentPageId || pages[0].id;
+    const settingsNeedMigration = storedWorkspace.settings?.drawSize !== settings.drawSize ||
+      storedWorkspace.settings?.fontFamily !== migrateFontFamily(storedWorkspace.settings?.fontFamily);
+
+    if (storedWorkspace.pages.length > 0) {
+      pages = storedWorkspace.pages.map(page => normalizePage(page, settings.fontSize));
+      currentPageId = storedWorkspace.currentPageId || pages[0].id;
     } else {
-      // Create default page
+      const firstPageCreatedAt = new Date().toISOString();
       pages = [normalizePage({
         id: generateId(),
         emoji: DEFAULT_PAGE_EMOJI,
-        content: ''
+        content: '',
+        createdAt: firstPageCreatedAt,
+        editedAt: firstPageCreatedAt
       }, settings.fontSize)];
       currentPageId = pages[0].id;
-      await chrome.storage.local.set({ pages, currentPageId });
     }
 
+    if (!pages.some(page => page.id === currentPageId)) currentPageId = pages[0].id;
+
     // Set current theme
-    currentTheme = settings.currentTheme || 'lavender';
+    currentTheme = settings.currentTheme || 'blackboard';
     
     applySettings(settings);
     updateControlValues(settings);
@@ -2070,34 +2422,359 @@ async function loadSavedData() {
     renderPageTabs();
     loadPageContent(currentPageId);
 
-    if (pagesNeedMigration) {
-      await persistPagesStateImmediately();
+    if (workspaceWritable && (pagesNeedMigration || settingsNeedMigration || storedWorkspace.pages.length === 0 || importedLegacyWorkspace)) {
+      await workspaceStore.saveWorkspace(getWorkspaceForPersistence());
     }
 
-    if (settingsNeedMigration) {
-      await saveSettings(settings);
+    if (importedLegacyWorkspace) {
+      statusAnnouncer.show('Copied your legacy extension notes to local storage. The original Chrome storage was left untouched.', {
+        kind: 'success',
+        duration: 9_000
+      });
     }
+
+    void updateStorageSummary();
+    void updateRecoverySummary();
   } catch (error) {
     console.error('Error loading saved data:', error);
+    handleStorageError(error, 'loading local data');
     applySettings(DEFAULT_SETTINGS);
     updateControlValues(DEFAULT_SETTINGS);
     initThemeGrid();
   }
 }
 
+function getWorkspaceForPersistence({ captureEditor = false } = {}) {
+  if (captureEditor) {
+    syncCurrentPageScrollPosition();
+    const page = getCurrentPage();
+    if (page) page.content = sanitizeStoredContent(editor.innerHTML);
+  }
+
+  return {
+    pages: pages.map((page, position) => ({ ...page, position })),
+    currentPageId,
+    settings: normalizeSettings(getCurrentSettings(), DEFAULT_SETTINGS)
+  };
+}
+
+function formatStorageSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return null;
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+}
+
+async function updateStorageSummary() {
+  if (!storageSummary) return;
+  let message = 'Stored only in this browser on this device.';
+
+  try {
+    if (navigator.storage?.persisted && navigator.storage?.persist) {
+      const alreadyPersistent = await navigator.storage.persisted();
+      if (!alreadyPersistent) await navigator.storage.persist();
+    }
+    const estimate = await navigator.storage?.estimate?.();
+    const used = formatStorageSize(estimate?.usage);
+    if (used) message = `Stored only in this browser on this device · ${used} currently used.`;
+  } catch (error) {
+    // Storage persistence is best effort; the downloadable backup remains the
+    // durable way for the user to retain control over a browser profile reset.
+  }
+
+  storageSummary.textContent = message;
+}
+
+async function updateRecoverySummary() {
+  if (!recoverySummary || !restoreSnapshotBtn) return;
+
+  try {
+    const [latestSnapshot] = await workspaceStore.listSnapshots();
+    restoreSnapshotBtn.disabled = !workspaceWritable || !latestSnapshot;
+    if (!latestSnapshot) {
+      recoverySummary.textContent = 'Recovery snapshots appear here after an import or destructive change.';
+      return;
+    }
+
+    const label = latestSnapshot.label || 'Recovery snapshot';
+    const time = new Date(latestSnapshot.createdAt).toLocaleString('en-US');
+    recoverySummary.textContent = `Latest snapshot: ${label} · ${time}.`;
+  } catch (error) {
+    recoverySummary.textContent = 'Recovery snapshots are unavailable until local storage is ready.';
+    restoreSnapshotBtn.disabled = true;
+  }
+}
+
+function applyWorkspaceToEditor(workspace) {
+  const settings = normalizeSettings(workspace.settings, DEFAULT_SETTINGS);
+  pages = workspace.pages.map(page => normalizePage(page, settings.fontSize));
+  currentPageId = workspace.currentPageId || pages[0]?.id || null;
+  if (!pages.some(page => page.id === currentPageId)) currentPageId = pages[0]?.id || null;
+  currentTheme = settings.currentTheme || 'lavender';
+
+  applySettings(settings);
+  updateControlValues(settings);
+  initThemeGrid();
+  updateThemeGridSelection();
+  renderPageTabs();
+  if (currentPageId) loadPageContent(currentPageId);
+}
+
+function setWorkspaceReadOnlyMode(reason = 'Another Blackboard Text tab is editing this workspace.') {
+  workspaceWritable = false;
+  document.body.classList.add('workspace-readonly');
+  editor.contentEditable = 'false';
+  editor.setAttribute('aria-readonly', 'true');
+
+  const allowed = new Set([exportWorkspaceBtn, reloadForUpdateBtn]);
+  document.querySelectorAll('button, input, select').forEach(control => {
+    if (allowed.has(control)) return;
+    if (!control.disabled) control.dataset.workspaceLocked = 'true';
+    control.disabled = true;
+  });
+
+  if (workspaceModeNotice) {
+    workspaceModeNotice.textContent = `${reason} This tab is read-only. Close the writing tab, then return here to continue.`;
+    workspaceModeNotice.hidden = false;
+  }
+}
+
+function setWorkspaceWritableMode() {
+  workspaceWritable = true;
+  document.body.classList.remove('workspace-readonly');
+  editor.contentEditable = 'true';
+  editor.removeAttribute('aria-readonly');
+  document.querySelectorAll('[data-workspace-locked="true"]').forEach(control => {
+    control.disabled = false;
+    delete control.dataset.workspaceLocked;
+  });
+  if (workspaceModeNotice) workspaceModeNotice.hidden = true;
+}
+
+async function tryPromoteReadOnlyTab() {
+  if (workspaceWritable) return;
+  const nextLock = await acquireWorkspaceLock();
+  if (!nextLock.acquired) return;
+
+  workspaceLock = nextLock;
+  setWorkspaceWritableMode();
+  await loadSavedData();
+  statusAnnouncer.show('This tab now owns the writing lock.', { kind: 'success' });
+}
+
+async function captureDestructiveSnapshot(label) {
+  if (!workspaceWritable) return null;
+  const snapshot = await workspaceStore.createSnapshot(label, getWorkspaceForPersistence({ captureEditor: true }));
+  workspaceChannel.post('snapshot-created', { label });
+  void updateRecoverySummary();
+  return snapshot;
+}
+
 // Generate unique ID
 function generateId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
+
+// --- Per-page text history -------------------------------------------------
+// The browser's native contenteditable undo stack is destroyed every time we
+// assign editor.innerHTML (page switches, restores), so text undo is handled
+// here instead: per-page snapshot stacks, coalesced so one undo step roughly
+// equals one burst of typing. Held in memory only — it intentionally doesn't
+// survive a reload.
+const TEXT_HISTORY_LIMIT = 100;
+const TEXT_SNAPSHOT_DEBOUNCE_MS = 350;
+const textHistories = new Map(); // pageId -> { states: [{ html, sel }], index }
+let textSnapshotTimeout = null;
+
+// Selection as plain character offsets over the editor's text content, so a
+// snapshot can restore the caret after innerHTML is reassigned.
+function getEditorSelectionOffsets() {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode)) {
+    return null;
+  }
+
+  const range = selection.getRangeAt(0);
+  const measure = (container, offset) => {
+    const probe = document.createRange();
+    probe.selectNodeContents(editor);
+    try {
+      probe.setEnd(container, offset);
+    } catch (error) {
+      return 0;
+    }
+    return probe.toString().length;
+  };
+
+  return {
+    start: measure(range.startContainer, range.startOffset),
+    end: measure(range.endContainer, range.endOffset)
+  };
+}
+
+function resolveEditorTextOffset(offset) {
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+  let remaining = Math.max(0, Number(offset) || 0);
+  let lastNode = null;
+  let node = walker.nextNode();
+
+  while (node) {
+    const length = node.textContent.length;
+    if (remaining <= length) {
+      return { node, offset: remaining };
+    }
+    remaining -= length;
+    lastNode = node;
+    node = walker.nextNode();
+  }
+
+  if (lastNode) {
+    return { node: lastNode, offset: lastNode.textContent.length };
+  }
+  return { node: editor, offset: 0 };
+}
+
+function setEditorSelectionOffsets(start, end = start) {
+  const selection = window.getSelection();
+  if (!selection) {
+    return;
+  }
+
+  const startPos = resolveEditorTextOffset(start);
+  const endPos = end === start ? startPos : resolveEditorTextOffset(end);
+  const range = document.createRange();
+
+  try {
+    range.setStart(startPos.node, startPos.offset);
+    range.setEnd(endPos.node, endPos.offset);
+  } catch (error) {
+    return;
+  }
+
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function ensureTextHistory(pageId, html) {
+  if (!textHistories.has(pageId)) {
+    textHistories.set(pageId, {
+      states: [{ html: typeof html === 'string' ? html : '', sel: null }],
+      index: 0
+    });
+  }
+  return textHistories.get(pageId);
+}
+
+function captureTextSnapshot() {
+  if (textSnapshotTimeout) {
+    clearTimeout(textSnapshotTimeout);
+    textSnapshotTimeout = null;
+  }
+
+  if (!currentPageId) {
+    return;
+  }
+
+  const history = ensureTextHistory(currentPageId, '');
+  const html = editor.innerHTML;
+
+  if (history.states[history.index]?.html === html) {
+    return;
+  }
+
+  // A new edit after undo discards the redo branch.
+  history.states.length = history.index + 1;
+  history.states.push({ html, sel: getEditorSelectionOffsets() });
+
+  if (history.states.length > TEXT_HISTORY_LIMIT) {
+    history.states.shift();
+  }
+  history.index = history.states.length - 1;
+}
+
+function scheduleTextSnapshot() {
+  if (textSnapshotTimeout) {
+    clearTimeout(textSnapshotTimeout);
+  }
+  textSnapshotTimeout = setTimeout(captureTextSnapshot, TEXT_SNAPSHOT_DEBOUNCE_MS);
+}
+
+// Capture a pending snapshot right now (page switch, undo) so it lands on the
+// page it belongs to.
+function flushPendingTextSnapshot() {
+  if (textSnapshotTimeout) {
+    captureTextSnapshot();
+  }
+}
+
+// Drop a pending snapshot without capturing — used when the page it would
+// describe is going away.
+function cancelPendingTextSnapshot() {
+  if (textSnapshotTimeout) {
+    clearTimeout(textSnapshotTimeout);
+    textSnapshotTimeout = null;
+  }
+}
+
+function applyTextHistoryState(state) {
+  editor.innerHTML = state.html;
+  if (state.sel) {
+    setEditorSelectionOffsets(state.sel.start, state.sel.end);
+  } else {
+    setEditorSelectionOffsets(editor.textContent.length);
+  }
+  debouncedSave();
+  updateWordCount();
+  scheduleDrawingLayerSync();
+}
+
+function undoTextEdit() {
+  if (!currentPageId) {
+    return false;
+  }
+
+  flushPendingTextSnapshot();
+  const history = textHistories.get(currentPageId);
+  if (!history || history.index <= 0) {
+    return false;
+  }
+
+  history.index -= 1;
+  applyTextHistoryState(history.states[history.index]);
+  return true;
+}
+
+function redoTextEdit() {
+  if (!currentPageId) {
+    return false;
+  }
+
+  flushPendingTextSnapshot();
+  const history = textHistories.get(currentPageId);
+  if (!history || history.index >= history.states.length - 1) {
+    return false;
+  }
+
+  history.index += 1;
+  applyTextHistoryState(history.states[history.index]);
+  return true;
+}
+// ---------------------------------------------------------------------------
 
 // Load page content
 function loadPageContent(pageId) {
   const page = pages.find(p => p.id === pageId);
   if (page) {
+    // Callers that switch pages flush the outgoing page's pending snapshot
+    // before getting here; anything still pending now would be misattributed.
+    cancelPendingTextSnapshot();
     resetCurrentStrokeState();
-    editor.innerHTML = page.content;
+    editor.innerHTML = sanitizeStoredContent(page.content);
+    ensureTextHistory(pageId, editor.innerHTML);
     currentPageId = pageId;
-    chrome.storage.local.set({ currentPageId });
+    safeLocalSet({ currentPageId }, 'updating active page');
     renderPageTabs();
     updateWordCount();
     scheduleDrawingLayerSync({ forceRedraw: true });
@@ -2116,16 +2793,12 @@ function renderPageTabs() {
 
     tab.className = 'page-tab' + (isActive ? ' active' : '');
     tab.type = 'button';
-    tab.title = isActive
-      ? 'Current page. Click to change emoji. Drag to reorder.'
-      : 'Click to switch pages. Drag to reorder.';
     tab.setAttribute('role', 'tab');
     tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
     tab.setAttribute('tabindex', isActive ? '0' : '-1');
     tab.setAttribute('draggable', 'true');
-    tab.setAttribute('aria-label', isActive
-      ? `Current page ${index + 1}. Click to change the emoji.`
-      : `Open page ${index + 1}.`);
+    tab.setAttribute('aria-label', getPageTabAriaLabel(page, index, isActive));
+    tab.disabled = !workspaceWritable;
     tab.dataset.pageId = page.id;
     tab.dataset.pageIndex = index;
     
@@ -2140,10 +2813,17 @@ function renderPageTabs() {
     tab.addEventListener('dragover', handleDragOver);
     tab.addEventListener('drop', handleDrop);
     tab.addEventListener('dragend', handleDragEnd);
-    
+
+    // Hover/focus preview — keyboard users get it without the hover delay.
+    tab.addEventListener('mouseenter', () => schedulePagePreview(page.id));
+    tab.addEventListener('mouseleave', schedulePagePreviewHide);
+    tab.addEventListener('focus', () => schedulePagePreview(page.id, { immediate: true }));
+    tab.addEventListener('blur', schedulePagePreviewHide);
+
     // Single click to switch page
     tab.addEventListener('click', (e) => {
       e.preventDefault();
+      hidePagePreview();
 
       if (page.id === currentPageId) {
         openEmojiPicker(page.id);
@@ -2151,6 +2831,7 @@ function renderPageTabs() {
       }
 
       closeEmojiPicker();
+      flushPendingTextSnapshot();
       syncCurrentPageScrollPosition();
       saveContent();
       loadPageContent(page.id);
@@ -2162,6 +2843,16 @@ function renderPageTabs() {
   updateWordCount();
   updatePageTabsScrollState();
   scrollActivePageTabIntoView();
+
+  // Re-rendering swaps every tab node, so a preview left over from a reorder
+  // either follows its tab to the new spot or goes away with a deleted page.
+  if (pagePreviewPageId) {
+    if (getPageById(pagePreviewPageId)) {
+      positionPagePreview(pagePreviewPageId);
+    } else {
+      hidePagePreview();
+    }
+  }
 }
 
 function updatePageTabsScrollState() {
@@ -2187,6 +2878,281 @@ function scrollActivePageTabIntoView() {
   }
 }
 
+// --- Page hover preview ----------------------------------------------------
+// Hovering a tab peeks at that page — name, dates, and the opening lines of its
+// text — so you can find a page without switching to it. Purely passive: the
+// card never takes pointer events and never touches page state.
+const PAGE_PREVIEW_DELAY_MS = 320;
+// Once a card is open, sliding across the rail should feel like one object
+// moving, so leaving a tab waits out this grace period before hiding — long
+// enough to cross the gap to the next tab, short enough to feel deliberate.
+const PAGE_PREVIEW_HIDE_GRACE_MS = 120;
+const PAGE_PREVIEW_SNIPPET_LENGTH = 260;
+let pagePreviewShowTimeout = null;
+let pagePreviewHideTimeout = null;
+let pagePreviewPageId = null;
+
+function getPagePlainText(page) {
+  if (!page) {
+    return '';
+  }
+
+  // The open page lives in the editor, where it may be newer than page.content.
+  if (page.id === currentPageId && editor) {
+    return editor.innerText || '';
+  }
+
+  if (typeof page.content !== 'string' || page.content === '') {
+    return '';
+  }
+
+  // textContent runs blocks together ("Grocery listOat milk"), so each block
+  // start becomes a newline before the text is pulled out — the editor writes
+  // one <div> per line, which lands exactly on the breaks you see on screen.
+  const template = document.createElement('template');
+  template.innerHTML = sanitizeStoredContent(page.content)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<(?:div|p|h[1-6]|li|blockquote|pre|tr)\b[^>]*>/gi, '\n');
+
+  return template.content.textContent || '';
+}
+
+// Heading + body for one card. The heading is the page name, or the page's
+// first line of text when it has no name — in which case the body picks up
+// after that line so the card never prints the same sentence twice.
+function buildPagePreviewCopy(page, index) {
+  const text = getPagePlainText(page)
+    .replace(/\r/g, '')
+    .replace(/[ \t\u00A0]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  const lines = text.split('\n');
+  const firstLineIndex = lines.findIndex(line => line.trim() !== '');
+  const firstLine = firstLineIndex === -1 ? '' : lines[firstLineIndex].trim();
+  const name = getPageDisplayTitle(page);
+  const headingFromContent = !name && firstLine !== '';
+
+  const body = headingFromContent
+    ? lines.slice(firstLineIndex + 1).join('\n').trim()
+    : text;
+
+  return {
+    // Hard caps only guard against one pathological line; the visible trim is
+    // CSS ellipsis for the heading and line clamping for the body.
+    heading: (name || firstLine || `Page ${index + 1}`).slice(0, 96),
+    body: body.length > PAGE_PREVIEW_SNIPPET_LENGTH
+      ? `${body.slice(0, PAGE_PREVIEW_SNIPPET_LENGTH).trimEnd()}…`
+      : body,
+    hasText: text !== ''
+  };
+}
+
+function formatPageDate(value) {
+  const time = value ? Date.parse(value) : NaN;
+  if (!Number.isFinite(time)) {
+    return '—';
+  }
+
+  const date = new Date(time);
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' })
+  });
+}
+
+function formatPageEditedAt(value) {
+  const time = value ? Date.parse(value) : NaN;
+  if (!Number.isFinite(time)) {
+    return '—';
+  }
+
+  const minutes = Math.round((Date.now() - time) / 60_000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes} min ago`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  if (hours < 48) return 'Yesterday';
+
+  return formatPageDate(value);
+}
+
+function positionPagePreview(pageId, heightOverride = 0) {
+  if (!pagePreview) {
+    return;
+  }
+
+  const anchor = getPageTabButton(pageId);
+  if (!anchor) {
+    return;
+  }
+
+  const anchorRect = anchor.getBoundingClientRect();
+  const previewWidth = Math.min(pagePreview.offsetWidth || 264, window.innerWidth - 24);
+  // During a switch the card's own height is still mid-transition, so the
+  // caller passes the height it is heading for.
+  const previewHeight = Math.min(heightOverride || pagePreview.offsetHeight || 160, window.innerHeight - 24);
+  const viewportPadding = 12;
+  const gutter = 10;
+
+  // Left of the rail by default, flipping to the right only if there's no room.
+  let left = anchorRect.left - previewWidth - gutter;
+  if (left < viewportPadding) {
+    left = anchorRect.right + gutter;
+  }
+  if (left + previewWidth > window.innerWidth - viewportPadding) {
+    left = window.innerWidth - previewWidth - viewportPadding;
+  }
+
+  const top = Math.min(
+    Math.max(viewportPadding, anchorRect.top + (anchorRect.height - previewHeight) / 2),
+    window.innerHeight - previewHeight - viewportPadding
+  );
+
+  pagePreview.style.left = `${Math.max(viewportPadding, left)}px`;
+  pagePreview.style.top = `${Math.max(viewportPadding, top)}px`;
+}
+
+function renderPagePreview(page) {
+  const copy = buildPagePreviewCopy(page, pages.indexOf(page));
+
+  if (pagePreviewEmoji) pagePreviewEmoji.textContent = getPageDisplayEmoji(page);
+  if (pagePreviewTitle) pagePreviewTitle.textContent = copy.heading;
+  if (pagePreviewSnippet) {
+    // A one-line page says everything in the heading already — drop the body
+    // rather than repeating it or claiming the page is empty.
+    pagePreviewSnippet.hidden = copy.hasText && copy.body === '';
+    pagePreviewSnippet.textContent = copy.body || 'Empty page';
+    pagePreviewSnippet.classList.toggle('is-empty', !copy.hasText);
+  }
+  if (pagePreviewCreated) pagePreviewCreated.textContent = formatPageDate(page.createdAt);
+  if (pagePreviewEdited) pagePreviewEdited.textContent = formatPageEditedAt(page.editedAt);
+}
+
+function showPagePreview(pageId) {
+  if (!pagePreview) {
+    return;
+  }
+
+  const page = getPageById(pageId);
+  if (!page) {
+    return;
+  }
+
+  pagePreviewPageId = pageId;
+  pagePreview.setAttribute('aria-hidden', 'false');
+
+  // Opening: render first, place it, then let it resolve out of the blur.
+  // left/top only animate while the card carries .visible, so this first card
+  // arrives in place instead of sliding in from wherever it last sat.
+  if (!pagePreview.classList.contains('visible')) {
+    pagePreview.style.height = '';
+    renderPagePreview(page);
+    positionPagePreview(pageId);
+    pagePreview.classList.add('visible');
+    return;
+  }
+
+  crossDissolvePagePreview(page, pageId);
+}
+
+// Switching tabs hands one page over to the next: the copy you were reading
+// stays on screen in the ghost layer and dissolves into the incoming copy while
+// the card glides and resizes. At no point is the card empty.
+function crossDissolvePagePreview(page, pageId) {
+  const previousHeight = pagePreview.getBoundingClientRect().height;
+  snapshotPagePreviewGhost();
+  renderPagePreview(page);
+
+  // Measure the incoming copy at its natural size before pinning a height for
+  // the transition to run against.
+  pagePreview.style.height = '';
+  const nextHeight = pagePreview.getBoundingClientRect().height;
+
+  // Paint the outgoing state once, unanimated, then release it — both layers
+  // and the height then transition together from exactly where they were.
+  pagePreview.classList.add('is-swapping');
+  pagePreview.style.height = `${previousHeight}px`;
+  void pagePreview.offsetWidth;
+
+  pagePreview.classList.remove('is-swapping');
+  pagePreview.style.height = `${nextHeight}px`;
+  positionPagePreview(pageId, nextHeight);
+}
+
+// Copies the card's current contents into the ghost layer. Ids are stripped so
+// the clone can't shadow the live elements getElementById hands back.
+function snapshotPagePreviewGhost() {
+  if (!pagePreviewGhost || !pagePreviewContent) {
+    return;
+  }
+
+  const clone = pagePreviewContent.cloneNode(true);
+  clone.removeAttribute('id');
+  clone.querySelectorAll('[id]').forEach(element => element.removeAttribute('id'));
+  pagePreviewGhost.replaceChildren(...clone.childNodes);
+}
+
+function schedulePagePreview(pageId, { immediate = false } = {}) {
+  if (!pagePreview || !pageId) {
+    return;
+  }
+
+  // A picker, a drag, or a confirm popover always wins over the preview.
+  if (draggedPageId || emojiPicker?.classList.contains('visible') || uiState.deleteConfirmOpen) {
+    return;
+  }
+
+  // Crossing onto a new tab cancels the pending hide instead of restarting the
+  // whole fade-out/fade-in cycle.
+  clearTimeout(pagePreviewHideTimeout);
+  pagePreviewHideTimeout = null;
+  clearTimeout(pagePreviewShowTimeout);
+  pagePreviewShowTimeout = null;
+
+  if (pagePreviewPageId === pageId && pagePreview.classList.contains('visible')) {
+    return;
+  }
+
+  // Only the first card waits: with one already open, the swap is instant.
+  if (immediate || pagePreview.classList.contains('visible')) {
+    showPagePreview(pageId);
+    return;
+  }
+
+  pagePreviewShowTimeout = setTimeout(() => showPagePreview(pageId), PAGE_PREVIEW_DELAY_MS);
+}
+
+// Leaving a tab — the card lingers briefly so moving to a neighbour keeps it.
+function schedulePagePreviewHide() {
+  clearTimeout(pagePreviewShowTimeout);
+  pagePreviewShowTimeout = null;
+
+  if (!pagePreview || !pagePreview.classList.contains('visible')) {
+    hidePagePreview();
+    return;
+  }
+
+  clearTimeout(pagePreviewHideTimeout);
+  pagePreviewHideTimeout = setTimeout(hidePagePreview, PAGE_PREVIEW_HIDE_GRACE_MS);
+}
+
+function hidePagePreview() {
+  clearTimeout(pagePreviewShowTimeout);
+  clearTimeout(pagePreviewHideTimeout);
+  pagePreviewShowTimeout = null;
+  pagePreviewHideTimeout = null;
+  pagePreviewPageId = null;
+
+  if (pagePreview) {
+    pagePreview.classList.remove('visible', 'is-swapping');
+    pagePreview.setAttribute('aria-hidden', 'true');
+  }
+}
+
 // Drag and drop state
 let draggedPageId = null;
 
@@ -2207,6 +3173,7 @@ function handleDragStart(e) {
   }
 
   draggedPageId = tab.dataset.pageId;
+  hidePagePreview();
   clearPageTabDragState();
   setPageReorderingState(true);
   tab.classList.add('dragging');
@@ -2233,6 +3200,7 @@ function handleDragOver(e) {
 }
 
 function handleDrop(e) {
+  if (!workspaceWritable) return;
   e.preventDefault();
   const tab = e.target.closest('.page-tab');
   if (!tab || !draggedPageId) return;
@@ -2252,18 +3220,104 @@ function handleDrop(e) {
   draggedPageId = null;
   clearPageTabDragState();
   setPageReorderingState(false);
-  chrome.storage.local.set({ pages, currentPageId });
+  safeLocalSet({ pages, currentPageId }, 'saving pages');
   renderPageTabs();
 }
 
-function handleDragEnd(e) {
+function handleDragEnd() {
   draggedPageId = null;
   clearPageTabDragState();
   setPageReorderingState(false);
 }
 
+// Keyboard support for the page rail: arrows move focus between tabs (roving
+// tabindex), Home/End jump, Alt+arrow reorders the focused tab's page, and
+// Enter/Space activate natively since the tabs are buttons.
+function getPageTabButtons() {
+  return pageTabsList ? Array.from(pageTabsList.querySelectorAll('.page-tab')) : [];
+}
+
+function focusPageTabAt(index) {
+  const tabs = getPageTabButtons();
+  if (tabs.length === 0) {
+    return;
+  }
+
+  const clamped = ((index % tabs.length) + tabs.length) % tabs.length;
+  tabs.forEach((tab, i) => tab.setAttribute('tabindex', i === clamped ? '0' : '-1'));
+  tabs[clamped].focus();
+}
+
+function movePageByOffset(pageId, delta) {
+  if (!workspaceWritable) return;
+  const fromIndex = pages.findIndex(p => p.id === pageId);
+  if (fromIndex === -1) {
+    return;
+  }
+
+  const toIndex = Math.min(pages.length - 1, Math.max(0, fromIndex + delta));
+  if (toIndex === fromIndex) {
+    return;
+  }
+
+  const [page] = pages.splice(fromIndex, 1);
+  pages.splice(toIndex, 0, page);
+  safeLocalSet({ pages, currentPageId }, 'saving pages');
+  renderPageTabs();
+
+  // Re-rendering resets the roving tabindex to the active page; keep focus on
+  // the moved tab so repeated Alt+arrow presses keep working.
+  const movedTab = getPageTabButton(pageId);
+  if (movedTab) {
+    getPageTabButtons().forEach(tab => tab.setAttribute('tabindex', tab === movedTab ? '0' : '-1'));
+    movedTab.focus();
+  }
+}
+
+if (pageTabsList) {
+  pageTabsList.addEventListener('keydown', (e) => {
+    const tab = e.target instanceof HTMLElement ? e.target.closest('.page-tab') : null;
+    if (!tab) {
+      return;
+    }
+
+    const tabs = getPageTabButtons();
+    const index = tabs.indexOf(tab);
+    if (index === -1) {
+      return;
+    }
+
+    const isNext = e.key === 'ArrowDown' || e.key === 'ArrowRight';
+    const isPrev = e.key === 'ArrowUp' || e.key === 'ArrowLeft';
+
+    if ((isNext || isPrev) && e.altKey) {
+      e.preventDefault();
+      movePageByOffset(tab.dataset.pageId, isNext ? 1 : -1);
+      return;
+    }
+
+    if (isNext || isPrev) {
+      e.preventDefault();
+      focusPageTabAt(index + (isNext ? 1 : -1));
+      return;
+    }
+
+    if (e.key === 'Home') {
+      e.preventDefault();
+      focusPageTabAt(0);
+      return;
+    }
+
+    if (e.key === 'End') {
+      e.preventDefault();
+      focusPageTabAt(tabs.length - 1);
+    }
+  });
+}
+
 // Add new page
 function addNewPage() {
+  if (!workspaceWritable) return;
   // Get a random unused emoji, or any if all used
   const usedEmojis = pages.map(p => p.emoji);
   const unusedEmojis = PAGE_EMOJIS.filter(e => !usedEmojis.includes(e));
@@ -2271,51 +3325,72 @@ function addNewPage() {
     ? unusedEmojis[Math.floor(Math.random() * unusedEmojis.length)]
     : PAGE_EMOJIS[Math.floor(Math.random() * PAGE_EMOJIS.length)];
   
+  flushPendingTextSnapshot();
   syncCurrentPageScrollPosition();
   saveContent();
-  
+
+  const createdAt = new Date().toISOString();
   const newPage = {
     id: generateId(),
     emoji: emoji,
+    title: '',
     content: '',
     drawings: [],
-    scrollTop: 0
+    scrollTop: 0,
+    createdAt,
+    editedAt: createdAt
   };
-  
+
   pages.push(newPage);
   currentPageId = newPage.id;
   editor.innerHTML = '';
+  ensureTextHistory(newPage.id, '');
   redrawDrawings();
   
-  chrome.storage.local.set({ pages, currentPageId });
+  safeLocalSet({ pages, currentPageId }, 'saving pages');
   renderPageTabs();
   scheduleDrawingLayerSync({ forceRedraw: true });
   restorePageScrollPosition(0);
-  editor.focus();
+  try {
+    editor.focus({ preventScroll: true });
+  } catch (error) {
+    editor.focus();
+  }
 }
 
 // Delete page
-function deletePage(pageId) {
-  if (pages.length <= 1) return;
-  
+async function deletePage(pageId) {
+  if (!workspaceWritable || pages.length <= 1) return;
+
   const pageIndex = pages.findIndex(p => p.id === pageId);
   if (pageIndex === -1) return;
-  
+
+  await captureDestructiveSnapshot('Before deleting a page');
   pages.splice(pageIndex, 1);
-  
+  textHistories.delete(pageId);
+  if (pageId === currentPageId) {
+    // A pending snapshot would describe the deleted page's content.
+    cancelPendingTextSnapshot();
+  }
+
   if (currentPageId === pageId) {
     currentPageId = pages[Math.max(0, pageIndex - 1)].id;
     loadPageContent(currentPageId);
   }
   
-  chrome.storage.local.set({ pages, currentPageId });
+  safeLocalSet({ pages, currentPageId }, 'saving pages');
   renderPageTabs();
 }
 
 // Open emoji picker
 function openEmojiPicker(pageId) {
   editingPageId = pageId;
+  hidePagePreview();
   closeDeletePageConfirm();
+
+  if (pageTitleInput) {
+    pageTitleInput.value = getPageById(pageId)?.title || '';
+  }
 
   if (emojiPickerClear) {
     emojiPickerClear.disabled = !getPageById(pageId)?.emoji;
@@ -2380,7 +3455,7 @@ function updateEmojiPickerState({ focusSelection = false } = {}) {
 }
 
 function clearPageEmoji() {
-  if (!editingPageId) return;
+  if (!workspaceWritable || !editingPageId) return;
 
   const page = getPageById(editingPageId);
   if (!page || !page.emoji) {
@@ -2388,19 +3463,21 @@ function clearPageEmoji() {
   }
 
   page.emoji = '';
-  chrome.storage.local.set({ pages, currentPageId });
+  touchPageEdited(page);
+  safeLocalSet({ pages, currentPageId }, 'saving pages');
   renderPageTabs();
   closeEmojiPicker({ restoreFocus: true });
 }
 
 // Select emoji for page
 function selectEmoji(emoji) {
-  if (!editingPageId) return;
+  if (!workspaceWritable || !editingPageId) return;
   
   const page = getPageById(editingPageId);
   if (page) {
     page.emoji = emoji;
-    chrome.storage.local.set({ pages, currentPageId });
+    touchPageEdited(page);
+    safeLocalSet({ pages, currentPageId }, 'saving pages');
     renderPageTabs();
   }
   
@@ -2418,6 +3495,7 @@ function initEmojiPicker() {
     btn.dataset.emoji = emoji;
     btn.setAttribute('aria-label', `Set page emoji to ${emoji}`);
     btn.setAttribute('aria-pressed', 'false');
+    btn.disabled = !workspaceWritable;
     btn.textContent = emoji;
     btn.addEventListener('click', () => selectEmoji(emoji));
     emojiGrid.appendChild(btn);
@@ -2456,6 +3534,39 @@ function initEmojiPicker() {
     });
   }
 
+  if (emojiPickerClose) {
+    emojiPickerClose.addEventListener('click', event => {
+      event.stopPropagation();
+      closeEmojiPicker({ restoreFocus: true });
+    });
+  }
+
+  // Page name input — applies live to the tab tooltip, persists debounced.
+  if (pageTitleInput) {
+    const persistPageTitle = debounce(() => {
+      safeLocalSet({ pages, currentPageId }, 'saving pages');
+    }, 400);
+
+    pageTitleInput.addEventListener('input', () => {
+      const page = getPageById(editingPageId);
+      if (!page) {
+        return;
+      }
+
+      page.title = pageTitleInput.value.slice(0, MAX_PAGE_TITLE_LENGTH);
+      touchPageEdited(page);
+      updatePageTabLabels(page.id);
+      persistPageTitle();
+    });
+
+    pageTitleInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        closeEmojiPicker({ restoreFocus: true });
+      }
+    });
+  }
+
   if (cancelDeletePageBtn) {
     cancelDeletePageBtn.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -2464,11 +3575,11 @@ function initEmojiPicker() {
   }
 
   if (confirmDeletePageBtn) {
-    confirmDeletePageBtn.addEventListener('click', (event) => {
+    confirmDeletePageBtn.addEventListener('click', async (event) => {
       event.stopPropagation();
 
       if (editingPageId && pages.length > 1) {
-        deletePage(editingPageId);
+        await deletePage(editingPageId);
         closeEmojiPicker();
       }
     });
@@ -2488,7 +3599,7 @@ function getCurrentSettings() {
     drawColorMode: drawingState.currentBrushColorMode,
     textColor: controls.textColor.value,
     backgroundColor: controls.backgroundColor.value,
-    selectionColor: syncSelectionColorControl(controls.textColor.value),
+    selectionColor: normalizeHex(controls.selectionColor.value || controls.textColor.value),
     currentTheme: currentTheme
   };
 }
@@ -2503,6 +3614,8 @@ function initThemeGrid() {
     swatch.dataset.theme = key;
     swatch.title = theme.name;
     swatch.type = 'button';
+    swatch.setAttribute('aria-label', `Use ${theme.name} theme`);
+    swatch.disabled = !workspaceWritable;
     
     const inner = document.createElement('div');
     inner.className = 'theme-swatch-inner';
@@ -2515,14 +3628,15 @@ function initThemeGrid() {
     regularText.className = 'theme-swatch-text theme-swatch-text-regular';
     regularText.textContent = 'Aa';
 
+    const themeHighlight = theme.selectionColor || theme.textColor;
     const highlightedText = document.createElement('span');
     highlightedText.className = 'theme-swatch-highlight';
-    highlightedText.style.backgroundColor = theme.textColor;
+    highlightedText.style.backgroundColor = themeHighlight;
 
     const highlightedTextLabel = document.createElement('span');
     highlightedTextLabel.className = 'theme-swatch-text theme-swatch-text-highlighted';
     regularText.style.color = theme.textColor;
-    highlightedTextLabel.style.color = '#FFFFFF';
+    highlightedTextLabel.style.color = theme.backgroundColor;
     highlightedTextLabel.textContent = 'Aa';
 
     highlightedText.appendChild(highlightedTextLabel);
@@ -2544,25 +3658,28 @@ function initThemeGrid() {
 
 // Select a theme
 function selectTheme(themeKey) {
+  if (!workspaceWritable) return;
   if (!THEMES[themeKey]) return;
   
   currentTheme = themeKey;
   const theme = THEMES[themeKey];
   
   // Update color controls
+  const themeSelection = theme.selectionColor || theme.textColor;
   controls.textColor.value = theme.textColor;
   controls.backgroundColor.value = theme.backgroundColor;
-  controls.selectionColor.value = theme.textColor;
-  
+  controls.selectionColor.value = themeSelection;
+
   // Update hex inputs
   if (hexInputs.textColor) hexInputs.textColor.value = theme.textColor;
   if (hexInputs.backgroundColor) hexInputs.backgroundColor.value = theme.backgroundColor;
-  if (hexInputs.selectionColor) hexInputs.selectionColor.value = theme.textColor;
+  if (hexInputs.selectionColor) hexInputs.selectionColor.value = themeSelection;
 
   if (drawingState.currentBrushColorMode !== 'custom') {
     setBrushColor(theme.textColor, { persist: false, mode: 'theme' });
   }
-  
+
+  markThemeExplicit();
   // Apply and save
   handleSettingChange();
   updateThemeGridSelection();
@@ -2580,23 +3697,35 @@ function updateThemeGridSelection() {
   });
 }
 
+// Sync a hex text field, but never one the user is actively typing in —
+// rewriting a focused input jumps the caret to the end mid-keystroke.
+function syncHexInputValue(colorKey, value) {
+  const input = hexInputs[colorKey];
+  if (!input || document.activeElement === input) {
+    return;
+  }
+  input.value = value;
+}
+
 // Handle manual color changes (marks theme as custom)
 function handleColorChange() {
+  if (!workspaceWritable) return;
   // Check if current colors match any theme
   const textColor = controls.textColor.value.toUpperCase();
   const bgColor = controls.backgroundColor.value.toUpperCase();
-  const selColor = syncSelectionColorControl(textColor).toUpperCase();
-  
+  const selColor = normalizeHex(controls.selectionColor.value || controls.textColor.value).toUpperCase();
+
   // Sync hex inputs
-  if (hexInputs.textColor) hexInputs.textColor.value = controls.textColor.value;
-  if (hexInputs.backgroundColor) hexInputs.backgroundColor.value = controls.backgroundColor.value;
-  if (hexInputs.selectionColor) hexInputs.selectionColor.value = selColor;
-  
+  syncHexInputValue('textColor', textColor);
+  syncHexInputValue('backgroundColor', bgColor);
+  syncHexInputValue('selectionColor', selColor);
+
   let matchedTheme = null;
   for (const [key, theme] of Object.entries(THEMES)) {
+    const themeSel = (theme.selectionColor || theme.textColor).toUpperCase();
     if (theme.textColor.toUpperCase() === textColor &&
         theme.backgroundColor.toUpperCase() === bgColor &&
-        theme.textColor.toUpperCase() === selColor) {
+        themeSel === selColor) {
       matchedTheme = key;
       break;
     }
@@ -2606,47 +3735,60 @@ function handleColorChange() {
   if (drawingState.currentBrushColorMode !== 'custom') {
     setBrushColor(controls.textColor.value, { persist: false, mode: 'theme' });
   }
+  markThemeExplicit();
   updateThemeGridSelection();
   handleSettingChange();
 }
 
-// Handle hex input changes
-function handleHexInputChange(colorKey) {
+// Handle hex input changes.
+// While typing (`commit: false`) we only apply complete 6-digit values and
+// never rewrite the field — expanding "#ABC" to "#AABBCC" or uppercasing
+// mid-keystroke moves the caret and fights the user. Normalization (shorthand
+// expansion, uppercase, reverting invalid input) happens on commit
+// (change/blur).
+function handleHexInputChange(colorKey, { commit = false } = {}) {
+  if (!workspaceWritable) return;
   const hexInput = hexInputs[colorKey];
   const colorInput = controls[colorKey];
   if (!hexInput || !colorInput) return;
 
-  if (colorKey === 'selectionColor') {
-    syncSelectionColorControl();
-    return;
-  }
-  
   let value = hexInput.value.trim();
-  
+
   // Add # if missing
   if (value && !value.startsWith('#')) {
     value = '#' + value;
   }
-  
-  // Validate hex color
-  const isValidHex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value);
-  
-  if (isValidHex) {
-    // Expand 3-char hex to 6-char
-    if (value.length === 4) {
+
+  const isFullHex = /^#[A-Fa-f0-9]{6}$/.test(value);
+  const isShortHex = /^#[A-Fa-f0-9]{3}$/.test(value);
+
+  if (!commit) {
+    if (isFullHex) {
+      colorInput.value = value;
+      handleColorChange();
+    }
+    return;
+  }
+
+  if (isFullHex || isShortHex) {
+    if (isShortHex) {
       value = '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3];
     }
     hexInput.value = value.toUpperCase();
     colorInput.value = value;
     handleColorChange();
+  } else {
+    // Invalid on commit — revert to the currently applied color.
+    hexInput.value = colorInput.value.toUpperCase();
   }
 }
 
 // Handle setting changes
 function handleSettingChange() {
+  if (!workspaceWritable) return;
   const settings = getCurrentSettings();
   applySettings(settings);
-  saveSettings(settings);
+  scheduleSettingsSave();
   updateBrushSizeButtons();
   
   // Update value displays
@@ -2660,8 +3802,9 @@ function handleSettingChange() {
 
 // Reset settings to defaults
 function resetSettings() {
+  if (!workspaceWritable) return;
   currentTheme = 'lavender';
-  const resetSettingsValues = { ...DEFAULT_SETTINGS, selectionColor: DEFAULT_SETTINGS.textColor };
+  const resetSettingsValues = { ...DEFAULT_SETTINGS };
   applySettings(resetSettingsValues);
   updateControlValues(resetSettingsValues);
   saveSettings(resetSettingsValues);
@@ -2669,11 +3812,339 @@ function resetSettings() {
   scheduleDrawingLayerSync({ forceRedraw: true });
 }
 
+function downloadWorkspaceBackup() {
+  try {
+    const content = serializeWorkspaceBackup(getWorkspaceForPersistence({ captureEditor: true }), { appVersion: APP_VERSION });
+    const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = makeBackupFilename();
+    // The app-wide outside-click handler should not interpret this transient
+    // download link as a click outside the Settings panel.
+    link.addEventListener('click', event => event.stopPropagation(), { once: true });
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    statusAnnouncer.show('Backup downloaded. Keep it somewhere you control.', { kind: 'success' });
+  } catch (error) {
+    handleStorageError(error, 'exporting backup');
+  }
+}
+
+// --- Publishing a page -----------------------------------------------------
+// A published note is carried entirely inside the URL fragment: nothing is
+// uploaded, and the fragment is never sent to the server hosting the app.
+let publishPageId = null;
+let publishRequestId = 0;
+
+function getPublishBaseUrl() {
+  // An extension origin is private to this browser profile, so links made
+  // there have to point at the public deployment to be openable by anyone.
+  return isExtensionContext() ? PUBLIC_APP_BASE_URL : window.location.href;
+}
+
+function describePublishTier(tier, canDropDrawings) {
+  if (tier === 'ok') return 'Short enough for any chat app or email.';
+  if (tier === 'long') return 'A long link — some chat apps shorten what they show, but pasting it whole still works.';
+  return canDropDrawings
+    ? 'A very long link. Some apps cut long links: turn off drawings, or send it somewhere that keeps the whole address.'
+    : 'A very long link. Some apps cut long links, so send it somewhere that keeps the whole address.';
+}
+
+async function regeneratePublishLink() {
+  const page = getPageById(publishPageId);
+  if (!page || !publishLinkInput) return;
+
+  const requestId = ++publishRequestId;
+  const includeDrawings = Boolean(publishIncludeDrawings?.checked);
+  // The open page's freshest text lives in the DOM until the save debounce
+  // fires, so read it straight from the editor rather than the page record.
+  const content = page.id === currentPageId ? sanitizeStoredContent(editor.innerHTML) : page.content;
+
+  publishLinkInput.value = '';
+  if (publishSizeHint) {
+    publishSizeHint.textContent = 'Building the link…';
+    publishSizeHint.dataset.tier = 'ok';
+  }
+
+  try {
+    const note = createPublishedNote({ ...page, content }, getCurrentSettings(), {
+      appVersion: APP_VERSION,
+      includeDrawings,
+      boardWidth: getBoardSize().width
+    });
+    const token = await encodePublishedNote(note);
+    const url = buildPublishedNoteUrl(getPublishBaseUrl(), token);
+
+    // A slower earlier build must not overwrite a newer one.
+    if (requestId !== publishRequestId) return;
+
+    publishLinkInput.value = url;
+    const { kilobytes, tier } = describePublishedLink(url);
+    if (publishSizeHint) {
+      publishSizeHint.dataset.tier = tier;
+      publishSizeHint.textContent = `Link is about ${kilobytes} KB. ${describePublishTier(tier, includeDrawings)}`;
+    }
+  } catch (error) {
+    if (requestId !== publishRequestId) return;
+    if (publishSizeHint) {
+      publishSizeHint.dataset.tier = 'very-long';
+      publishSizeHint.textContent = error?.message || 'This page could not be turned into a link.';
+    }
+  }
+}
+
+function openPublishDialog(pageId = editingPageId || currentPageId) {
+  const page = getPageById(pageId);
+  if (!page || !publishDialog) return;
+
+  publishPageId = page.id;
+  const hasDrawings = Array.isArray(page.drawings) && page.drawings.length > 0;
+  if (publishDrawingsOption) publishDrawingsOption.hidden = !hasDrawings;
+  if (publishIncludeDrawings) publishIncludeDrawings.checked = hasDrawings;
+
+  // The page popover is the dialog's launcher; leaving it open behind a modal
+  // would just be two overlapping surfaces for the same page.
+  closeEmojiPicker();
+  publishDialog.hidden = false;
+  void regeneratePublishLink();
+  requestAnimationFrame(() => copyPublishLinkBtn?.focus());
+}
+
+function closePublishDialog({ restoreFocus = false } = {}) {
+  const pageIdToFocus = publishPageId;
+  if (publishDialog) publishDialog.hidden = true;
+  publishPageId = null;
+  publishRequestId += 1;
+  if (publishLinkInput) publishLinkInput.value = '';
+  if (restoreFocus) getPageTabButton(pageIdToFocus)?.focus();
+}
+
+async function copyPublishLink() {
+  const url = publishLinkInput?.value;
+  if (!url) return;
+
+  try {
+    await navigator.clipboard.writeText(url);
+    statusAnnouncer.show('Link copied. Anyone you send it to can read this page.', { kind: 'success' });
+  } catch (error) {
+    // Clipboard permission can be denied; selecting the text still lets the
+    // person copy it themselves.
+    publishLinkInput.focus();
+    publishLinkInput.select();
+    statusAnnouncer.show('Copying was blocked by the browser. The link is selected — press Ctrl/Cmd + C.', { kind: 'info', duration: 7_000 });
+  }
+}
+
+function closeImportDialog({ restoreFocus = false } = {}) {
+  pendingWorkspaceImport = null;
+  if (importConfirmDialog) importConfirmDialog.hidden = true;
+  if (restoreFocus) importWorkspaceBtn?.focus();
+}
+
+async function selectWorkspaceBackup(file) {
+  if (!workspaceWritable || !file) return;
+
+  try {
+    const parsed = parseWorkspaceBackup(await file.text(), {
+      defaults: DEFAULT_SETTINGS,
+      sanitizeHtml: sanitizeStoredContent
+    });
+    pendingWorkspaceImport = parsed.workspace;
+    if (importConfirmText) {
+      const exportedWhen = parsed.metadata.exportedAt
+        ? ` It was exported ${new Date(parsed.metadata.exportedAt).toLocaleString('en-US')}.`
+        : '';
+      importConfirmText.textContent = `This will replace the current ${describeBackup(getWorkspaceForPersistence())} with ${describeBackup(parsed.workspace)}. A local recovery snapshot is saved first.${exportedWhen}`;
+    }
+    if (importConfirmDialog) {
+      importConfirmDialog.hidden = false;
+      requestAnimationFrame(() => confirmImportBtn?.focus());
+    }
+  } catch (error) {
+    pendingWorkspaceImport = null;
+    statusAnnouncer.show(error?.message || 'The backup could not be imported.', { kind: 'error', duration: 8_000 });
+  }
+}
+
+async function confirmWorkspaceImport() {
+  if (!workspaceWritable || !pendingWorkspaceImport) return;
+
+  const importCandidate = pendingWorkspaceImport;
+  confirmImportBtn.disabled = true;
+
+  try {
+    // Capture the editor's final debounce-window content before the store makes
+    // its recovery snapshot. This is why the snapshot can restore a note even
+    // when import happens immediately after typing.
+    await workspaceStore.saveWorkspace(getWorkspaceForPersistence({ captureEditor: true }));
+    await workspaceStore.replaceWorkspaceWithSnapshot(importCandidate, 'Before backup import');
+
+    applyWorkspaceToEditor(importCandidate);
+    closeImportDialog({ restoreFocus: true });
+    workspaceChannel.post('workspace-imported');
+    statusAnnouncer.show('Backup imported. Your previous workspace is available as a local recovery snapshot.', { kind: 'success', duration: 7_000 });
+    void updateStorageSummary();
+    void updateRecoverySummary();
+  } catch (error) {
+    handleStorageError(error, 'importing backup');
+  } finally {
+    confirmImportBtn.disabled = false;
+  }
+}
+
+function closeRestoreDialog({ restoreFocus = false } = {}) {
+  pendingRecoverySnapshot = null;
+  if (restoreConfirmDialog) restoreConfirmDialog.hidden = true;
+  if (restoreFocus) restoreSnapshotBtn?.focus();
+}
+
+async function openLatestRecoverySnapshot() {
+  if (!workspaceWritable) return;
+  try {
+    const [latestSnapshot] = await workspaceStore.listSnapshots();
+    if (!latestSnapshot) {
+      statusAnnouncer.show('There is no recovery snapshot yet.', { kind: 'info' });
+      return;
+    }
+
+    pendingRecoverySnapshot = latestSnapshot;
+    if (restoreConfirmText) {
+      restoreConfirmText.textContent = `Restore the snapshot from ${new Date(latestSnapshot.createdAt).toLocaleString('en-US')}? Your current workspace will be saved as a new snapshot first.`;
+    }
+    if (restoreConfirmDialog) {
+      restoreConfirmDialog.hidden = false;
+      requestAnimationFrame(() => confirmRestoreBtn?.focus());
+    }
+  } catch (error) {
+    handleStorageError(error, 'opening recovery snapshots');
+  }
+}
+
+async function confirmRecoveryRestore() {
+  if (!workspaceWritable || !pendingRecoverySnapshot) return;
+  const snapshot = pendingRecoverySnapshot;
+  confirmRestoreBtn.disabled = true;
+
+  try {
+    const currentWorkspace = getWorkspaceForPersistence({ captureEditor: true });
+    await workspaceStore.saveWorkspace(currentWorkspace);
+    await workspaceStore.createSnapshot('Before restoring recovery snapshot', currentWorkspace);
+    const restoredWorkspace = await workspaceStore.restoreSnapshot(snapshot.id);
+    applyWorkspaceToEditor(restoredWorkspace);
+    closeRestoreDialog({ restoreFocus: true });
+    workspaceChannel.post('snapshot-restored', { snapshotId: snapshot.id });
+    statusAnnouncer.show('Recovery snapshot restored. The workspace you replaced was saved first.', { kind: 'success', duration: 7_000 });
+    void updateStorageSummary();
+    void updateRecoverySummary();
+  } catch (error) {
+    handleStorageError(error, 'restoring recovery snapshot');
+  } finally {
+    confirmRestoreBtn.disabled = false;
+  }
+}
+
+function setupPwaUpdatePrompt() {
+  registerPwaUpdates({
+    onUpdateReady({ apply }) {
+      if (!updateReadyNotice) return;
+      updateReadyNotice.hidden = false;
+      reloadForUpdateBtn?.addEventListener('click', async () => {
+        reloadForUpdateBtn.disabled = true;
+        flushPendingPersistence();
+        await workspaceStore.flush();
+        apply();
+      }, { once: true });
+    },
+    onControllerChange() {
+      window.location.reload();
+    },
+    onError(error) {
+      console.warn('PWA update check failed:', error);
+    }
+  });
+}
+
 // Event Listeners
+
+if (exportWorkspaceBtn) {
+  exportWorkspaceBtn.addEventListener('click', downloadWorkspaceBackup);
+}
+
+if (importWorkspaceBtn && importWorkspaceInput) {
+  importWorkspaceBtn.addEventListener('click', () => importWorkspaceInput.click());
+  importWorkspaceInput.addEventListener('change', async () => {
+    const [file] = importWorkspaceInput.files || [];
+    importWorkspaceInput.value = '';
+    await selectWorkspaceBackup(file);
+  });
+}
+
+if (cancelImportBtn) {
+  cancelImportBtn.addEventListener('click', () => closeImportDialog({ restoreFocus: true }));
+}
+
+if (confirmImportBtn) {
+  confirmImportBtn.addEventListener('click', confirmWorkspaceImport);
+}
+
+if (restoreSnapshotBtn) {
+  restoreSnapshotBtn.addEventListener('click', openLatestRecoverySnapshot);
+}
+
+if (cancelRestoreBtn) {
+  cancelRestoreBtn.addEventListener('click', () => closeRestoreDialog({ restoreFocus: true }));
+}
+
+if (confirmRestoreBtn) {
+  confirmRestoreBtn.addEventListener('click', confirmRecoveryRestore);
+}
+
+if (importConfirmDialog) {
+  importConfirmDialog.addEventListener('click', event => {
+    if (event.target === importConfirmDialog) closeImportDialog({ restoreFocus: true });
+  });
+}
+
+if (restoreConfirmDialog) {
+  restoreConfirmDialog.addEventListener('click', event => {
+    if (event.target === restoreConfirmDialog) closeRestoreDialog({ restoreFocus: true });
+  });
+}
+
+if (emojiPickerPublish) {
+  emojiPickerPublish.addEventListener('click', event => {
+    // The picker's own outside-click handler must not see this as a click
+    // somewhere else on the page.
+    event.stopPropagation();
+    openPublishDialog();
+  });
+}
+
+if (publishIncludeDrawings) {
+  publishIncludeDrawings.addEventListener('change', () => void regeneratePublishLink());
+}
+
+if (copyPublishLinkBtn) {
+  copyPublishLinkBtn.addEventListener('click', () => void copyPublishLink());
+}
+
+if (closePublishBtn) {
+  closePublishBtn.addEventListener('click', () => closePublishDialog({ restoreFocus: true }));
+}
+
+if (publishDialog) {
+  publishDialog.addEventListener('click', event => {
+    if (event.target === publishDialog) closePublishDialog({ restoreFocus: true });
+  });
+}
 
 // Editor input - auto-save
 editor.addEventListener('input', debouncedSave);
 editor.addEventListener('input', () => scheduleDrawingLayerSync());
+editor.addEventListener('input', scheduleTextSnapshot);
 
 // Prevent unwanted formatting on paste - keep plain text
 editor.addEventListener('paste', (e) => {
@@ -2687,6 +4158,11 @@ editor.addEventListener('paste', (e) => {
     range.collapse(false);
     selection.removeAllRanges();
     selection.addRange(range);
+    // Inserting via script doesn't fire 'input', so save/snapshot explicitly.
+    debouncedSave();
+    debouncedWordCount();
+    scheduleTextSnapshot();
+    scheduleDrawingLayerSync();
   }
 });
 
@@ -2705,8 +4181,9 @@ editor.addEventListener('keydown', (e) => {
       // Tab: Indent
       handleIndent(selection);
     }
-    
+
     debouncedSave();
+    scheduleTextSnapshot();
   }
 });
 
@@ -2752,7 +4229,7 @@ function handleUnindent(selection) {
       const offset = range.startOffset;
       
       // Find line start
-      let lineStart = text.lastIndexOf('\n', offset - 1) + 1;
+      const lineStart = text.lastIndexOf('\n', offset - 1) + 1;
       
       // Check for leading tab or spaces
       if (text[lineStart] === '\t') {
@@ -2801,7 +4278,7 @@ function handleUnindent(selection) {
 });
 
 // Color controls - use special handler
-['textColor', 'backgroundColor'].forEach(key => {
+['textColor', 'backgroundColor', 'selectionColor'].forEach(key => {
   controls[key].addEventListener('input', handleColorChange);
   controls[key].addEventListener('change', handleColorChange);
 });
@@ -2810,8 +4287,8 @@ function handleUnindent(selection) {
 ['textColor', 'backgroundColor', 'selectionColor'].forEach(key => {
   if (hexInputs[key]) {
     hexInputs[key].addEventListener('input', () => handleHexInputChange(key));
-    hexInputs[key].addEventListener('change', () => handleHexInputChange(key));
-    hexInputs[key].addEventListener('blur', () => handleHexInputChange(key));
+    hexInputs[key].addEventListener('change', () => handleHexInputChange(key, { commit: true }));
+    hexInputs[key].addEventListener('blur', () => handleHexInputChange(key, { commit: true }));
   }
 });
 
@@ -2843,6 +4320,12 @@ if (pageTabsList) {
 }
 
 // Drawing mode controls
+if (drawingToolbarVisibilityToggleBtn) {
+  drawingToolbarVisibilityToggleBtn.addEventListener('click', () => {
+    setDrawingToolbarCollapsed(!uiState.drawingToolbarCollapsed);
+  });
+}
+
 if (drawToggleBtn) {
   drawToggleBtn.addEventListener('click', (event) => {
     toggleDrawingTool('brush');
@@ -2865,13 +4348,6 @@ if (drawSizeToggleBtn) {
   });
 }
 
-drawSizeButtons.forEach(button => {
-  button.addEventListener('click', (event) => {
-    setBrushSize(button.dataset.drawSize);
-    event.currentTarget.blur();
-  });
-});
-
 if (drawSizeSlider) {
   drawSizeSlider.addEventListener('input', () => {
     setBrushSize(drawSizeSlider.value);
@@ -2892,8 +4368,31 @@ if (undoDrawingBtn) {
 
 if (clearDrawingsBtn) {
   clearDrawingsBtn.addEventListener('click', (event) => {
-    clearCurrentPageDrawings();
-    event.currentTarget.blur();
+    event.stopPropagation();
+    const page = getCurrentPage();
+    if (!page || !Array.isArray(page.drawings) || page.drawings.length === 0) {
+      // Nothing to clear — quietly do nothing.
+      return;
+    }
+    if (uiState.clearDrawingsConfirmOpen) {
+      closeClearDrawingsConfirm({ restoreFocus: false });
+    } else {
+      openClearDrawingsConfirm();
+    }
+  });
+}
+
+if (cancelClearDrawingsBtn) {
+  cancelClearDrawingsBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    closeClearDrawingsConfirm({ restoreFocus: true });
+  });
+}
+
+if (confirmClearDrawingsBtn) {
+  confirmClearDrawingsBtn.addEventListener('click', async (event) => {
+    event.stopPropagation();
+    await clearCurrentPageDrawings();
   });
 }
 
@@ -2906,6 +4405,7 @@ if (drawingLayer) {
 
 window.addEventListener('resize', () => {
   scheduleDrawingLayerSync({ forceRedraw: true });
+  hidePagePreview();
   if (emojiPicker?.classList.contains('visible')) {
     positionEmojiPicker(editingPageId);
   }
@@ -2914,6 +4414,9 @@ window.addEventListener('resize', () => {
   }
   if (uiState.deleteConfirmOpen) {
     positionDeletePageConfirm();
+  }
+  if (uiState.clearDrawingsConfirmOpen) {
+    positionClearDrawingsConfirm();
   }
 });
 
@@ -2937,12 +4440,13 @@ window.addEventListener('wheel', (event) => {
 }, { passive: false });
 
 window.addEventListener('scroll', () => {
-  handleScrollActivity({ persistPageScroll: true });
+  handleScrollActivity({ persistPageScroll: !isRestoringPageScroll });
 }, { passive: true });
 
 if (pageTabsList) {
   pageTabsList.addEventListener('scroll', () => {
     updatePageTabsScrollState();
+    hidePagePreview();
     handleScrollActivity({ repositionEmojiPicker: true });
   }, { passive: true });
 
@@ -2955,13 +4459,26 @@ if (emojiPicker) {
   }, { passive: true });
 }
 
-window.addEventListener('pagehide', () => {
-  persistCurrentPageScrollPosition({ immediate: true });
-});
+// Flush everything that's still sitting in a debounce window. Without copying
+// editor.innerHTML into the page first, closing the tab within a second of the
+// last keystroke would lose those edits (debouncedSave waits 1000ms).
+function flushPendingPersistence() {
+  syncCurrentPageScrollPosition();
+
+  const page = getCurrentPage();
+  if (page) {
+    page.content = editor.innerHTML;
+  }
+
+  persistPagesStateImmediately();
+  flushPendingSettingsSave();
+}
+
+window.addEventListener('pagehide', flushPendingPersistence);
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
-    persistCurrentPageScrollPosition({ immediate: true });
+    flushPendingPersistence();
   }
 });
 
@@ -2976,6 +4493,10 @@ document.addEventListener('click', (event) => {
 
   if (uiState.deleteConfirmOpen && !event.target.closest('#deletePageConfirm') && !event.target.closest('#emojiPickerDelete')) {
     closeDeletePageConfirm();
+  }
+
+  if (uiState.clearDrawingsConfirmOpen && !event.target.closest('#clearDrawingsConfirm') && !event.target.closest('#clearDrawingsBtn')) {
+    closeClearDrawingsConfirm();
   }
 });
 
@@ -3008,8 +4529,17 @@ function updateWordCount() {
   if (!wordCountEl) return;
   const text = editor.innerText || '';
   const chars = text.length;
-  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  wordCountEl.textContent = `${words} words · ${chars} chars`;
+  const trimmed = text.trim();
+  const words = trimmed ? trimmed.split(/\s+/).length : 0;
+
+  // Don't show "0 words · 0 chars" on an empty page — keep the canvas quiet.
+  if (chars === 0) {
+    wordCountEl.textContent = '';
+    wordCountEl.classList.add('is-empty');
+  } else {
+    wordCountEl.textContent = `${words} words · ${chars} chars`;
+    wordCountEl.classList.remove('is-empty');
+  }
 }
 
 // Debounced word count update
@@ -3018,12 +4548,39 @@ editor.addEventListener('input', debouncedWordCount);
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
-  const isModifierPressed = e.ctrlKey || e.metaKey;
+  // Never hijack keys while an IME is composing.
+  if (e.isComposing || e.keyCode === 229) {
+    return;
+  }
 
   if (e.key === 'Escape') {
+    if (!publishDialog?.hidden) {
+      e.preventDefault();
+      closePublishDialog({ restoreFocus: true });
+      return;
+    }
+
+    if (!importConfirmDialog?.hidden) {
+      e.preventDefault();
+      closeImportDialog({ restoreFocus: true });
+      return;
+    }
+
+    if (!restoreConfirmDialog?.hidden) {
+      e.preventDefault();
+      closeRestoreDialog({ restoreFocus: true });
+      return;
+    }
+
     if (uiState.deleteConfirmOpen) {
       e.preventDefault();
       closeDeletePageConfirm({ restoreFocus: true });
+      return;
+    }
+
+    if (uiState.clearDrawingsConfirmOpen) {
+      e.preventDefault();
+      closeClearDrawingsConfirm({ restoreFocus: true });
       return;
     }
 
@@ -3059,15 +4616,29 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
-  if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'b' && shouldHandleBrushToggleShortcut(e)) {
+  // Match on e.code as well as e.key — on macOS, Option+Shift+letter produces
+  // a different character in e.key, which would make these shortcuts dead.
+  const matchesAltShiftKey = (letter, code) =>
+    e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey &&
+    (e.key.toLowerCase() === letter || e.code === code);
+
+  if (matchesAltShiftKey('b', 'KeyB') && shouldHandleBrushToggleShortcut(e)) {
     e.preventDefault();
     toggleDrawingTool('brush');
     return;
   }
 
-  if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'e' && shouldHandleBrushToggleShortcut(e)) {
+  if (matchesAltShiftKey('e', 'KeyE') && shouldHandleBrushToggleShortcut(e)) {
     e.preventDefault();
     toggleDrawingTool('eraser');
+    return;
+  }
+
+  // Alt+Shift+N: new page. (Ctrl/Cmd+N is reserved by the browser and never
+  // reaches the page, so it can't be used as a shortcut.)
+  if (matchesAltShiftKey('n', 'KeyN') && shouldHandleBrushToggleShortcut(e)) {
+    e.preventDefault();
+    addNewPage();
     return;
   }
 
@@ -3078,9 +4649,21 @@ document.addEventListener('keydown', (e) => {
       return;
     }
 
+    if (isEditorHistoryTarget(e)) {
+      e.preventDefault();
+      undoTextEdit();
+      return;
+    }
+
     if (isTextEditingShortcutTarget(e)) {
       return;
     }
+  }
+
+  if (isRedoShortcut(e) && !drawingState.enabled && isEditorHistoryTarget(e)) {
+    e.preventDefault();
+    redoTextEdit();
+    return;
   }
 
   if (drawingState.enabled && shouldHandleDrawingShortcut(e)) {
@@ -3091,20 +4674,60 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
-  if (!shouldHandleGlobalShortcut(e)) {
-    return;
-  }
-
-  // Ctrl+N: New page
-  if (isModifierPressed && e.key.toLowerCase() === 'n') {
-    e.preventDefault();
-    addNewPage();
-  }
 });
 
-// Initialize
-loadSavedData();
-scheduleDrawingLayerSync({ forceRedraw: true });
+// Dev-time sanity check — flags themes missing required color fields before
+// they ship a broken swatch. Cheap, runs once.
+(function validateThemes() {
+  const REQUIRED = ['name', 'textColor', 'backgroundColor', 'selectionColor'];
+  for (const [key, theme] of Object.entries(THEMES)) {
+    for (const field of REQUIRED) {
+      if (!theme || typeof theme[field] !== 'string' || !theme[field]) {
+        console.warn(`[THEMES] "${key}" is missing required field "${field}".`);
+      }
+    }
+  }
+})();
 
-// Focus editor on load
-editor.focus();
+async function bootstrapApp() {
+  workspaceLock = await acquireWorkspaceLock();
+  if (!workspaceLock.acquired) {
+    setWorkspaceReadOnlyMode('Another Blackboard Text tab already owns the writing lock.');
+  }
+
+  workspaceChannel.onMessage(message => {
+    if (!workspaceWritable && message?.type === 'workspace-imported') {
+      statusAnnouncer.show('The editing tab imported a backup. Reload this read-only tab to see it.', { kind: 'info', duration: 8_000 });
+    }
+  });
+
+  await loadSavedData();
+  scheduleDrawingLayerSync({ forceRedraw: true });
+  setupPwaUpdatePrompt();
+
+  // Focus editor on load without auto-scrolling to top, so the per-page scroll
+  // restore inside loadSavedData isn't overridden. A locked second tab stays
+  // unfocused and clearly read-only instead.
+  if (workspaceWritable) {
+    try {
+      editor.focus({ preventScroll: true });
+    } catch (error) {
+      editor.focus();
+    }
+  }
+}
+
+window.addEventListener('unload', () => {
+  workspaceLock?.release?.();
+  workspaceChannel.close();
+});
+
+window.addEventListener('focus', () => {
+  void tryPromoteReadOnlyTab();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') void tryPromoteReadOnlyTab();
+});
+
+void bootstrapApp();

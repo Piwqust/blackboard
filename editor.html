@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Blackboard Text</title>
+  <meta name="description" content="A quiet, local-first place to write, draw, and keep your notes on this device.">
+  <meta name="theme-color" content="#0B0B0D">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="icon" href="icons/icon-48.png" sizes="48x48">
   <link rel="stylesheet" href="editor.css">
 </head>
 <body>
@@ -11,34 +15,52 @@
     <div id="editorShell">
       <div id="editor" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Note editor"></div>
     </div>
-    <canvas id="drawingLayer" aria-label="Drawing annotations" role="img"></canvas>
+    <canvas id="drawingLayer" aria-label="Drawing canvas — toggle the brush tool to draw"></canvas>
   </div>
 
   <div class="top-right-rail">
+    <!-- The toolbar floats out of this wrapper's flow, so hiding it never
+         shifts the arrow or the page rail — it just dissolves in place. -->
+    <div class="rail-tools">
     <div id="drawingToolbar" class="drawing-toolbar" role="toolbar" aria-label="Drawing tools">
       <div class="drawing-toolbar-group drawing-toolbar-group-tools" role="group" aria-label="Brush and eraser">
         <button id="drawToggleBtn" class="drawing-tool-button drawing-toggle-button" type="button" aria-pressed="false" title="Brush tool (Alt+Shift+B)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 20h9"/>
-            <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/>
+          <svg class="drawing-tool-icon drawing-tool-icon-light" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M6.14425 19.9399C5.40992 19.9736 4.75077 19.4898 4.56381 18.7786C4.07716 16.9264 4.45299 14.9528 5.58724 13.41L11.5023 5.36036C12.5932 3.8763 14.6815 3.55732 16.1656 4.64724C17.6496 5.73909 17.9686 7.82642 16.8777 9.31049L10.9626 17.3601C9.8284 18.903 8.05715 19.8512 6.14425 19.9399Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13.459 20H19.6448" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg class="drawing-tool-icon drawing-tool-icon-bulk" viewBox="0 0 25 24" fill="none" aria-hidden="true">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M16.291 4.27181C14.806 3.18181 12.718 3.50081 11.627 4.98481L5.712 13.0348C4.578 14.5778 4.202 16.5508 4.689 18.4038C4.876 19.1148 5.535 19.5988 6.269 19.5648C8.182 19.4758 9.953 18.5278 11.088 16.9848L17.003 8.93481C18.094 7.45081 17.775 5.36381 16.291 4.27181Z" fill="currentColor"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M19.7695 18.875H13.5835C13.1695 18.875 12.8335 19.211 12.8335 19.625C12.8335 20.039 13.1695 20.375 13.5835 20.375H19.7695C20.1835 20.375 20.5195 20.039 20.5195 19.625C20.5195 19.211 20.1835 18.875 19.7695 18.875Z" fill="currentColor"/>
           </svg>
         </button>
 
         <button id="eraseToggleBtn" class="drawing-tool-button drawing-toggle-button" type="button" aria-pressed="false" title="Eraser tool (Alt+Shift+E)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M13.75 5.75 18.25 10.25"/>
-            <path d="m4.9 14.6 6.85-6.85a2.25 2.25 0 0 1 3.18 0l4.32 4.32a2.25 2.25 0 0 1 0 3.18l-2.5 2.5a2.25 2.25 0 0 1-1.59.66H8.99a2.25 2.25 0 0 1-1.59-.66L4.9 15.24a.45.45 0 0 1 0-.64Z"/>
-            <path d="M10.25 18.41h9.25"/>
+          <svg class="drawing-tool-icon drawing-tool-icon-light" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3 20.084H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10.7758 19.9725L19.3272 11.421C20.2554 10.4928 20.2554 8.98764 19.3272 8.05942L15.8809 4.61218C14.9527 3.68396 13.4475 3.68396 12.5193 4.61218L3.75089 13.3806C2.7497 14.3818 2.7497 16.0057 3.75089 17.0069L6.77684 20.0328" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8.06836 9.0625L14.8763 15.8714" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg class="drawing-tool-icon drawing-tool-icon-bulk" viewBox="0 0 25 24" fill="none" aria-hidden="true">
+            <path d="M12.62 19.21H21.5C21.91 19.21 22.25 19.54 22.25 19.96C22.25 20.37 21.91 20.71 21.5 20.71H3.5C3.09 20.71 2.75 20.37 2.75 19.96C2.75 19.54 3.09 19.21 3.5 19.21H5.87H12.62Z" fill="currentColor"/>
+            <path opacity="0.4" d="M14.9879 16.8423L12.62 19.2102H5.87L3.9 17.2302C2.7 16.0402 2.7 14.1002 3.9 12.9002L7.47787 9.33173C7.59507 9.21484 7.7848 9.21496 7.90185 9.33201L14.9879 16.418C15.105 16.5352 15.105 16.7251 14.9879 16.8423Z" fill="currentColor"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M20.1799 11.65C21.2999 10.53 21.2999 8.70004 20.1799 7.58004L16.7299 4.13004C15.6099 3.01004 13.7899 3.01004 12.6699 4.13004L8.96189 7.83805C8.84479 7.95515 8.84473 8.14499 8.96175 8.26217L16.0478 15.3576C16.1649 15.4749 16.355 15.475 16.4722 15.3578L20.1799 11.65Z" fill="currentColor"/>
           </svg>
         </button>
       </div>
 
       <div class="drawing-toolbar-group" role="group" aria-label="Brush size">
         <button id="drawSizeToggleBtn" class="drawing-tool-button drawing-size-toggle" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="drawSizePopover" title="Brush size">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M6 7.5h12"/>
-            <path d="M8.5 12h7"/>
-            <path d="M10.5 16.5h3"/>
+          <svg viewBox="0 0 25 24" fill="none" aria-hidden="true">
+            <path d="M11.0312 17.2578H14.9278" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3.98047 10.7305H7.877" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18.084 10.3066H21.9805" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12.9805 20.6017V17.2578" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5.92773 20.6007V10.7305" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20.0312 20.6011V10.3066" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5.92773 6.6616V3.39844" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20.0312 6.2374V3.39844" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12.9785 13.1879V3.39844" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <span id="drawSizeToggleStroke" class="drawing-size-toggle-stroke" aria-hidden="true"></span>
         </button>
@@ -52,22 +74,36 @@
 
       <div class="drawing-toolbar-group drawing-toolbar-group-actions">
         <button id="undoDrawingBtn" class="drawing-tool-button" type="button" title="Undo last stroke (Ctrl/Cmd+Z)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 7H4.75V2.75"/>
-            <path d="M4.75 7c1.9-2.43 4.64-3.64 8.2-3.2 3.93.48 6.8 3.56 6.8 7.28 0 4.07-3.3 7.37-7.37 7.37H8.75"/>
+          <svg viewBox="0 0 24 25" fill="none" aria-hidden="true">
+            <path d="M7.05318 11.6893C5.86071 10.4969 5.19247 9.82781 4 8.63534C5.19247 7.44381 5.86071 6.7745 7.05318 5.58203" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 8.63672H14.8574C17.6969 8.63672 20 10.9398 20 13.7793C20 16.6198 17.6969 18.9228 14.8574 18.9228H6.41976" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
 
-        <button id="clearDrawingsBtn" class="drawing-tool-button drawing-tool-button-danger" type="button" title="Clear page drawings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 4.75h6"/>
-            <path d="M10.25 4.75V3.7c0-.52.43-.95.95-.95h1.6c.52 0 .95.43.95.95v1.05"/>
-            <path d="M5.25 6.75h13.5"/>
-            <path d="m6.75 6.75.86 10.13c.08.82.76 1.45 1.58 1.45h5.62c.82 0 1.5-.63 1.58-1.45l.86-10.13"/>
-            <path d="M10.25 10.25v4.75"/>
-            <path d="M13.75 10.25v4.75"/>
+        <button id="clearDrawingsBtn" class="drawing-tool-button drawing-tool-button-danger" type="button" title="Clear page drawings" aria-haspopup="dialog" aria-expanded="false" aria-controls="clearDrawingsConfirm">
+          <svg viewBox="0 0 25 24" fill="none" aria-hidden="true">
+            <path d="M15.2124 3.87898L16.0306 5.66377H18.67C19.4815 5.66377 20.1394 6.32166 20.1394 7.1332V8.2214C20.1394 8.77625 19.6896 9.22605 19.1348 9.22605H5.36501C4.81015 9.22605 4.36035 8.77625 4.36035 8.2214V7.1332C4.36035 6.32166 5.01823 5.66377 5.82978 5.66377H8.4692L9.2874 3.87898C9.53294 3.34338 10.0681 3 10.6573 3H13.8425C14.4317 3 14.9668 3.34338 15.2124 3.87898Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18.6004 9.30078V17.9865C18.6004 19.6511 17.2677 21.0005 15.6238 21.0005H8.87696C7.23305 21.0005 5.90039 19.6511 5.90039 17.9865V9.30078" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10.5596 12.8164V17.3248M13.94 12.8164V17.3248" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+      </div>
+
+    </div>
+
+      <button id="drawingToolbarVisibilityToggleBtn" class="rail-collapse-toggle" type="button" aria-expanded="true" aria-controls="drawingToolbar" title="Hide drawing tools">
+        <svg class="rail-collapse-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M9.5 5.25L16.25 12L9.5 18.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="clearDrawingsConfirm" class="delete-confirm-popover" role="dialog" aria-modal="false" aria-labelledby="clearDrawingsConfirmTitle" hidden>
+      <p id="clearDrawingsConfirmTitle" class="delete-confirm-title">Clear drawings?</p>
+      <p class="delete-confirm-text">This removes every stroke on this page. Text is untouched.</p>
+      <div class="delete-confirm-actions">
+        <button id="cancelClearDrawingsBtn" class="delete-confirm-cancel" type="button">Cancel</button>
+        <button id="confirmClearDrawingsBtn" class="delete-confirm-delete" type="button">Clear</button>
       </div>
     </div>
 
@@ -75,26 +111,27 @@
 
     <div class="drawing-size-popover" id="drawSizePopover" role="dialog" aria-modal="false" aria-labelledby="drawSizePopoverTitle" hidden>
       <div class="drawing-size-popover-header">
-        <div class="drawing-size-popover-copy">
-          <p id="drawSizePopoverTitle" class="drawing-size-popover-title">Brush size</p>
-          <p class="drawing-size-popover-hint">Fine-tune stroke width with minimalist slider ticks.</p>
-        </div>
-        <span id="drawSizeValue" class="drawing-size-value">4px</span>
+        <p id="drawSizePopoverTitle" class="drawing-size-popover-title">Brush size</p>
+        <span id="drawSizeValue" class="drawing-size-value" title="Stroke width">4px</span>
       </div>
 
       <label class="drawing-size-control" for="drawSize">
         <input type="range" id="drawSize" class="drawing-size-slider" min="0.08" max="1.4" step="0.01" value="0.22" aria-label="Brush size">
       </label>
 
-      <div class="drawing-size-markers" id="drawSizeMarkers" role="list" aria-label="Brush size markers"></div>
+      <div class="drawing-size-markers" id="drawSizeMarkers" role="list" aria-label="Brush size presets"></div>
     </div>
 
     <!-- Page tabs -->
     <div class="page-tabs">
-      <div class="page-tabs-list" id="pageTabsList" role="tablist" aria-label="Note pages"></div>
-      <button class="add-page-btn" id="addPageBtn" title="Add page (Ctrl+N)">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <path d="M8 3v10M3 8h10"/>
+      <div class="page-tabs-list" id="pageTabsList" role="tablist" aria-label="Note pages" aria-orientation="vertical"></div>
+      <button class="add-page-btn" id="addPageBtn" title="Add page (Alt+Shift+N)">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <g transform="translate(2 2)" stroke="currentColor" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="10" y1="6.32730733" x2="10" y2="13.6536632"/>
+            <line x1="13.6666667" y1="9.99048525" x2="6.33333333" y2="9.99048525"/>
+            <path d="M14.6857143,0 L5.31428571,0 C2.04761905,0 0,2.31208373 0,5.58515699 L0,14.414843 C0,17.6879163 2.03809524,20 5.31428571,20 L14.6857143,20 C17.9619048,20 20,17.6879163 20,14.414843 L20,5.58515699 C20,2.31208373 17.9619048,0 14.6857143,0 Z"/>
+          </g>
         </svg>
       </button>
       
@@ -102,13 +139,20 @@
       <div class="emoji-picker" id="emojiPicker" role="dialog" aria-modal="false" aria-labelledby="emojiPickerTitle" aria-describedby="emojiPickerHint">
         <div class="emoji-picker-header">
           <div class="emoji-picker-copy">
-            <p class="emoji-picker-title" id="emojiPickerTitle">Page emoji</p>
-            <p class="emoji-picker-hint" id="emojiPickerHint">Choose a new emoji, reset it, or delete the page.</p>
+            <p class="emoji-picker-title" id="emojiPickerTitle">Page settings</p>
+            <p class="emoji-picker-hint" id="emojiPickerHint">Name the page, pick an emoji, or delete it.</p>
           </div>
+
+          <label class="emoji-picker-name" for="pageTitleInput">
+            <span class="emoji-picker-name-label">Name</span>
+            <input type="text" id="pageTitleInput" class="emoji-picker-name-input" maxlength="80" placeholder="Untitled page" spellcheck="false" autocomplete="off">
+          </label>
 
           <div class="emoji-picker-actions">
             <button class="emoji-picker-action" id="emojiPickerClear" type="button">Reset emoji</button>
+            <button class="emoji-picker-action" id="emojiPickerPublish" type="button" aria-controls="publishDialog" aria-haspopup="dialog">Publish page…</button>
             <button class="emoji-picker-action emoji-picker-action-danger" id="emojiPickerDelete" type="button" aria-controls="deletePageConfirm" aria-expanded="false">Delete page…</button>
+            <button class="emoji-picker-action" id="emojiPickerClose" type="button">Done</button>
           </div>
         </div>
 
@@ -123,6 +167,31 @@
           <button id="confirmDeletePageBtn" class="delete-confirm-delete" type="button">Delete</button>
         </div>
       </div>
+
+      <!-- Hover preview for a page tab -->
+      <div class="page-preview" id="pagePreview" role="tooltip" aria-hidden="true">
+        <div class="page-preview-content" id="pagePreviewContent">
+          <div class="page-preview-header">
+            <span class="page-preview-emoji" id="pagePreviewEmoji" aria-hidden="true"></span>
+            <p class="page-preview-title" id="pagePreviewTitle"></p>
+          </div>
+          <p class="page-preview-snippet" id="pagePreviewSnippet"></p>
+          <dl class="page-preview-meta">
+            <div class="page-preview-meta-row">
+              <dt>Created</dt>
+              <dd id="pagePreviewCreated">—</dd>
+            </div>
+            <div class="page-preview-meta-row">
+              <dt>Edited</dt>
+              <dd id="pagePreviewEdited">—</dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Holds the page you just left, so switching tabs dissolves one card
+             into the next instead of emptying it first. -->
+        <div class="page-preview-ghost" id="pagePreviewGhost" aria-hidden="true"></div>
+      </div>
     </div>
   </div>
 
@@ -134,8 +203,9 @@
           <h3>Settings</h3>
         </div>
         <button id="settingsCloseBtn" class="controls-close" type="button" aria-label="Close settings">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-            <path d="M3 3l10 10M13 3 3 13"/>
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6 6L18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
       </div>
@@ -146,12 +216,10 @@
         <div class="theme-grid" id="themeGrid"></div>
       </div>
 
-      <div class="control-divider"></div>
-
-      <!-- Typography Section -->
+      <!-- Layout Section -->
       <div class="control-section">
-        <div class="section-label">Type</div>
-        
+        <div class="section-label">Layout</div>
+
         <div class="control-group">
           <label for="fontFamily">Font</label>
           <!-- Hidden native select for form compatibility -->
@@ -165,10 +233,8 @@
               <option value="'Segoe UI', sans-serif">Segoe UI</option>
               <option value="system-ui, sans-serif">System UI</option>
             </optgroup>
-            <optgroup label="BoardGrotesque Sans">
-              <option value="'BoardGrotesque Sans', sans-serif">BoardGrotesque Sans</option>
-            </optgroup>
-            <optgroup label="Inter">
+            <optgroup label="Bundled fonts">
+              <option value="'BoardGrotesque Sans', sans-serif">Board Grotesk</option>
               <option value="'Inter', sans-serif">Inter</option>
               <option value="'Inter Tight', sans-serif">Inter Tight</option>
             </optgroup>
@@ -177,85 +243,91 @@
           <div class="font-dropdown-wrapper" id="fontDropdownWrapper">
             <button type="button" class="font-dropdown-trigger" id="fontDropdownTrigger">
               <span class="font-dropdown-preview" id="fontDropdownPreview">Georgia</span>
-              <svg class="font-dropdown-arrow" viewBox="0 0 10 10" fill="currentColor">
-                <path d="M2 3.5L5 6.5L8 3.5"/>
+              <svg class="font-dropdown-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M18 9L12 15L6 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
             <div class="font-dropdown-menu" id="fontDropdownMenu"></div>
           </div>
         </div>
 
-        <div class="control-group">
-          <label for="fontSize">Size <span id="fontSizeValue">40px</span></label>
-          <input type="range" id="fontSize" min="12" max="128" value="40">
+        <div class="control-row">
+          <div class="control-group">
+            <label for="fontSize">Size <span id="fontSizeValue">40px</span></label>
+            <input type="range" id="fontSize" min="12" max="128" value="40">
+          </div>
+
+          <div class="control-group">
+            <label for="maxWidth">Width <span id="maxWidthValue">1600px</span></label>
+            <input type="range" id="maxWidth" min="400" max="2400" step="50" value="1600">
+          </div>
         </div>
 
-        <div class="control-group">
-          <label for="lineHeight">Line Height <span id="lineHeightValue">1.6</span></label>
-          <input type="range" id="lineHeight" min="1" max="3" step="0.1" value="1.6">
-        </div>
+        <div class="control-row">
+          <div class="control-group">
+            <label for="lineHeight">Line Height <span id="lineHeightValue">1.6</span></label>
+            <input type="range" id="lineHeight" min="1" max="3" step="0.1" value="1.6">
+          </div>
 
-        <div class="control-group">
-          <label for="letterSpacing">Letter Spacing <span id="letterSpacingValue">0em</span></label>
-          <input type="range" id="letterSpacing" min="-0.05" max="0.2" step="0.01" value="0">
+          <div class="control-group">
+            <label for="letterSpacing">Tracking <span id="letterSpacingValue">0em</span></label>
+            <input type="range" id="letterSpacing" min="-0.05" max="0.2" step="0.01" value="0">
+          </div>
         </div>
       </div>
 
-      <div class="control-divider"></div>
-
-      <!-- Layout Section -->
+      <!-- Colors Section -->
       <div class="control-section">
-        <div class="section-label">Canvas</div>
-        
-        <div class="control-group">
-          <label for="maxWidth">Content Width <span id="maxWidthValue">1600px</span></label>
-          <input type="range" id="maxWidth" min="400" max="2400" step="50" value="1600">
-        </div>
-      </div>
-
-      <div class="control-divider"></div>
-
-      <!-- Custom Colors Section -->
-      <div class="control-section control-section-advanced">
-        <details class="control-disclosure">
-          <summary class="control-disclosure-summary">Advanced</summary>
-
-          <div class="color-controls">
-            <div class="color-control" data-color-type="textColor">
-              <label>Text</label>
-              <div class="color-input-wrapper">
-                <input type="color" id="textColor" value="#5B4FA8">
-                <input type="text" class="color-hex-input" id="textColorHex" value="#5B4FA8" maxlength="7" placeholder="#000000">
-              </div>
-            </div>
-            
-            <div class="color-control" data-color-type="backgroundColor">
-              <label>Background</label>
-              <div class="color-input-wrapper">
-                <input type="color" id="backgroundColor" value="#F2F0F8">
-                <input type="text" class="color-hex-input" id="backgroundColorHex" value="#F2F0F8" maxlength="7" placeholder="#FFFFFF">
-              </div>
-            </div>
-            
-            <div class="color-control" data-color-type="selectionColor">
-              <label>Selection</label>
-              <div class="color-input-wrapper">
-                <input type="color" id="selectionColor" value="#5B4FA8">
-                <input type="text" class="color-hex-input" id="selectionColorHex" value="#5B4FA8" maxlength="7" placeholder="#0000FF">
-              </div>
+        <div class="section-label">Colors</div>
+        <div class="color-controls">
+          <div class="color-control" data-color-type="textColor">
+            <label for="textColor">Text</label>
+            <div class="color-input-wrapper">
+              <input type="text" class="color-hex-input" id="textColorHex" value="#5B4FA8" maxlength="7" placeholder="#000000" spellcheck="false">
+              <input type="color" id="textColor" value="#5B4FA8" aria-label="Text color">
             </div>
           </div>
-          <p class="color-note">Highlights match the text color automatically.</p>
-        </details>
+
+          <div class="color-control" data-color-type="backgroundColor">
+            <label for="backgroundColor">Background</label>
+            <div class="color-input-wrapper">
+              <input type="text" class="color-hex-input" id="backgroundColorHex" value="#F2F0F8" maxlength="7" placeholder="#FFFFFF" spellcheck="false">
+              <input type="color" id="backgroundColor" value="#F2F0F8" aria-label="Background color">
+            </div>
+          </div>
+
+          <div class="color-control" data-color-type="selectionColor">
+            <label for="selectionColor">Highlight</label>
+            <div class="color-input-wrapper">
+              <input type="text" class="color-hex-input" id="selectionColorHex" value="#5B4FA8" maxlength="7" placeholder="#0000FF" spellcheck="false">
+              <input type="color" id="selectionColor" value="#5B4FA8" aria-label="Highlight color">
+            </div>
+          </div>
+        </div>
       </div>
 
-      <button id="resetSettings" class="reset-btn">Reset to Defaults</button>
+      <div class="control-section data-section" aria-labelledby="dataSectionLabel">
+        <div class="section-label" id="dataSectionLabel">Your data</div>
+        <p class="data-copy" id="storageSummary">Stored only in this browser on this device.</p>
+        <div class="data-actions">
+          <button id="exportWorkspaceBtn" class="secondary-btn data-action" type="button">Export backup</button>
+          <button id="importWorkspaceBtn" class="secondary-btn data-action" type="button">Import backup</button>
+          <button id="restoreSnapshotBtn" class="secondary-btn data-action data-action-wide" type="button" disabled>Restore latest snapshot</button>
+          <input id="importWorkspaceInput" type="file" accept="application/json,.json,.blackboard.json" hidden>
+        </div>
+        <p class="data-hint">Export creates a portable <code>.blackboard.json</code> file. Import replaces this workspace after a recovery snapshot is saved. <a href="privacy.html">Privacy</a></p>
+        <p class="data-hint" id="recoverySummary">Recovery snapshots appear here after an import or destructive change.</p>
+      </div>
+
+      <div class="controls-panel-footer">
+        <button id="resetSettings" class="reset-btn" type="button">Reset to defaults</button>
+      </div>
     </div>
 
     <button id="settingsToggleBtn" class="controls-icon" title="Settings" aria-label="Open settings" aria-expanded="false" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      <svg viewBox="0 0 25 24" fill="none" aria-hidden="true">
+        <circle r="2.7" transform="matrix(-1 0 0 1 12.9816 12.0008)" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M15.1956 3.27458C15.4901 3.34909 15.6818 3.6177 15.7502 3.9136C15.913 4.61723 16.356 5.25415 17.0309 5.64375C17.6509 6.00176 18.354 6.08585 19 5.93355C19.2952 5.86394 19.6205 5.91668 19.8179 6.14704C20.5389 6.98853 21.1073 7.96469 21.4801 9.0326C21.5928 9.35553 21.429 9.69767 21.165 9.91517C20.5639 10.4104 20.1808 11.1604 20.1808 12C20.1808 12.8396 20.5639 13.5896 21.165 14.0848C21.429 14.3023 21.5928 14.6445 21.4801 14.9674C21.1073 16.0352 20.539 17.0113 19.8181 17.8527C19.6207 18.0831 19.2954 18.1358 19.0001 18.0662C18.3541 17.9138 17.651 17.9979 17.0308 18.3559C16.3559 18.7456 15.9129 19.3826 15.7501 20.0863C15.6817 20.3823 15.49 20.6509 15.1955 20.7255C14.487 20.9047 13.745 21 12.9808 21C12.2166 21 11.4746 20.9048 10.7661 20.7255C10.4716 20.651 10.2799 20.3823 10.2115 20.0864C10.0487 19.3826 9.6057 18.7456 8.9308 18.3559C8.31063 17.9979 7.60746 17.9138 6.96145 18.0662C6.66616 18.1358 6.34086 18.0831 6.14346 17.8527C5.42252 17.0113 4.85421 16.0352 4.48144 14.9674C4.3687 14.6445 4.53257 14.3023 4.79656 14.0848C5.39759 13.5896 5.78079 12.8396 5.78079 12C5.78079 11.1604 5.39759 10.4104 4.79656 9.91516C4.53257 9.69766 4.3687 9.35552 4.48144 9.03258C4.85425 7.96467 5.42265 6.9885 6.1437 6.14701C6.34109 5.91665 6.66635 5.86391 6.96162 5.93353C7.60758 6.08585 8.31068 6.00178 8.9308 5.64375C9.60562 5.25414 10.0486 4.61722 10.2114 3.91357C10.2799 3.61767 10.4716 3.34904 10.766 3.27454C11.4745 3.09525 12.2165 3 12.9808 3C13.7451 3 14.4871 3.09527 15.1956 3.27458Z" stroke="currentColor" stroke-width="1.5"/>
       </svg>
     </button>
   </div>
@@ -265,8 +337,9 @@
     <div class="color-picker-header">
       <span class="color-picker-title" id="colorPickerTitle">Text Color</span>
       <button class="color-picker-close" id="colorPickerClose" type="button">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <path d="M1 1l8 8M9 1l-8 8"/>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 6L18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
     </div>
@@ -292,18 +365,82 @@
     
     <!-- Preset Swatches -->
     <div class="color-picker-swatches" id="colorPickerSwatches"></div>
+
+    <!-- Brush-only: revert custom color back to the theme's text color -->
+    <button type="button" id="colorPickerMatchTheme" class="color-picker-match-theme" hidden>
+      Match theme color
+    </button>
   </div>
 
   <!-- Save indicator -->
-  <div id="saveIndicator" class="save-indicator">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 8.5l3.5 3.5 6.5-7"/>
+  <div id="saveIndicator" class="save-indicator" role="status" aria-live="polite">
+    <svg class="save-indicator-ok" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M19 7.1875L9.375 16.8125L5 12.4375" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <svg class="save-indicator-err" viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden>
+      <path d="M21 12C21 7.02908 16.9709 3 12 3C7.02908 3 3 7.02908 3 12C3 16.9699 7.02908 21 12 21C16.9709 21 21 16.9699 21 12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M11.9961 8.30664V12.6062M11.9999 15.7418V15.6941" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </div>
 
   <!-- Word/character count -->
   <div id="wordCount" class="word-count"></div>
 
-  <script src="editor.js"></script>
+  <div id="workspaceModeNotice" class="workspace-mode-notice" role="status" aria-live="polite" hidden></div>
+  <div id="appStatus" class="app-status" role="status" aria-live="polite" hidden></div>
+
+  <div id="updateReadyNotice" class="update-ready-notice" role="status" aria-live="polite" hidden>
+    <span>A new version is ready.</span>
+    <button id="reloadForUpdateBtn" type="button">Reload</button>
+  </div>
+
+  <div id="importConfirmDialog" class="backup-dialog" role="dialog" aria-modal="true" aria-labelledby="importConfirmTitle" aria-describedby="importConfirmText" hidden>
+    <div class="backup-dialog-surface">
+      <p class="backup-dialog-eyebrow">Import backup</p>
+      <h2 id="importConfirmTitle">Replace this workspace?</h2>
+      <p id="importConfirmText">Your current notes will be saved as a local recovery snapshot first.</p>
+      <div class="backup-dialog-actions">
+        <button id="cancelImportBtn" class="delete-confirm-cancel" type="button">Cancel</button>
+        <button id="confirmImportBtn" class="delete-confirm-delete" type="button">Replace workspace</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="restoreConfirmDialog" class="backup-dialog" role="dialog" aria-modal="true" aria-labelledby="restoreConfirmTitle" aria-describedby="restoreConfirmText" hidden>
+    <div class="backup-dialog-surface">
+      <p class="backup-dialog-eyebrow">Recovery snapshot</p>
+      <h2 id="restoreConfirmTitle">Restore this snapshot?</h2>
+      <p id="restoreConfirmText">The current workspace will be saved as a new recovery snapshot first.</p>
+      <div class="backup-dialog-actions">
+        <button id="cancelRestoreBtn" class="delete-confirm-cancel" type="button">Cancel</button>
+        <button id="confirmRestoreBtn" class="delete-confirm-delete" type="button">Restore snapshot</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="publishDialog" class="backup-dialog" role="dialog" aria-modal="true" aria-labelledby="publishDialogTitle" aria-describedby="publishDialogText" hidden>
+    <div class="backup-dialog-surface">
+      <p class="backup-dialog-eyebrow">Publish page</p>
+      <h2 id="publishDialogTitle">Share this page as a link</h2>
+      <p id="publishDialogText">The whole note travels inside the link, so nothing is uploaded and no account is involved. Anyone holding the link can read the note, and a link cannot be taken back once it is sent.</p>
+
+      <label class="publish-option" id="publishDrawingsOption">
+        <input type="checkbox" id="publishIncludeDrawings" checked>
+        <span>Include this page's drawings</span>
+      </label>
+
+      <div class="publish-link-row">
+        <input type="text" id="publishLinkInput" class="publish-link-input" readonly spellcheck="false" aria-label="Published note link">
+        <button id="copyPublishLinkBtn" class="secondary-btn" type="button">Copy link</button>
+      </div>
+      <p class="publish-size" id="publishSizeHint" data-tier="ok">Building the link…</p>
+
+      <div class="backup-dialog-actions">
+        <button id="closePublishBtn" class="delete-confirm-cancel" type="button">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="editor.js"></script>
 </body>
 </html>

@@ -1,19 +1,33 @@
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inter+Tight:wght@100..900&display=swap');
+/* Bundled fonts — no network requests */
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/InterVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
-/* BoardGrotesque Sans */
+@font-face {
+  font-family: 'Inter Tight';
+  src: url('fonts/InterTight-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Board Grotesk is a project-owner supplied font. */
 @font-face {
   font-family: 'BoardGrotesque Sans';
-  src: url('fonts/BoardGrotesqueSans-Regular.otf') format('opentype');
-  font-weight: 400;
+  src: url('fonts/BoardGrotesqueSans-Light.otf') format('opentype');
+  font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
   font-family: 'BoardGrotesque Sans';
-  src: url('fonts/BoardGrotesqueSans-Light.otf') format('opentype');
-  font-weight: 300;
+  src: url('fonts/BoardGrotesqueSans-Regular.otf') format('opentype');
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
@@ -33,38 +47,39 @@
 }
 
 :root {
-  --font-family: Georgia, serif;
-  --font-size: 18px;
-  --line-height: 1.8;
+  --font-family: 'Inter Tight', sans-serif;
+  --font-size: 40px;
+  --line-height: 1.6;
   --letter-spacing: 0em;
-  --max-width: 900px;
-  --text-color: #5B4FA8;
-  --bg-color: #F2F0F8;
-  --selection-color: #5B4FA8;
+  --max-width: 1600px;
+  --text-color: #DDDAD2;
+  --bg-color: #0B0B0D;
+  --selection-color: #3D47FF;
+  --selection-text-color: #FFFFFF;
   
   /* Panel theming */
-  --panel-bg: #FFFFFF;
-  --panel-border: rgba(109, 104, 179, 0.2);
-  --panel-text: #6D68B3;
-  --panel-text-secondary: rgba(109, 104, 179, 0.6);
-  --control-bg: #FAFAFA;
-  --control-border: rgba(109, 104, 179, 0.15);
-  --control-hover: rgba(109, 104, 179, 0.08);
+  --panel-bg: rgba(11, 11, 13, 0.92);
+  --panel-border: rgba(221, 218, 210, 0.2);
+  --panel-text: #DDDAD2;
+  --panel-text-secondary: rgba(221, 218, 210, 0.6);
+  --control-bg: rgba(11, 11, 13, 0.78);
+  --control-border: rgba(221, 218, 210, 0.15);
+  --control-hover: rgba(221, 218, 210, 0.08);
 
   /* Shared floating UI */
-  --ui-surface: rgba(236, 237, 231, 0.56);
-  --ui-surface-strong: rgba(236, 237, 231, 0.72);
-  --ui-surface-soft: rgba(236, 237, 231, 0.44);
-  --ui-section-surface: rgba(236, 237, 231, 0.34);
-  --ui-border: rgba(109, 104, 179, 0.12);
-  --ui-border-strong: rgba(109, 104, 179, 0.2);
-  --ui-text: rgba(109, 104, 179, 0.88);
-  --ui-text-muted: rgba(109, 104, 179, 0.6);
-  --ui-hover: rgba(109, 104, 179, 0.08);
-  --ui-hover-strong: rgba(109, 104, 179, 0.14);
-  --ui-track: rgba(109, 104, 179, 0.12);
-  --ui-shadow-soft: 0 18px 42px rgba(15, 23, 42, 0.06);
-  --ui-shadow-subtle: 0 10px 24px rgba(15, 23, 42, 0.04);
+  --ui-surface: rgba(11, 11, 13, 0.56);
+  --ui-surface-strong: rgba(11, 11, 13, 0.72);
+  --ui-surface-soft: rgba(11, 11, 13, 0.44);
+  --ui-section-surface: rgba(11, 11, 13, 0.34);
+  --ui-border: rgba(221, 218, 210, 0.12);
+  --ui-border-strong: rgba(221, 218, 210, 0.2);
+  --ui-text: rgba(221, 218, 210, 0.88);
+  --ui-text-muted: rgba(221, 218, 210, 0.6);
+  --ui-hover: rgba(221, 218, 210, 0.08);
+  --ui-hover-strong: rgba(221, 218, 210, 0.14);
+  --ui-track: rgba(221, 218, 210, 0.12);
+  --ui-shadow-soft: 0 18px 42px rgba(0, 0, 0, 0.28);
+  --ui-shadow-subtle: 0 10px 24px rgba(0, 0, 0, 0.2);
   --ui-danger-text: #8C4A4A;
   --ui-danger-surface: rgba(172, 92, 92, 0.14);
   --ui-danger-border: rgba(172, 92, 92, 0.24);
@@ -73,18 +88,9 @@
 html, body {
   height: 100%;
   background-color: var(--bg-color);
-  color-scheme: light;
+  color-scheme: dark;
   transition: background-color 0.3s ease;
   overflow: auto;
-}
-
-/* Dark mode auto-detection */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme-set]) {
-    --text-color: #D4D4D4;
-    --bg-color: #2D2D2D;
-    --selection-color: #505050;
-  }
 }
 
 /* Custom Scrollbar - Overlay style */
@@ -195,15 +201,15 @@ body.drawing-mode #editor {
   font-style: italic;
 }
 
-/* Text selection styling — inverse of theme (bg = text color, text = bg color) */
+/* Text selection styling — selected text auto-inverts to stay readable on any highlight color */
 #editor::selection {
-  background-color: var(--text-color);
-  color: var(--bg-color);
+  background-color: var(--selection-color);
+  color: var(--selection-text-color);
 }
 
 #editor *::selection {
-  background-color: var(--text-color);
-  color: var(--bg-color);
+  background-color: var(--selection-color);
+  color: var(--selection-text-color);
 }
 
 /* Controls Container */
@@ -224,7 +230,19 @@ body.drawing-mode #editor {
   z-index: 2500;
 }
 
+/* Holds the toolbar and its arrow. Only the arrow occupies space here; the
+   toolbar hangs off the left edge so showing and hiding it moves nothing. */
+.rail-tools {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  flex: 0 0 auto;
+}
+
 .drawing-toolbar {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 12px);
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -236,6 +254,63 @@ body.drawing-mode #editor {
   box-shadow: none;
   backdrop-filter: blur(18px) saturate(135%);
   -webkit-backdrop-filter: blur(18px) saturate(135%);
+  filter: blur(0);
+  transform: translate3d(0, 0, 0);
+  transition: opacity 0.26s ease,
+              filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear 0s;
+}
+
+/* Collapsed: the tools dissolve out of focus rather than folding shut, drifting
+   a little to the right so they read as tucking in behind the arrow. Out of
+   flow, so the drift moves nothing else. */
+.top-right-rail.tools-collapsed .drawing-toolbar {
+  opacity: 0;
+  filter: blur(28px);
+  transform: translate3d(18px, 0, 0);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.26s ease,
+              filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear 0.34s;
+}
+
+/* Adjacent collapse arrow — same glass chrome as the toolbar so the pair reads
+   as one control. The chevron flips to point back at whatever it will reveal. */
+.rail-collapse-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 54px;
+  padding: 0;
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: 13px;
+  cursor: pointer;
+  opacity: 0.72;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+}
+
+.rail-collapse-toggle:hover {
+  opacity: 1;
+  background: var(--ui-surface-strong);
+}
+
+.rail-collapse-chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.top-right-rail.tools-collapsed .rail-collapse-chevron {
+  transform: rotate(180deg);
 }
 
 .drawing-toolbar.active {
@@ -270,16 +345,6 @@ body.drawing-mode #editor {
   gap: 10px;
 }
 
-.drawing-size-value {
-  font-size: 11px;
-  line-height: 1;
-}
-
-.drawing-size-value {
-  color: var(--ui-text);
-  font-variant-numeric: tabular-nums;
-}
-
 .drawing-size-toggle {
   position: relative;
   flex-direction: column;
@@ -287,8 +352,8 @@ body.drawing-mode #editor {
 }
 
 .drawing-size-toggle svg {
-  width: 18px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .drawing-size-toggle-stroke {
@@ -302,13 +367,13 @@ body.drawing-mode #editor {
 
 .drawing-size-popover {
   position: fixed;
-  width: min(248px, calc(100vw - 24px));
-  padding: 14px;
+  width: min(232px, calc(100vw - 24px));
+  padding: 12px 14px 14px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: var(--ui-shadow-subtle);
   backdrop-filter: blur(22px) saturate(140%);
   -webkit-backdrop-filter: blur(22px) saturate(140%);
@@ -331,32 +396,27 @@ body.drawing-mode #editor {
 
 .drawing-size-popover-header {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
   justify-content: space-between;
   gap: 10px;
 }
 
-.drawing-size-popover-copy {
-  display: grid;
-  gap: 4px;
-}
-
-.drawing-size-popover-title,
-.drawing-size-popover-hint {
+.drawing-size-popover-title {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;
-}
-
-.drawing-size-popover-title {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   color: var(--ui-text);
 }
 
-.drawing-size-popover-hint {
-  font-size: 11px;
-  line-height: 1.45;
-  color: var(--ui-text-muted);
+.drawing-size-value {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-color);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .drawing-size-slider {
@@ -372,18 +432,26 @@ body.drawing-mode #editor {
 
 .drawing-size-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 11px;
-  height: 11px;
-  background: var(--ui-text);
+  width: 14px;
+  height: 14px;
+  background: var(--text-color);
+  border: 2px solid var(--ui-surface-strong);
+  box-shadow: 0 0 0 1px var(--ui-border-strong);
   border-radius: 50%;
   cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.drawing-size-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
 }
 
 .drawing-size-slider::-moz-range-thumb {
-  width: 11px;
-  height: 11px;
-  background: var(--ui-text);
-  border: 0;
+  width: 14px;
+  height: 14px;
+  background: var(--text-color);
+  border: 2px solid var(--ui-surface-strong);
+  box-shadow: 0 0 0 1px var(--ui-border-strong);
   border-radius: 50%;
   cursor: pointer;
 }
@@ -398,39 +466,39 @@ body.drawing-mode #editor {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
   margin-top: -2px;
 }
 
 .drawing-size-marker {
-  width: 100%;
+  flex: 1;
   min-width: 0;
-  min-height: 16px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: 999px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  opacity: 0.48;
+  color: var(--text-color);
+  transition: background 0.15s ease, opacity 0.15s ease;
+  opacity: 0.45;
 }
 
 .drawing-size-marker:hover {
-  opacity: 0.8;
+  opacity: 0.85;
+  background: var(--ui-hover);
 }
 
 .drawing-size-marker.active {
   opacity: 1;
-  transform: none;
+  background: var(--ui-hover-strong);
 }
 
 .drawing-size-marker-swatch {
-  width: 100%;
-  max-width: 16px;
-  min-width: 8px;
+  width: 14px;
   height: var(--marker-stroke-height, 8px);
   border-radius: 999px;
   background: currentColor;
@@ -461,6 +529,18 @@ body.drawing-mode #editor {
 .drawing-tool-button svg {
   width: 18px;
   height: 18px;
+}
+
+.drawing-toggle-button .drawing-tool-icon-bulk {
+  display: none;
+}
+
+.drawing-toggle-button.active .drawing-tool-icon-light {
+  display: none;
+}
+
+.drawing-toggle-button.active .drawing-tool-icon-bulk {
+  display: block;
 }
 
 .drawing-tool-button.active,
@@ -520,20 +600,21 @@ body.drawing-mode #editor {
   position: absolute;
   bottom: calc(100% + 8px);
   right: 0;
-  width: min(296px, calc(100vw - 32px));
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
+  width: min(280px, calc(100vw - 32px));
+  max-height: min(680px, calc(100dvh - 92px));
   overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 12px;
   display: grid;
-  gap: 10px;
+  gap: 2px;
   background: var(--ui-surface-strong);
   border: 1px solid var(--ui-border);
   border-radius: 14px;
-  box-shadow: none;
+  box-shadow: var(--ui-shadow-subtle);
   backdrop-filter: blur(14px) saturate(120%);
   -webkit-backdrop-filter: blur(14px) saturate(120%);
-  
+
   opacity: 0;
   visibility: hidden;
   transform: translateY(4px);
@@ -542,7 +623,12 @@ body.drawing-mode #editor {
 }
 
 .controls-panel::-webkit-scrollbar {
-  width: 0;
+  width: 4px;
+}
+
+.controls-panel::-webkit-scrollbar-thumb {
+  background: var(--ui-border-strong);
+  border-radius: 999px;
 }
 
 .controls-container.open .controls-panel,
@@ -578,56 +664,59 @@ button.controls-icon {
 .controls-panel-heading h3 {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--ui-text);
-  letter-spacing: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .controls-close {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid var(--ui-border);
-  border-radius: 8px;
+  border: 0;
+  border-radius: 6px;
   color: var(--ui-text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.controls-close svg {
+  width: 16px;
+  height: 16px;
 }
 
 .controls-close:hover {
   color: var(--ui-text);
-  background: var(--ui-surface-soft);
+  background: var(--ui-hover);
 }
 
 /* Control Sections */
 .control-section {
-  margin-bottom: 0;
-  padding: 10px 0 0;
+  margin: 0;
+  padding: 8px 0;
   background: transparent;
   border: 0;
   border-radius: 0;
 }
 
 .control-section:first-of-type {
-  padding-top: 0;
-}
-
-.control-section + .control-section {
-  border-top: 1px solid var(--ui-border);
+  padding-top: 4px;
 }
 
 .section-label {
   font-family: system-ui, -apple-system, sans-serif;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 500;
-  color: var(--ui-text);
-  text-transform: none;
-  letter-spacing: 0;
-  margin-bottom: 8px;
+  color: var(--ui-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  opacity: 0.7;
 }
 
 .control-divider {
@@ -636,7 +725,18 @@ button.controls-icon {
 
 /* Control Groups */
 .control-group {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+  min-width: 0;
+}
+
+.control-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.control-row .control-group {
+  margin-bottom: 8px;
 }
 
 .control-group:last-child {
@@ -647,10 +747,10 @@ button.controls-icon {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--ui-text);
 }
 
@@ -745,68 +845,51 @@ button.controls-icon {
 .color-controls {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-top: 6px;
+  gap: 6px;
 }
 
 .color-control {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 10px;
-  padding: 0;
+  padding: 2px 0;
   background: transparent;
-  border: none;
+  border: 0;
   border-radius: 0;
-  transition: background 0.15s ease;
-}
-
-.color-control:hover {
-  background: transparent;
-}
-
-.color-control[data-color-type="selectionColor"] {
-  display: none;
-}
-
-.color-note {
-  margin: 8px 0 0;
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 10px;
-  line-height: 1.4;
-  color: var(--ui-text-muted);
 }
 
 .color-control label {
   font-family: system-ui, -apple-system, sans-serif;
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ui-text);
   margin-bottom: 0;
-  flex: 1;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .color-input-wrapper {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
 .color-control input[type="color"] {
-  width: 32px;
-  height: 32px;
+  width: 16px;
+  height: 16px;
   padding: 0;
   background: transparent;
-  border: 2px solid rgba(255, 255, 255, 0.45);
+  border: none;
   border-radius: 50%;
   cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 0 0 0 1px var(--ui-border);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 0 0 1px var(--ui-border-strong);
 }
 
 .color-control input[type="color"]:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 0 1px var(--ui-border-strong);
+  transform: scale(1.12);
+  box-shadow: 0 0 0 1px var(--ui-text-muted);
 }
 
 .color-control input[type="color"]::-webkit-color-swatch-wrapper {
@@ -820,22 +903,29 @@ button.controls-icon {
 
 .color-hex-input {
   width: 76px;
-  padding: 5px 8px;
+  padding: 4px 8px;
   font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
   font-size: 10px;
   font-weight: 500;
   color: var(--ui-text);
   text-transform: uppercase;
-  background: var(--ui-surface-soft);
-  border: 1px solid var(--ui-border);
-  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
   outline: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
   transition: all 0.15s ease;
 }
 
+.color-hex-input:hover {
+  background: var(--ui-surface-strong);
+}
+
 .color-hex-input:focus {
+  background: var(--ui-surface-strong);
   border-color: var(--ui-border-strong);
-  box-shadow: 0 0 0 3px var(--ui-hover);
 }
 
 .color-hex-input::placeholder {
@@ -897,6 +987,11 @@ button.controls-icon {
   transition: all 0.15s ease;
 }
 
+.color-picker-close svg {
+  width: 16px;
+  height: 16px;
+}
+
 .color-picker-close:hover {
   background: var(--ui-hover);
   color: var(--ui-text);
@@ -910,6 +1005,7 @@ button.controls-icon {
   border-radius: 8px;
   cursor: crosshair;
   overflow: hidden;
+  touch-action: none;
   background: linear-gradient(to bottom, transparent, #000),
               linear-gradient(to right, #fff, transparent);
   background-color: #ff0000;
@@ -1048,6 +1144,38 @@ button.controls-icon {
   z-index: 1;
 }
 
+/* Brush-only: revert custom brush color to the current theme's text color */
+.color-picker-match-theme {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 10px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ui-text);
+  background: var(--ui-surface-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.color-picker-match-theme:hover {
+  background: var(--ui-hover);
+  border-color: var(--ui-border-strong);
+}
+
+.color-picker-match-theme[hidden] {
+  display: none;
+}
+
+/* Save-indicator error state */
+.save-indicator.error {
+  opacity: 0.85;
+  color: #8C4A4A;
+}
+
 /* Select */
 .control-group select {
   width: 100%;
@@ -1064,7 +1192,7 @@ button.controls-icon {
   transition: all 0.15s ease;
   -webkit-appearance: none;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23999' d='M2 3.5L5 6.5L8 3.5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M18 9L12 15L6 9' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
   padding-right: 24px;
@@ -1121,8 +1249,8 @@ button.controls-icon {
 }
 
 .font-dropdown-arrow {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
   margin-left: 6px;
   transition: transform 0.2s ease;
@@ -1140,22 +1268,32 @@ button.controls-icon {
   max-height: 280px;
   overflow-y: auto;
   margin-top: 8px;
-  background: var(--ui-surface);
+  background: var(--bg-color);
   border: 1px solid var(--ui-border);
   border-radius: 10px;
-  box-shadow: var(--ui-shadow-subtle);
+  box-shadow: var(--ui-shadow-soft);
   z-index: 1500;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-4px);
   transition: all 0.15s ease;
-  backdrop-filter: blur(22px) saturate(140%);
-  -webkit-backdrop-filter: blur(22px) saturate(140%);
 }
 
 .font-dropdown-menu.visible {
   opacity: 1;
   visibility: visible;
+  transform: translateY(0);
+}
+
+.font-dropdown-menu.flip-up {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 8px;
+  transform: translateY(4px);
+}
+
+.font-dropdown-menu.flip-up.visible {
   transform: translateY(0);
 }
 
@@ -1224,6 +1362,15 @@ button.controls-icon {
   transition: none;
 }
 
+.control-group input[type="range"]::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: var(--ui-text);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
 /* Color Picker (legacy - kept for backwards compatibility) */
 .control-group input[type="color"] {
   width: 100%;
@@ -1290,25 +1437,96 @@ button.controls-icon {
   color: var(--ui-text-muted);
 }
 
+/* Local backup controls stay compact so the writing surface remains primary. */
+.data-section {
+  border-top: 1px solid var(--ui-border);
+}
+
+.data-copy,
+.data-hint {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--ui-text-muted);
+}
+
+.data-copy {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.data-hint {
+  margin-top: 7px;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.data-hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.94em;
+}
+
+.data-hint a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.data-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.data-action {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.data-action-wide {
+  grid-column: 1 / -1;
+}
+
+.secondary-btn:disabled,
+.drawing-tool-button:disabled,
+.add-page-btn:disabled,
+.theme-swatch:disabled,
+.emoji-option:disabled,
+.font-dropdown-trigger:disabled,
+.controls-icon:disabled,
+.controls-close:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
+/* Footer */
+.controls-panel-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 6px;
+}
+
 /* Reset Button */
 .reset-btn {
+  appearance: none;
   width: auto;
-  margin-top: 0;
-  padding: 2px 0 0;
+  padding: 4px 8px;
+  margin: 0;
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 10px;
   font-weight: 500;
   color: var(--ui-text-muted);
   background: transparent;
   border: 0;
-  border-radius: 0;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.1s ease;
+  transition: all 0.15s ease;
 }
 
 .reset-btn:hover {
-  background: transparent;
   color: var(--ui-text);
+  background: var(--ui-hover);
 }
 
 .control-disclosure {
@@ -1363,9 +1581,26 @@ button.controls-icon {
   pointer-events: none;
 }
 
+.save-indicator svg {
+  width: 16px;
+  height: 16px;
+}
+
 .save-indicator.visible {
   opacity: 0.35;
   transform: scale(1);
+}
+
+.save-indicator .save-indicator-err {
+  display: none;
+}
+
+.save-indicator.error .save-indicator-ok {
+  display: none;
+}
+
+.save-indicator.error .save-indicator-err {
+  display: inline-block;
 }
 
 /* Page Tabs */
@@ -1540,13 +1775,184 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
 }
 
 .add-page-btn svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
 }
 
 .add-page-btn:hover {
   opacity: 1;
   background: var(--ui-surface-strong);
+}
+
+/* Page hover preview — a passive card that peeks at a tab's page without
+   switching to it. Pointer-events stay off so it can never eat a tab click. */
+.page-preview {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: 264px;
+  max-width: calc(100vw - 24px);
+  padding: 12px 14px;
+  /* Clips the outgoing copy to the card's rounded edge while the two overlap. */
+  overflow: hidden;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: 14px;
+  box-shadow: var(--ui-shadow-subtle);
+  backdrop-filter: blur(20px) saturate(135%);
+  -webkit-backdrop-filter: blur(20px) saturate(135%);
+  box-sizing: border-box;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  /* No sliding in from the side: the card resolves out of a heavy defocus,
+     the same way the drawing tools do. Blur is GPU-composited and only runs
+     for the length of the transition, so it stays cheap on a card this size. */
+  filter: blur(26px);
+  transition: opacity 0.26s ease,
+              filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear 0.34s;
+  z-index: 90;
+}
+
+/* While open the card animates its own left/top/height: hovering along the
+   rail moves and reshapes one card instead of replacing it at each tab. */
+.page-preview.visible {
+  opacity: 1;
+  visibility: visible;
+  filter: blur(0);
+  transition: opacity 0.26s ease,
+              filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear 0s,
+              top 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              left 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-preview-content,
+.page-preview-ghost {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* The outgoing page sits exactly where it was drawn, on top of the incoming
+   one, so the two overlap through the change and nothing ever goes blank. */
+.page-preview-ghost {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  right: 14px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.page-preview-content {
+  opacity: 1;
+}
+
+.page-preview-content,
+.page-preview-ghost {
+  transition: opacity 0.22s ease;
+}
+
+/* The start of a switch: the copy you were reading is still the one on screen.
+   Dropping the class hands it over to the new copy across both transitions. */
+.page-preview.is-swapping .page-preview-content {
+  opacity: 0;
+  transition: none;
+}
+
+.page-preview.is-swapping .page-preview-ghost {
+  opacity: 1;
+  transition: none;
+}
+
+.page-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.page-preview-emoji {
+  font-size: 16px;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.page-preview-title {
+  margin: 0;
+  min-width: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ui-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The snippet borrows the note's own font so the peek looks like the page. */
+.page-preview-snippet {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-color);
+  opacity: 0.72;
+  white-space: pre-wrap;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  -webkit-box-orient: vertical;
+}
+
+/* The -webkit-box display above outranks the UA rule for [hidden]. */
+.page-preview-snippet[hidden] {
+  display: none;
+}
+
+.page-preview-snippet.is-empty {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.5;
+}
+
+.page-preview-meta {
+  margin: 0;
+  padding-top: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--ui-border);
+}
+
+.page-preview-meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+}
+
+.page-preview-meta-row dt {
+  color: var(--ui-text-muted);
+}
+
+.page-preview-meta-row dd {
+  margin: 0;
+  color: var(--ui-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Emoji Picker - Tooltip Style */
@@ -1625,6 +2031,44 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   font-size: 11px;
   line-height: 1.45;
   color: var(--ui-text-muted);
+}
+
+/* Page name field */
+.emoji-picker-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.emoji-picker-name-label {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ui-text-muted);
+}
+
+.emoji-picker-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 9px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  color: var(--ui-text);
+  background: var(--ui-surface-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.emoji-picker-name-input::placeholder {
+  color: var(--ui-text-muted);
+  opacity: 0.7;
+}
+
+.emoji-picker-name-input:focus {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-strong);
 }
 
 .emoji-picker-actions {
@@ -1863,6 +2307,7 @@ body.is-scrolling .drawing-tool-button:hover {
 }
 
 .drawing-tool-button:focus-visible,
+.rail-collapse-toggle:focus-visible,
 .drawing-size-marker:focus-visible,
 .controls-icon:focus-visible,
 .controls-close:focus-visible,
@@ -1877,9 +2322,264 @@ body.is-scrolling .drawing-tool-button:hover {
 .color-hex-input:focus-visible,
 .color-picker-hex:focus-visible,
 .color-picker-close:focus-visible,
-.emoji-option:focus-visible {
+.emoji-option:focus-visible,
+.secondary-btn:focus-visible,
+.backup-dialog button:focus-visible {
   outline: 2px solid var(--ui-border-strong);
   outline-offset: 2px;
+}
+
+.workspace-mode-notice,
+.app-status,
+.update-ready-notice {
+  position: fixed;
+  z-index: 20;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 9px 11px;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 10px;
+  background: var(--ui-surface-strong);
+  box-shadow: var(--ui-shadow-subtle);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ui-text);
+}
+
+.workspace-mode-notice {
+  right: 24px;
+  bottom: 78px;
+}
+
+.app-status {
+  left: 24px;
+  bottom: 24px;
+}
+
+.app-status[data-kind="error"] {
+  color: var(--ui-danger-text);
+  border-color: var(--ui-danger-border);
+  background: color-mix(in srgb, var(--ui-danger-surface) 78%, var(--ui-surface-strong));
+}
+
+.update-ready-notice {
+  right: 80px;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.update-ready-notice[hidden] {
+  display: none;
+}
+
+.update-ready-notice button {
+  appearance: none;
+  padding: 4px 7px;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 6px;
+  background: var(--ui-surface-soft);
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.update-ready-notice button:hover {
+  background: var(--ui-surface-strong);
+}
+
+.backup-dialog {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.24);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.backup-dialog[hidden] {
+  display: none;
+}
+
+.backup-dialog-surface {
+  width: min(390px, 100%);
+  padding: 20px;
+  border: 1px solid var(--ui-border);
+  border-radius: 14px;
+  background: var(--ui-surface-strong);
+  box-shadow: var(--ui-shadow-soft);
+  color: var(--ui-text);
+}
+
+.backup-dialog-eyebrow {
+  margin: 0 0 5px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-text-muted);
+}
+
+.backup-dialog h2 {
+  margin: 0;
+  font-family: 'Inter Tight', system-ui, sans-serif;
+  font-size: 21px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.backup-dialog p:not(.backup-dialog-eyebrow) {
+  margin: 9px 0 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ui-text-muted);
+}
+
+.backup-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+/* Publish dialog */
+#publishDialog .backup-dialog-surface {
+  width: min(460px, 100%);
+}
+
+.publish-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--ui-text);
+  cursor: pointer;
+}
+
+.publish-option[hidden] {
+  display: none;
+}
+
+.publish-option input {
+  accent-color: var(--selection-color);
+  cursor: pointer;
+}
+
+.publish-link-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.publish-link-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 8px;
+  background: var(--ui-surface-soft);
+  color: var(--ui-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+/* .secondary-btn is full-width by default in the settings panel; beside the
+   link field it should only be as wide as its label. */
+.publish-link-row .secondary-btn {
+  flex: 0 0 auto;
+  width: auto;
+  white-space: nowrap;
+}
+
+.publish-size {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+}
+
+.backup-dialog p.publish-size {
+  margin-top: 8px;
+}
+
+.publish-size[data-tier='very-long'] {
+  color: var(--text-color);
+}
+
+body.workspace-readonly #editor {
+  cursor: default;
+}
+
+body.workspace-readonly #drawingLayer {
+  pointer-events: none;
+}
+
+.legal-page-body {
+  min-height: 100%;
+  padding: 64px 24px;
+  background: var(--bg-color);
+}
+
+.legal-page {
+  width: min(680px, 100%);
+  margin: 0 auto;
+  color: var(--text-color);
+}
+
+.legal-back,
+.legal-eyebrow,
+.legal-page p,
+.legal-page h2 {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.legal-back {
+  display: inline-block;
+  margin-bottom: 36px;
+  color: inherit;
+  font-size: 13px;
+  text-underline-offset: 3px;
+}
+
+.legal-eyebrow {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.legal-page h1 {
+  max-width: 13ch;
+  margin: 0;
+  font-family: 'Inter Tight', system-ui, sans-serif;
+  font-size: clamp(38px, 8vw, 64px);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+}
+
+.legal-page h2 {
+  margin: 38px 0 8px;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.legal-page p:not(.legal-eyebrow) {
+  max-width: 62ch;
+  margin: 14px 0 0;
+  font-size: 16px;
+  line-height: 1.65;
 }
 
 /* Responsive */
@@ -1896,8 +2596,12 @@ body.is-scrolling .drawing-tool-button:hover {
     gap: 10px;
   }
 
+  /* The toolbar keeps hanging to the left of its arrow here too — stacking it
+     above would push it off the top of the screen — it just wraps to fit. */
   .drawing-toolbar {
-    max-width: min(100vw - 32px, 236px);
+    right: calc(100% + 10px);
+    width: max-content;
+    max-width: min(100vw - 104px, 236px);
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 4px;
@@ -1926,7 +2630,6 @@ body.is-scrolling .drawing-tool-button:hover {
   .controls-panel {
     width: min(280px, calc(100vw - 32px));
     padding: 12px;
-    max-height: calc(100vh - 100px);
   }
   
   .theme-grid {
@@ -1935,8 +2638,7 @@ body.is-scrolling .drawing-tool-button:hover {
   }
   
   .color-controls {
-    gap: 8px;
-    padding-top: 6px;
+    gap: 5px;
   }
 
   .page-tabs-list {
@@ -1973,6 +2675,11 @@ body.is-scrolling .drawing-tool-button:hover {
     width: min(280px, calc(100vw - 24px));
     padding: 14px;
   }
+
+  .page-preview {
+    width: min(240px, calc(100vw - 32px));
+    padding: 11px 12px;
+  }
   
   .emoji-grid {
     grid-template-columns: repeat(5, 1fr);
@@ -1989,6 +2696,17 @@ body.is-scrolling .drawing-tool-button:hover {
     bottom: 26px;
     right: 66px;
   }
+
+  .workspace-mode-notice,
+  .update-ready-notice {
+    right: 16px;
+    bottom: 72px;
+  }
+
+  .app-status {
+    left: 16px;
+    bottom: 16px;
+  }
 }
 
 /* Word/Character Count */
@@ -2004,6 +2722,10 @@ body.is-scrolling .drawing-tool-button:hover {
   pointer-events: none;
   transition: opacity 0.2s ease;
   font-variant-numeric: tabular-nums;
+}
+
+.word-count.is-empty {
+  opacity: 0;
 }
 
 /* Drag and Drop Styling */
@@ -2038,5 +2760,179 @@ body.is-scrolling .drawing-tool-button:hover {
   .word-count,
   .emoji-picker {
     display: none !important;
+  }
+}
+
+/* --- Published note reader (read.html) ------------------------------------
+   Reuses the editor's bundled fonts and colour variables so a published note
+   looks the way it did in the editor that made it. */
+.reader-body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  min-height: 100vh;
+  transition: background-color 0.3s ease;
+}
+
+.reader-board {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0 auto;
+  background-color: var(--bg-color);
+}
+
+.reader-shell {
+  width: min(100%, var(--max-width));
+  position: relative;
+  z-index: 1;
+  padding: 48px 48px 120px 48px;
+}
+
+.reader-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+/* An explicit display value would otherwise beat the hidden attribute and
+   leave an empty title row (or a full-height error panel) in the layout. */
+.reader-header[hidden],
+.reader-state[hidden] {
+  display: none;
+}
+
+.reader-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.reader-title {
+  font-family: var(--font-family);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-color);
+}
+
+.reader-meta {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ui-text-muted);
+  margin-left: auto;
+}
+
+.reader-content {
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  letter-spacing: var(--letter-spacing);
+  color: var(--text-color);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  tab-size: 6;
+  -moz-tab-size: 6;
+}
+
+.reader-content img {
+  display: block;
+  inline-size: auto;
+  max-inline-size: min(100%, 32em);
+  block-size: auto;
+  margin-block: 0.75em;
+}
+
+.reader-drawings {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.reader-footer {
+  position: fixed;
+  right: 20px;
+  bottom: 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  z-index: 3;
+}
+
+.reader-footer a {
+  color: var(--ui-text-muted);
+  text-decoration: none;
+  padding: 6px 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: var(--bg-color);
+}
+
+.reader-footer a:hover {
+  color: var(--text-color);
+}
+
+.reader-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.reader-state-surface {
+  max-width: 44ch;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+}
+
+.reader-state-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-text-muted);
+  margin-bottom: 10px;
+}
+
+.reader-state-surface h1 {
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: var(--text-color);
+}
+
+.reader-state-surface p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ui-text-muted);
+}
+
+.reader-state-action {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text-color);
+  text-decoration: none;
+  padding: 8px 14px;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+}
+
+/* The reader's padding is set in src/ui/reader.js from the width the note was
+   published at rather than from the viewer's screen, because it is part of
+   where the strokes sit relative to the first line. These values only apply
+   before that runs. */
+
+@media print {
+  .reader-footer,
+  .reader-state {
+    display: none !important;
+  }
+
+  .reader-shell {
+    padding: 0 !important;
   }
 }
