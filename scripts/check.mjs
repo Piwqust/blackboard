@@ -24,4 +24,12 @@ for (const relativePath of ['manifest.json', 'manifests/edge.manifest.json', 'si
   JSON.parse(await readFile(path.join(root, relativePath), 'utf8'));
 }
 
+// editor.js stamps its own version into exported backups and published links,
+// so it has to move whenever package.json does.
+const packageVersion = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')).version;
+const editorVersion = (await readFile(path.join(root, 'editor.js'), 'utf8')).match(/const APP_VERSION = '([^']+)'/)?.[1];
+if (editorVersion !== packageVersion) {
+  throw new Error(`APP_VERSION in editor.js is ${editorVersion}, but package.json is ${packageVersion}.`);
+}
+
 console.log(`Syntax and JSON checks passed for ${checkedFiles.length} JavaScript files.`);

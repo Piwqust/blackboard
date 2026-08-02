@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -12,10 +12,28 @@ const staticFiles = [
   'editor.html',
   'editor.css',
   'editor.js',
+  'read.html',
   'privacy.html',
   'service-worker.js',
   'site.webmanifest'
 ];
+
+// Files the app shell is cached from. Anything not listed here still works
+// online, but would not survive going offline.
+const SHELL_EXTENSIONS = new Set(['.html', '.css', '.js', '.woff2', '.ttf', '.otf', '.png', '.webmanifest']);
+const SHELL_EXCLUDED = new Set(['service-worker.js', 'pwa-sw.js', 'icons/generate-icons.html']);
+
+async function listShellFiles(destination) {
+  const entries = await readdir(destination, { recursive: true, withFileTypes: true });
+  const files = entries
+    .filter(entry => entry.isFile())
+    .map(entry => path.relative(destination, path.join(entry.parentPath ?? entry.path, entry.name)))
+    .map(relativePath => relativePath.split(path.sep).join('/'))
+    .filter(relativePath => SHELL_EXTENSIONS.has(path.extname(relativePath)) && !SHELL_EXCLUDED.has(relativePath))
+    .sort();
+
+  return ['./', ...files.map(relativePath => `./${relativePath}`)];
+}
 
 async function copyFile(relativePath, destination) {
   const source = path.join(root, relativePath);
@@ -37,7 +55,13 @@ async function copyRuntime(destination, { includePwaWorker }) {
 
   if (includePwaWorker) {
     const worker = await readFile(path.join(root, 'pwa-sw.js'), 'utf8');
-    await writeFile(path.join(destination, 'pwa-sw.js'), worker.replaceAll('__APP_VERSION__', version));
+    const shellFiles = await listShellFiles(destination);
+    await writeFile(
+      path.join(destination, 'pwa-sw.js'),
+      worker
+        .replaceAll('__APP_VERSION__', version)
+        .replaceAll("'__APP_SHELL__'", shellFiles.map(file => JSON.stringify(file)).join(', '))
+    );
   }
 }
 

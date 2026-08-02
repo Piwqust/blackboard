@@ -1,12 +1,33 @@
 import { createWorkspaceBackup, describeBackup, makeBackupFilename, parseWorkspaceBackup, serializeWorkspaceBackup } from './src/core/backup.js';
 import { isExtensionContext, readLegacyChromeWorkspace } from './src/core/legacy-chrome.js';
 import { migrateFontFamily, normalizeSettings } from './src/core/schema.js';
+import { sanitizeStoredContent } from './src/core/sanitize-html.js';
+import {
+  MAX_DRAW_SIZE,
+  clampBrushSize as clampBrushSizeValue,
+  convertPointToCanvasPixels as convertPointToCanvasPixelsValue,
+  getBrushSizeInPixels as getBrushSizeInPixelsValue,
+  getNormalizedFontSize as getNormalizedFontSizeValue,
+  getStrokeReferenceFontSize as getStrokeReferenceFontSizeValue,
+  normalizeStoredPoint
+} from './src/core/drawing-geometry.js';
+import {
+  buildPublishedNoteUrl,
+  createPublishedNote,
+  describePublishedLink,
+  encodePublishedNote
+} from './src/core/publish.js';
 import { createWorkspaceStore } from './src/core/workspace-store.js';
 import { acquireWorkspaceLock, createWorkspaceChannel } from './src/core/workspace-lock.js';
 import { createStatusAnnouncer } from './src/ui/app-status.js';
 import { registerPwaUpdates } from './src/ui/pwa-updates.js';
 
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.2.0';
+
+// Links published from the local unpacked extension have to point somewhere a
+// recipient can actually open, so they use the public deployment rather than
+// this browser's private extension origin.
+const PUBLIC_APP_BASE_URL = 'https://piwqust.github.io/blackboard/';
 
 // Theme presets
 const THEMES = {
@@ -84,8 +105,6 @@ const DEFAULT_SETTINGS = {
 
 const DRAWING_COORDINATE_SPACE = 'text-scaled-px';
 const LEGACY_DRAWING_COORDINATE_SPACE = 'font-relative';
-const MIN_DRAW_SIZE = 0.08;
-const MAX_DRAW_SIZE = 1.4;
 // Squared minimum distance (px²) between consecutive stored stroke points.
 const MIN_STROKE_POINT_DISTANCE_SQ = 1.5 * 1.5;
 
@@ -131,6 +150,7 @@ const emojiPicker = document.getElementById('emojiPicker');
 const emojiGrid = document.getElementById('emojiGrid');
 const pageTitleInput = document.getElementById('pageTitleInput');
 const emojiPickerClear = document.getElementById('emojiPickerClear');
+const emojiPickerPublish = document.getElementById('emojiPickerPublish');
 const emojiPickerDelete = document.getElementById('emojiPickerDelete');
 const emojiPickerClose = document.getElementById('emojiPickerClose');
 const deletePageConfirm = document.getElementById('deletePageConfirm');
@@ -162,6 +182,13 @@ const restoreConfirmDialog = document.getElementById('restoreConfirmDialog');
 const restoreConfirmText = document.getElementById('restoreConfirmText');
 const cancelRestoreBtn = document.getElementById('cancelRestoreBtn');
 const confirmRestoreBtn = document.getElementById('confirmRestoreBtn');
+const publishDialog = document.getElementById('publishDialog');
+const publishDrawingsOption = document.getElementById('publishDrawingsOption');
+const publishIncludeDrawings = document.getElementById('publishIncludeDrawings');
+const publishLinkInput = document.getElementById('publishLinkInput');
+const copyPublishLinkBtn = document.getElementById('copyPublishLinkBtn');
+const publishSizeHint = document.getElementById('publishSizeHint');
+const closePublishBtn = document.getElementById('closePublishBtn');
 const storageSummary = document.getElementById('storageSummary');
 const workspaceModeNotice = document.getElementById('workspaceModeNotice');
 const appStatus = document.getElementById('appStatus');
@@ -827,19 +854,15 @@ const drawingState = {
   activePointerId: null
 };
 
+// These wrappers exist so the rest of the editor can keep calling with no
+// arguments; the maths itself lives in src/core/drawing-geometry.js so the
+// published-note reader renders identical strokes.
 function getNormalizedFontSize(fontSize = controls.fontSize?.value || DEFAULT_SETTINGS.fontSize) {
-  const parsedFontSize = Number(fontSize);
-  return Number.isFinite(parsedFontSize) && parsedFontSize > 0 ? parsedFontSize : DEFAULT_SETTINGS.fontSize;
+  return getNormalizedFontSizeValue(fontSize, DEFAULT_SETTINGS.fontSize);
 }
 
 function clampBrushSize(size) {
-  const parsedSize = Number(size);
-
-  if (!Number.isFinite(parsedSize)) {
-    return DEFAULT_SETTINGS.drawSize;
-  }
-
-  return Math.min(MAX_DRAW_SIZE, Math.max(MIN_DRAW_SIZE, parsedSize));
+  return clampBrushSizeValue(size, DEFAULT_SETTINGS.drawSize);
 }
 
 function normalizeBrushSizeSetting(size, fontSize = DEFAULT_SETTINGS.fontSize) {
@@ -853,18 +876,8 @@ function normalizeBrushSizeSetting(size, fontSize = DEFAULT_SETTINGS.fontSize) {
   return clampBrushSize(scaledSize);
 }
 
-function normalizeStoredPoint(point = {}) {
-  const x = Number(point?.x);
-  const y = Number(point?.y);
-
-  return {
-    x: Number.isFinite(x) ? x : 0,
-    y: Number.isFinite(y) ? y : 0
-  };
-}
-
 function getStrokeReferenceFontSize(stroke = {}, fallbackFontSize = DEFAULT_SETTINGS.fontSize) {
-  return getNormalizedFontSize(stroke.referenceFontSize ?? stroke.fontSize ?? fallbackFontSize);
+  return getStrokeReferenceFontSizeValue(stroke, fallbackFontSize);
 }
 
 function convertLegacyPointToStoredPixels(point, fontSize = DEFAULT_SETTINGS.fontSize) {
@@ -878,19 +891,11 @@ function convertLegacyPointToStoredPixels(point, fontSize = DEFAULT_SETTINGS.fon
 }
 
 function convertPointToCanvasPixels(point, referenceFontSize = DEFAULT_SETTINGS.fontSize, fontSize = getNormalizedFontSize()) {
-  const normalizedReferenceFontSize = getNormalizedFontSize(referenceFontSize);
-  const normalizedFontSize = getNormalizedFontSize(fontSize);
-  const normalizedPoint = normalizeStoredPoint(point);
-  const scaleFactor = normalizedFontSize / normalizedReferenceFontSize;
-
-  return {
-    x: normalizedPoint.x * scaleFactor,
-    y: normalizedPoint.y * scaleFactor
-  };
+  return convertPointToCanvasPixelsValue(point, referenceFontSize, fontSize);
 }
 
 function getBrushSizeInPixels(size = drawingState.currentBrushSize, fontSize = getNormalizedFontSize()) {
-  return Math.max(1, clampBrushSize(size) * getNormalizedFontSize(fontSize));
+  return getBrushSizeInPixelsValue(size, fontSize);
 }
 
 function formatBrushSizeLabel(size = drawingState.currentBrushSize, fontSize = getNormalizedFontSize()) {
@@ -2572,55 +2577,6 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
 
-// Strip anything an attacker could use to execute script if the stored
-// content was ever tampered with by an external party (another extension
-// writing to local storage, a buggy migration, an imported file, etc).
-// Paste-into-editor is already sanitized to plain text, but we don't want
-// `editor.innerHTML = page.content` to be a code-execution sink.
-const UNSAFE_TAGS = new Set([
-  'SCRIPT', 'IFRAME', 'OBJECT', 'EMBED', 'LINK', 'META', 'STYLE',
-  'BASE', 'FORM', 'INPUT', 'BUTTON', 'TEXTAREA', 'SELECT', 'OPTION'
-]);
-const UNSAFE_URL_ATTRS = new Set(['href', 'src', 'action', 'formaction', 'xlink:href']);
-
-function sanitizeStoredContent(html) {
-  if (typeof html !== 'string' || html.length === 0) {
-    return '';
-  }
-
-  const template = document.createElement('template');
-  template.innerHTML = html;
-
-  const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT);
-  const doomed = [];
-  let node = walker.nextNode();
-
-  while (node) {
-    if (UNSAFE_TAGS.has(node.tagName)) {
-      doomed.push(node);
-    } else {
-      // Drop inline event handlers (onclick, onerror, …) and javascript: URLs.
-      for (const attr of Array.from(node.attributes)) {
-        const name = attr.name.toLowerCase();
-        if (name.startsWith('on')) {
-          node.removeAttribute(attr.name);
-          continue;
-        }
-        if (UNSAFE_URL_ATTRS.has(name)) {
-          const value = attr.value.trim().toLowerCase();
-          if (value.startsWith('javascript:') || value.startsWith('data:text/html')) {
-            node.removeAttribute(attr.name);
-          }
-        }
-      }
-    }
-    node = walker.nextNode();
-  }
-
-  doomed.forEach(el => el.remove());
-  return template.innerHTML;
-}
-
 // --- Per-page text history -------------------------------------------------
 // The browser's native contenteditable undo stack is destroyed every time we
 // assign editor.innerHTML (page switches, restores), so text undo is handled
@@ -3877,6 +3833,111 @@ function downloadWorkspaceBackup() {
   }
 }
 
+// --- Publishing a page -----------------------------------------------------
+// A published note is carried entirely inside the URL fragment: nothing is
+// uploaded, and the fragment is never sent to the server hosting the app.
+let publishPageId = null;
+let publishRequestId = 0;
+
+function getPublishBaseUrl() {
+  // An extension origin is private to this browser profile, so links made
+  // there have to point at the public deployment to be openable by anyone.
+  return isExtensionContext() ? PUBLIC_APP_BASE_URL : window.location.href;
+}
+
+function describePublishTier(tier, canDropDrawings) {
+  if (tier === 'ok') return 'Short enough for any chat app or email.';
+  if (tier === 'long') return 'A long link — some chat apps shorten what they show, but pasting it whole still works.';
+  return canDropDrawings
+    ? 'A very long link. Some apps cut long links: turn off drawings, or send it somewhere that keeps the whole address.'
+    : 'A very long link. Some apps cut long links, so send it somewhere that keeps the whole address.';
+}
+
+async function regeneratePublishLink() {
+  const page = getPageById(publishPageId);
+  if (!page || !publishLinkInput) return;
+
+  const requestId = ++publishRequestId;
+  const includeDrawings = Boolean(publishIncludeDrawings?.checked);
+  // The open page's freshest text lives in the DOM until the save debounce
+  // fires, so read it straight from the editor rather than the page record.
+  const content = page.id === currentPageId ? sanitizeStoredContent(editor.innerHTML) : page.content;
+
+  publishLinkInput.value = '';
+  if (publishSizeHint) {
+    publishSizeHint.textContent = 'Building the link…';
+    publishSizeHint.dataset.tier = 'ok';
+  }
+
+  try {
+    const note = createPublishedNote({ ...page, content }, getCurrentSettings(), {
+      appVersion: APP_VERSION,
+      includeDrawings,
+      boardWidth: getBoardSize().width
+    });
+    const token = await encodePublishedNote(note);
+    const url = buildPublishedNoteUrl(getPublishBaseUrl(), token);
+
+    // A slower earlier build must not overwrite a newer one.
+    if (requestId !== publishRequestId) return;
+
+    publishLinkInput.value = url;
+    const { kilobytes, tier } = describePublishedLink(url);
+    if (publishSizeHint) {
+      publishSizeHint.dataset.tier = tier;
+      publishSizeHint.textContent = `Link is about ${kilobytes} KB. ${describePublishTier(tier, includeDrawings)}`;
+    }
+  } catch (error) {
+    if (requestId !== publishRequestId) return;
+    if (publishSizeHint) {
+      publishSizeHint.dataset.tier = 'very-long';
+      publishSizeHint.textContent = error?.message || 'This page could not be turned into a link.';
+    }
+  }
+}
+
+function openPublishDialog(pageId = editingPageId || currentPageId) {
+  const page = getPageById(pageId);
+  if (!page || !publishDialog) return;
+
+  publishPageId = page.id;
+  const hasDrawings = Array.isArray(page.drawings) && page.drawings.length > 0;
+  if (publishDrawingsOption) publishDrawingsOption.hidden = !hasDrawings;
+  if (publishIncludeDrawings) publishIncludeDrawings.checked = hasDrawings;
+
+  // The page popover is the dialog's launcher; leaving it open behind a modal
+  // would just be two overlapping surfaces for the same page.
+  closeEmojiPicker();
+  publishDialog.hidden = false;
+  void regeneratePublishLink();
+  requestAnimationFrame(() => copyPublishLinkBtn?.focus());
+}
+
+function closePublishDialog({ restoreFocus = false } = {}) {
+  const pageIdToFocus = publishPageId;
+  if (publishDialog) publishDialog.hidden = true;
+  publishPageId = null;
+  publishRequestId += 1;
+  if (publishLinkInput) publishLinkInput.value = '';
+  if (restoreFocus) getPageTabButton(pageIdToFocus)?.focus();
+}
+
+async function copyPublishLink() {
+  const url = publishLinkInput?.value;
+  if (!url) return;
+
+  try {
+    await navigator.clipboard.writeText(url);
+    statusAnnouncer.show('Link copied. Anyone you send it to can read this page.', { kind: 'success' });
+  } catch (error) {
+    // Clipboard permission can be denied; selecting the text still lets the
+    // person copy it themselves.
+    publishLinkInput.focus();
+    publishLinkInput.select();
+    statusAnnouncer.show('Copying was blocked by the browser. The link is selected — press Ctrl/Cmd + C.', { kind: 'info', duration: 7_000 });
+  }
+}
+
 function closeImportDialog({ restoreFocus = false } = {}) {
   pendingWorkspaceImport = null;
   if (importConfirmDialog) importConfirmDialog.hidden = true;
@@ -4050,6 +4111,33 @@ if (importConfirmDialog) {
 if (restoreConfirmDialog) {
   restoreConfirmDialog.addEventListener('click', event => {
     if (event.target === restoreConfirmDialog) closeRestoreDialog({ restoreFocus: true });
+  });
+}
+
+if (emojiPickerPublish) {
+  emojiPickerPublish.addEventListener('click', event => {
+    // The picker's own outside-click handler must not see this as a click
+    // somewhere else on the page.
+    event.stopPropagation();
+    openPublishDialog();
+  });
+}
+
+if (publishIncludeDrawings) {
+  publishIncludeDrawings.addEventListener('change', () => void regeneratePublishLink());
+}
+
+if (copyPublishLinkBtn) {
+  copyPublishLinkBtn.addEventListener('click', () => void copyPublishLink());
+}
+
+if (closePublishBtn) {
+  closePublishBtn.addEventListener('click', () => closePublishDialog({ restoreFocus: true }));
+}
+
+if (publishDialog) {
+  publishDialog.addEventListener('click', event => {
+    if (event.target === publishDialog) closePublishDialog({ restoreFocus: true });
   });
 }
 
@@ -4466,6 +4554,12 @@ document.addEventListener('keydown', (e) => {
   }
 
   if (e.key === 'Escape') {
+    if (!publishDialog?.hidden) {
+      e.preventDefault();
+      closePublishDialog({ restoreFocus: true });
+      return;
+    }
+
     if (!importConfirmDialog?.hidden) {
       e.preventDefault();
       closeImportDialog({ restoreFocus: true });

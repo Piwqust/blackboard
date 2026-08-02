@@ -150,6 +150,7 @@
 
           <div class="emoji-picker-actions">
             <button class="emoji-picker-action" id="emojiPickerClear" type="button">Reset emoji</button>
+            <button class="emoji-picker-action" id="emojiPickerPublish" type="button" aria-controls="publishDialog" aria-haspopup="dialog">Publish page…</button>
             <button class="emoji-picker-action emoji-picker-action-danger" id="emojiPickerDelete" type="button" aria-controls="deletePageConfirm" aria-expanded="false">Delete page…</button>
             <button class="emoji-picker-action" id="emojiPickerClose" type="button">Done</button>
           </div>
@@ -413,6 +414,29 @@
       <div class="backup-dialog-actions">
         <button id="cancelRestoreBtn" class="delete-confirm-cancel" type="button">Cancel</button>
         <button id="confirmRestoreBtn" class="delete-confirm-delete" type="button">Restore snapshot</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="publishDialog" class="backup-dialog" role="dialog" aria-modal="true" aria-labelledby="publishDialogTitle" aria-describedby="publishDialogText" hidden>
+    <div class="backup-dialog-surface">
+      <p class="backup-dialog-eyebrow">Publish page</p>
+      <h2 id="publishDialogTitle">Share this page as a link</h2>
+      <p id="publishDialogText">The whole note travels inside the link, so nothing is uploaded and no account is involved. Anyone holding the link can read the note, and a link cannot be taken back once it is sent.</p>
+
+      <label class="publish-option" id="publishDrawingsOption">
+        <input type="checkbox" id="publishIncludeDrawings" checked>
+        <span>Include this page's drawings</span>
+      </label>
+
+      <div class="publish-link-row">
+        <input type="text" id="publishLinkInput" class="publish-link-input" readonly spellcheck="false" aria-label="Published note link">
+        <button id="copyPublishLinkBtn" class="secondary-btn" type="button">Copy link</button>
+      </div>
+      <p class="publish-size" id="publishSizeHint" data-tier="ok">Building the link…</p>
+
+      <div class="backup-dialog-actions">
+        <button id="closePublishBtn" class="delete-confirm-cancel" type="button">Done</button>
       </div>
     </div>
   </div>

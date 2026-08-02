@@ -2451,6 +2451,71 @@ body.is-scrolling .drawing-tool-button:hover {
   margin-top: 18px;
 }
 
+/* Publish dialog */
+#publishDialog .backup-dialog-surface {
+  width: min(460px, 100%);
+}
+
+.publish-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--ui-text);
+  cursor: pointer;
+}
+
+.publish-option[hidden] {
+  display: none;
+}
+
+.publish-option input {
+  accent-color: var(--selection-color);
+  cursor: pointer;
+}
+
+.publish-link-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.publish-link-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 8px;
+  background: var(--ui-surface-soft);
+  color: var(--ui-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+/* .secondary-btn is full-width by default in the settings panel; beside the
+   link field it should only be as wide as its label. */
+.publish-link-row .secondary-btn {
+  flex: 0 0 auto;
+  width: auto;
+  white-space: nowrap;
+}
+
+.publish-size {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+}
+
+.backup-dialog p.publish-size {
+  margin-top: 8px;
+}
+
+.publish-size[data-tier='very-long'] {
+  color: var(--text-color);
+}
+
 body.workspace-readonly #editor {
   cursor: default;
 }
@@ -2695,5 +2760,179 @@ body.workspace-readonly #drawingLayer {
   .word-count,
   .emoji-picker {
     display: none !important;
+  }
+}
+
+/* --- Published note reader (read.html) ------------------------------------
+   Reuses the editor's bundled fonts and colour variables so a published note
+   looks the way it did in the editor that made it. */
+.reader-body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  min-height: 100vh;
+  transition: background-color 0.3s ease;
+}
+
+.reader-board {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0 auto;
+  background-color: var(--bg-color);
+}
+
+.reader-shell {
+  width: min(100%, var(--max-width));
+  position: relative;
+  z-index: 1;
+  padding: 48px 48px 120px 48px;
+}
+
+.reader-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+/* An explicit display value would otherwise beat the hidden attribute and
+   leave an empty title row (or a full-height error panel) in the layout. */
+.reader-header[hidden],
+.reader-state[hidden] {
+  display: none;
+}
+
+.reader-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.reader-title {
+  font-family: var(--font-family);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-color);
+}
+
+.reader-meta {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ui-text-muted);
+  margin-left: auto;
+}
+
+.reader-content {
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  letter-spacing: var(--letter-spacing);
+  color: var(--text-color);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  tab-size: 6;
+  -moz-tab-size: 6;
+}
+
+.reader-content img {
+  display: block;
+  inline-size: auto;
+  max-inline-size: min(100%, 32em);
+  block-size: auto;
+  margin-block: 0.75em;
+}
+
+.reader-drawings {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.reader-footer {
+  position: fixed;
+  right: 20px;
+  bottom: 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  z-index: 3;
+}
+
+.reader-footer a {
+  color: var(--ui-text-muted);
+  text-decoration: none;
+  padding: 6px 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: var(--bg-color);
+}
+
+.reader-footer a:hover {
+  color: var(--text-color);
+}
+
+.reader-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.reader-state-surface {
+  max-width: 44ch;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+}
+
+.reader-state-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-text-muted);
+  margin-bottom: 10px;
+}
+
+.reader-state-surface h1 {
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: var(--text-color);
+}
+
+.reader-state-surface p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ui-text-muted);
+}
+
+.reader-state-action {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text-color);
+  text-decoration: none;
+  padding: 8px 14px;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+}
+
+/* The reader's padding is set in src/ui/reader.js from the width the note was
+   published at rather than from the viewer's screen, because it is part of
+   where the strokes sit relative to the first line. These values only apply
+   before that runs. */
+
+@media print {
+  .reader-footer,
+  .reader-state {
+    display: none !important;
+  }
+
+  .reader-shell {
+    padding: 0 !important;
   }
 }
