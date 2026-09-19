@@ -3867,7 +3867,7 @@ function handleSettingChange() {
 // Reset settings to defaults
 function resetSettings() {
   if (!workspaceWritable) return;
-  currentTheme = 'lavender';
+  currentTheme = DEFAULT_SETTINGS.currentTheme;
   const resetSettingsValues = { ...DEFAULT_SETTINGS };
   applySettings(resetSettingsValues);
   updateControlValues(resetSettingsValues);
