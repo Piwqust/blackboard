@@ -2782,6 +2782,7 @@ body.workspace-readonly #drawingLayer {
    Reuses the editor's bundled fonts and colour variables so a published note
    looks the way it did in the editor that made it. */
 .reader-body {
+  overflow-x: hidden;
   background-color: var(--bg-color);
   color: var(--text-color);
   min-height: 100vh;
