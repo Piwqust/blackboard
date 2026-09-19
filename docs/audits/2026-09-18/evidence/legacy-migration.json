@@ -1,0 +1,45 @@
+{
+  "evidenceType": "Historical source plus Node diagnostic and actual isolated extension bootstrap",
+  "historicalRevision": "724d0cd",
+  "historicalSource": {
+    "file": "editor.js",
+    "lines": [
+      1189,
+      1194
+    ],
+    "fields": {
+      "width": "drawingState.currentBrushSize",
+      "points": "getRelativePoint",
+      "coordinateSpace": "absent"
+    },
+    "defaultDrawSize": 4
+  },
+  "fixture": {
+    "id": "raw-stroke",
+    "width": 4,
+    "points": [
+      {
+        "x": 48,
+        "y": 98
+      },
+      {
+        "x": 350,
+        "y": 98
+      }
+    ],
+    "color": "#DDDAD2"
+  },
+  "observedAfterBootstrap": {
+    "dom": "Legacy untagged stroke",
+    "oldChromeWidth": 4,
+    "persistedWidth": 1.4,
+    "coordinateSpace": "text-scaled-px",
+    "referenceFontSize": 40,
+    "renderedPixelWidth": 56
+  },
+  "setup": "Temporary extension profile only. Existing synthetic workspace snapshotted and emptied before triggering migration. Lifecycle write temporarily blocked during reload to retain fixture setup.",
+  "screenshot": {
+    "available": false,
+    "reason": "Page.captureScreenshot CDP timeout; not used as evidence"
+  }
+}

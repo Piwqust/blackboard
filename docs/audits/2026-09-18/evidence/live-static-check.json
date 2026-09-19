@@ -1,0 +1,32 @@
+[
+  {
+    "file": "read.html",
+    "status": 200,
+    "bytes": 1661,
+    "sameAsLocal": true
+  },
+  {
+    "file": "src/core/sanitize-html.js",
+    "status": 200,
+    "bytes": 2589,
+    "sameAsLocal": true
+  },
+  {
+    "file": "src/ui/reader.js",
+    "status": 200,
+    "bytes": 10664,
+    "sameAsLocal": true
+  },
+  {
+    "file": "editor.js",
+    "status": 200,
+    "bytes": 153475,
+    "sameAsLocal": true
+  },
+  {
+    "file": "pwa-sw.js",
+    "status": 200,
+    "bytes": 2574,
+    "sameAsLocal": false
+  }
+]

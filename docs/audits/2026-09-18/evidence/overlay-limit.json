@@ -1,0 +1,24 @@
+{
+  "status": "unavailable",
+  "package": "impeccable@4.1.0",
+  "engine": "0.1.5",
+  "attempt": "npx --yes impeccable@4.1.0 live",
+  "result": {
+    "ok": false,
+    "error": "context_missing",
+    "missing": [
+      "PRODUCT.md",
+      "DESIGN.md"
+    ],
+    "nextCommand": "init",
+    "targetPath": null,
+    "projectRoot": "/Users/dameer/Desktop/code/blackboard-text",
+    "repoRoot": "/Users/dameer/Desktop/code/blackboard-text",
+    "productPath": null,
+    "designPath": null
+  },
+  "serverStarted": false,
+  "overlayInjected": false,
+  "consoleFindings": null,
+  "reason": "Current live command requires PRODUCT.md/DESIGN.md context and is variant mode; installed critique reference describes detection server. No PRODUCT.md/config created; no downgrade or alternate service attempted."
+}

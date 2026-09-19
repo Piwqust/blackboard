@@ -1,0 +1,186 @@
+[
+  {
+    "capture": "53-contrast-blackboard-empty-background",
+    "label": "THEME",
+    "crop": [
+      1149,
+      195,
+      1403,
+      206
+    ],
+    "fontSize": "9px",
+    "dominantBackground": [
+      11,
+      11,
+      13
+    ],
+    "highestContrastGlyphPixel": [
+      100,
+      99,
+      95
+    ],
+    "highestPixelContrast": 3.27,
+    "method": "Contrast of highest contrast sampled non-background pixel in label crop; excludes no pixels by source color."
+  },
+  {
+    "capture": "53-contrast-blackboard-empty-background",
+    "label": "LAYOUT",
+    "crop": [
+      1149,
+      423,
+      1403,
+      434
+    ],
+    "fontSize": "9px",
+    "dominantBackground": [
+      11,
+      11,
+      13
+    ],
+    "highestContrastGlyphPixel": [
+      100,
+      99,
+      95
+    ],
+    "highestPixelContrast": 3.27,
+    "method": "Contrast of highest contrast sampled non-background pixel in label crop; excludes no pixels by source color."
+  },
+  {
+    "capture": "53-contrast-blackboard-empty-background",
+    "label": "COLORS",
+    "crop": [
+      1149,
+      605,
+      1403,
+      616
+    ],
+    "fontSize": "9px",
+    "dominantBackground": [
+      11,
+      11,
+      13
+    ],
+    "highestContrastGlyphPixel": [
+      100,
+      99,
+      95
+    ],
+    "highestPixelContrast": 3.27,
+    "method": "Contrast of highest contrast sampled non-background pixel in label crop; excludes no pixels by source color."
+  },
+  {
+    "capture": "53-contrast-blackboard-empty-background",
+    "label": "YOUR DATA",
+    "crop": [
+      1149,
+      735,
+      1403,
+      746
+    ],
+    "fontSize": "9px",
+    "dominantBackground": [
+      11,
+      11,
+      13
+    ],
+    "highestContrastGlyphPixel": [
+      100,
+      99,
+      95
+    ],
+    "highestPixelContrast": 3.27,
+    "method": "Contrast of highest contrast sampled non-background pixel in label crop; excludes no pixels by source color."
+  },
+  {
+    "capture": "46-settings-paper-1440x900",
+    "label": "THEME",
+    "crop": [
+      1149,
+      20,
+      1403,
+      31
+    ],
+    "fontSize": "9px",
+    "dominantBackground": [
+      250,
+      250,
+      247
+    ],
+    "highestContrastGlyphPixel": [
+      222,
+      222,
+      220
+    ],
+    "highestPixelContrast": 1.288,
+    "method": "Contrast of highest contrast sampled non-background pixel in label crop; excludes no pixels by source color."
+  },
+  {
+    "capture": "46-settings-paper-1440x900",
+    "label": "LAYOUT",
+    "crop": [
+      1149,
+      248,
+      1403,
+      259
+    ],
+    "fontSize": "9px",
+    "dominantBackground": [
+      250,
+      250,
+      246
+    ],
+    "highestContrastGlyphPixel": [
+      155,
+      155,
+      154
+    ],
+    "highestPixelContrast": 2.659,
+    "method": "Contrast of highest contrast sampled non-background pixel in label crop; excludes no pixels by source color."
+  },
+  {
+    "capture": "46-settings-paper-1440x900",
+    "label": "COLORS",
+    "crop": [
+      1149,
+      430,
+      1403,
+      441
+    ],
+    "fontSize": "9px",
+    "dominantBackground": [
+      250,
+      250,
+      246
+    ],
+    "highestContrastGlyphPixel": [
+      155,
+      155,
+      154
+    ],
+    "highestPixelContrast": 2.659,
+    "method": "Contrast of highest contrast sampled non-background pixel in label crop; excludes no pixels by source color."
+  },
+  {
+    "capture": "46-settings-paper-1440x900",
+    "label": "YOUR DATA",
+    "crop": [
+      1149,
+      560,
+      1403,
+      571
+    ],
+    "fontSize": "9px",
+    "dominantBackground": [
+      250,
+      250,
+      246
+    ],
+    "highestContrastGlyphPixel": [
+      155,
+      155,
+      154
+    ],
+    "highestPixelContrast": 2.659,
+    "method": "Contrast of highest contrast sampled non-background pixel in label crop; excludes no pixels by source color."
+  }
+]

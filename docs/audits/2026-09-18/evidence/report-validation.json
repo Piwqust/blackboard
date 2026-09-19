@@ -1,0 +1,13 @@
+{
+  "markdownLinksChecked": 183,
+  "findings": 22,
+  "priorityCounts": {
+    "P1": 9,
+    "P2": 12,
+    "P3": 1
+  },
+  "issues": [],
+  "changedTrackedSourceFiles": [],
+  "newAuditFiles": 59,
+  "auditBytes": 2909097
+}

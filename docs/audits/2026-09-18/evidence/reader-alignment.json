@@ -1,0 +1,43 @@
+{
+  "evidenceType": "Measured live DOM rectangles and calculated expected stroke position",
+  "fixture": {
+    "boardWidth": 1440,
+    "fontSize": 40,
+    "title": "Alignment reference",
+    "emoji": "📝",
+    "stroke": [
+      {
+        "x": 48,
+        "y": 98
+      },
+      {
+        "x": 350,
+        "y": 98
+      }
+    ],
+    "contentTopBeforeHeader": 48
+  },
+  "desktop": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "canvasTop": 52,
+    "contentTop": 100,
+    "actualStrokeY": 150,
+    "expectedStrokeY": 150
+  },
+  "narrow": {
+    "viewport": [
+      390,
+      844
+    ],
+    "scale": 0.2708333333333333,
+    "canvasTop": 0,
+    "contentTop": 27.08333396911621,
+    "actualStrokeY": 26.541666666666664,
+    "expectedStrokeY": 40.625000635782875,
+    "delta": -14.083333969116213
+  },
+  "limitations": "Screenshots captured but image viewing unavailable; rectangles and computed layout were measured."
+}

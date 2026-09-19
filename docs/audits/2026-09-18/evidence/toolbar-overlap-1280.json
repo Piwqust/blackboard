@@ -1,0 +1,307 @@
+{
+  "collisions": [
+    {
+      "character": "t",
+      "characterRect": {
+        "bottom": 104,
+        "height": 49,
+        "left": 855.34375,
+        "right": 868.453125,
+        "top": 55,
+        "width": 13.109375,
+        "x": 855.34375,
+        "y": 55
+      },
+      "context": "mn reading room and the community worksho",
+      "hitElement": "DIV",
+      "intersection": {
+        "bottom": 78,
+        "left": 855.34375,
+        "right": 868.453125,
+        "top": 55
+      },
+      "offset": 46,
+      "overlay": "drawingToolbar",
+      "overlayReceivesPointer": true
+    },
+    {
+      "character": "h",
+      "characterRect": {
+        "bottom": 104,
+        "height": 49,
+        "left": 868.4375,
+        "right": 890.25,
+        "top": 55,
+        "width": 21.8125,
+        "x": 868.4375,
+        "y": 55
+      },
+      "context": "n reading room and the community workshop",
+      "hitElement": "drawToggleBtn",
+      "intersection": {
+        "bottom": 78,
+        "left": 868.4375,
+        "right": 890.25,
+        "top": 55
+      },
+      "offset": 47,
+      "overlay": "drawingToolbar",
+      "overlayReceivesPointer": true
+    },
+    {
+      "character": "e",
+      "characterRect": {
+        "bottom": 104,
+        "height": 49,
+        "left": 890.234375,
+        "right": 911.578125,
+        "top": 55,
+        "width": 21.34375,
+        "x": 890.234375,
+        "y": 55
+      },
+      "context": " reading room and the community workshop",
+      "hitElement": "DIV",
+      "intersection": {
+        "bottom": 78,
+        "left": 890.234375,
+        "right": 911.578125,
+        "top": 55
+      },
+      "offset": 48,
+      "overlay": "drawingToolbar",
+      "overlayReceivesPointer": true
+    },
+    {
+      "character": "c",
+      "characterRect": {
+        "bottom": 104,
+        "height": 49,
+        "left": 920.9375,
+        "right": 941.546875,
+        "top": 55,
+        "width": 20.609375,
+        "x": 920.9375,
+        "y": 55
+      },
+      "context": "eading room and the community workshop",
+      "hitElement": "eraseToggleBtn",
+      "intersection": {
+        "bottom": 78,
+        "left": 920.9375,
+        "right": 941.546875,
+        "top": 55
+      },
+      "offset": 50,
+      "overlay": "drawingToolbar",
+      "overlayReceivesPointer": true
+    },
+    {
+      "character": "o",
+      "characterRect": {
+        "bottom": 104,
+        "height": 49,
+        "left": 941.53125,
+        "right": 963.53125,
+        "top": 55,
+        "width": 22,
+        "x": 941.53125,
+        "y": 55
+      },
+      "context": "ading room and the community workshop",
+      "hitElement": "DIV",
+      "intersection": {
+        "bottom": 78,
+        "left": 941.53125,
+        "right": 963.53125,
+        "top": 55
+      },
+      "offset": 51,
+      "overlay": "drawingToolbar",
+      "overlayReceivesPointer": true
+    },
+    {
+      "character": "m",
+      "characterRect": {
+        "bottom": 104,
+        "height": 49,
+        "left": 963.515625,
+        "right": 996.46875,
+        "top": 55,
+        "width": 32.953125,
+        "x": 963.515625,
+        "y": 55
+      },
+      "context": "ding room and the community workshop",
+      "hitElement": "drawSizeToggleBtn",
+      "intersection": {
+        "bottom": 78,
+        "left": 963.515625,
+        "right": 996.46875,
+        "top": 55
+      },
+      "offset": 52,
+      "overlay": "drawingToolbar",
+      "overlayReceivesPointer": true
+    },
+    {
+      "character": "m",
+      "characterRect": {
+        "bottom": 104,
+        "height": 49,
+        "left": 996.453125,
+        "right": 1029.390625,
+        "top": 55,
+        "width": 32.9375,
+        "x": 996.453125,
+        "y": 55
+      },
+      "context": "ing room and the community workshop",
+      "hitElement": "drawColorBtn",
+      "intersection": {
+        "bottom": 78,
+        "left": 996.453125,
+        "right": 1029.390625,
+        "top": 55
+      },
+      "offset": 53,
+      "overlay": "drawingToolbar",
+      "overlayReceivesPointer": true
+    },
+    {
+      "character": "u",
+      "characterRect": {
+        "bottom": 104,
+        "height": 49,
+        "left": 1029.375,
+        "right": 1050.765625,
+        "top": 55,
+        "width": 21.390625,
+        "x": 1029.375,
+        "y": 55
+      },
+      "context": "ng room and the community workshop",
+      "hitElement": "drawingToolbar",
+      "intersection": {
+        "bottom": 78,
+        "left": 1029.375,
+        "right": 1050.765625,
+        "top": 55
+      },
+      "offset": 54,
+      "overlay": "drawingToolbar",
+      "overlayReceivesPointer": true
+    },
+    {
+      "character": "n",
+      "characterRect": {
+        "bottom": 104,
+        "height": 49,
+        "left": 1050.75,
+        "right": 1072.328125,
+        "top": 55,
+        "width": 21.578125,
+        "x": 1050.75,
+        "y": 55
+      },
+      "context": "g room and the community workshop",
+      "hitElement": "undoDrawingBtn",
+      "intersection": {
+        "bottom": 78,
+        "left": 1050.75,
+        "right": 1072.328125,
+        "top": 55
+      },
+      "offset": 55,
+      "overlay": "drawingToolbar",
+      "overlayReceivesPointer": true
+    },
+    {
+      "character": "i",
+      "characterRect": {
+        "bottom": 104,
+        "height": 49,
+        "left": 1072.3125,
+        "right": 1079.9375,
+        "top": 55,
+        "width": 7.625,
+        "x": 1072.3125,
+        "y": 55
+      },
+      "context": " room and the community workshop",
+      "hitElement": "undoDrawingBtn",
+      "intersection": {
+        "bottom": 78,
+        "left": 1072.3125,
+        "right": 1079.9375,
+        "top": 55
+      },
+      "offset": 56,
+      "overlay": "drawingToolbar",
+      "overlayReceivesPointer": true
+    },
+    {
+      "character": "t",
+      "characterRect": {
+        "bottom": 104,
+        "height": 49,
+        "left": 1079.921875,
+        "right": 1092.59375,
+        "top": 55,
+        "width": 12.671875,
+        "x": 1079.921875,
+        "y": 55
+      },
+      "context": "room and the community workshop",
+      "hitElement": "undoDrawingBtn",
+      "intersection": {
+        "bottom": 78,
+        "left": 1079.921875,
+        "right": 1092.59375,
+        "top": 55
+      },
+      "offset": 57,
+      "overlay": "drawingToolbar",
+      "overlayReceivesPointer": true
+    },
+    {
+      "character": "y",
+      "characterRect": {
+        "bottom": 104,
+        "height": 49,
+        "left": 1092.578125,
+        "right": 1112.984375,
+        "top": 55,
+        "width": 20.40625,
+        "x": 1092.578125,
+        "y": 55
+      },
+      "context": "oom and the community workshop",
+      "hitElement": "DIV",
+      "intersection": {
+        "bottom": 78,
+        "left": 1092.578125,
+        "right": 1112.984375,
+        "top": 55
+      },
+      "offset": 58,
+      "overlay": "drawingToolbar",
+      "overlayReceivesPointer": true
+    }
+  ],
+  "count": 12,
+  "editorRect": {
+    "bottom": 1384,
+    "height": 1384,
+    "left": 0,
+    "right": 1280,
+    "top": 0,
+    "width": 1280,
+    "x": 0,
+    "y": 0
+  },
+  "viewport": {
+    "height": 720,
+    "width": 1280
+  }
+}

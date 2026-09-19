@@ -1,0 +1,34 @@
+{
+  "evidenceType": "Transcribed observed tool results, not a new test execution",
+  "environment": {
+    "origin": "http://127.0.0.1:4178",
+    "networkProbeOrigin": "http://127.0.0.1:4179",
+    "browser": "HeadlessChrome 147",
+    "personalDataUsed": false
+  },
+  "scriptProbe": {
+    "inputDescription": "href contains java + U+000A + script:window.__bbAuditXss=true;void(0)",
+    "survivingAttribute": "java\nscript:window.__bbAuditXss=true;void(0)",
+    "normalizedHref": "javascript:window.__bbAuditXss=true;void(0)",
+    "action": "Clicked rendered local marker link",
+    "observedMarker": true
+  },
+  "networkProbe": {
+    "policy": "allowRemoteMedia:false",
+    "observedRequests": [
+      {
+        "type": "img",
+        "path": "/audit-probe-srcset.png"
+      },
+      {
+        "type": "css",
+        "path": "/audit-probe-style.png"
+      },
+      {
+        "type": "video",
+        "path": "/audit-probe-poster.png"
+      }
+    ],
+    "evidenceFile": "security-network.log"
+  }
+}

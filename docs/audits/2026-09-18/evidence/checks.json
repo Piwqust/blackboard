@@ -1,0 +1,46 @@
+{
+  "verify": {
+    "status": "passed",
+    "tests": 17,
+    "syntaxFiles": 14,
+    "shellEntries": 29,
+    "targets": [
+      "pwa",
+      "edge-extension"
+    ],
+    "node": "v26.7.0",
+    "isolatedBuild": true
+  },
+  "npmAudit": {
+    "vulnerabilities": 0
+  },
+  "offline": {
+    "serverStopped": true,
+    "editorContentRetained": true,
+    "readerOpened": true
+  },
+  "multiTab": {
+    "secondWriterBlocked": true,
+    "promotionAfterClose": true
+  },
+  "imageInspection": {
+    "attempted": true,
+    "available": false,
+    "reason": "view_image is not allowed because you do not support image inputs"
+  },
+  "extension": {
+    "chromium": "HeadlessChrome147",
+    "loadedVersion": "2.2.0",
+    "noteSurvivesReload": true,
+    "legacyAdapterRead": true,
+    "legacySourceRetained": true,
+    "generatedPublishBase": "https://piwqust.github.io/blackboard/read.html",
+    "errors": 0,
+    "actualEdge": false
+  },
+  "updateFault": {
+    "newWorkerActivated": true,
+    "reloadedDespiteSaveFailure": true,
+    "latestTextLost": true
+  }
+}

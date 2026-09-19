@@ -1,0 +1,27 @@
+{
+  "evidenceType": "Live DOM scrolling plus normal page-tab clicks",
+  "fixture": {
+    "pages": 12,
+    "lines": 70,
+    "viewport": [
+      1280,
+      720
+    ]
+  },
+  "beforeSwitch": {
+    "bodyScrollTop": 500,
+    "windowScrollY": 0,
+    "bodyScrollHeight": 4648,
+    "documentElementScrollHeight": 720
+  },
+  "afterSwitch": {
+    "currentPageId": "design-audit-page-2",
+    "firstPageSavedScrollTop": 0,
+    "bodyScrollTop": 0
+  },
+  "afterReturn": {
+    "bodyScrollTop": 0,
+    "windowScrollY": 0
+  },
+  "limitations": "Wheel automation became unreliable. Evidence is body scroll programmatically and page switches through actual tab buttons."
+}
