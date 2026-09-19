@@ -142,7 +142,7 @@ html {
   width: 100%;
   min-height: 100vh;
   margin: 0;
-  padding: 48px 48px 120px 48px;
+  padding: 48px 360px 120px 48px;
   font-family: var(--font-family);
   font-size: var(--font-size);
   line-height: var(--line-height);
@@ -2584,6 +2584,20 @@ body.workspace-readonly #drawingLayer {
 }
 
 /* Responsive */
+/* Tablets and medium screens: reduce right padding proportionally */
+@media (min-width: 769px) and (max-width: 1024px) {
+  #editor {
+    padding-right: 280px;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1366px) {
+  #editor {
+    padding-right: 320px;
+  }
+}
+
+
 @media (max-width: 768px) {
   #editor {
     padding: 48px 24px 100px 24px;
