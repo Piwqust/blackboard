@@ -3968,14 +3968,14 @@ function openPublishDialog(pageId = editingPageId || currentPageId) {
   // The page popover is the dialog's launcher; leaving it open behind a modal
   // would just be two overlapping surfaces for the same page.
   closeEmojiPicker();
-  publishDialog.hidden = false;
+  publishDialog.showModal();
   void regeneratePublishLink();
   requestAnimationFrame(() => copyPublishLinkBtn?.focus());
 }
 
 function closePublishDialog({ restoreFocus = false } = {}) {
   const pageIdToFocus = publishPageId;
-  if (publishDialog) publishDialog.hidden = true;
+  if (publishDialog) publishDialog.close();
   publishPageId = null;
   publishRequestId += 1;
   if (publishLinkInput) publishLinkInput.value = '';
@@ -4000,7 +4000,7 @@ async function copyPublishLink() {
 
 function closeImportDialog({ restoreFocus = false } = {}) {
   pendingWorkspaceImport = null;
-  if (importConfirmDialog) importConfirmDialog.hidden = true;
+  if (importConfirmDialog) importConfirmDialog.close();
   if (restoreFocus) importWorkspaceBtn?.focus();
 }
 
@@ -4020,7 +4020,7 @@ async function selectWorkspaceBackup(file) {
       importConfirmText.textContent = `This will replace the current ${describeBackup(getWorkspaceForPersistence())} with ${describeBackup(parsed.workspace)}. A local recovery snapshot is saved first.${exportedWhen}`;
     }
     if (importConfirmDialog) {
-      importConfirmDialog.hidden = false;
+      importConfirmDialog.showModal();
       requestAnimationFrame(() => confirmImportBtn?.focus());
     }
   } catch (error) {
@@ -4058,7 +4058,7 @@ async function confirmWorkspaceImport() {
 
 function closeRestoreDialog({ restoreFocus = false } = {}) {
   pendingRecoverySnapshot = null;
-  if (restoreConfirmDialog) restoreConfirmDialog.hidden = true;
+  if (restoreConfirmDialog) restoreConfirmDialog.close();
   if (restoreFocus) restoreSnapshotBtn?.focus();
 }
 
@@ -4076,7 +4076,7 @@ async function openLatestRecoverySnapshot() {
       restoreConfirmText.textContent = `Restore the snapshot from ${new Date(latestSnapshot.createdAt).toLocaleString('en-US')}? Your current workspace will be saved as a new snapshot first.`;
     }
     if (restoreConfirmDialog) {
-      restoreConfirmDialog.hidden = false;
+      restoreConfirmDialog.showModal();
       requestAnimationFrame(() => confirmRestoreBtn?.focus());
     }
   } catch (error) {
@@ -4267,9 +4267,9 @@ editor.addEventListener('keydown', (e) => {
     }
     
     // Check if any panels/dialogs are open - let document handler deal with those
-    const hasOpenPanels = !publishDialog?.hidden ||
-                         !importConfirmDialog?.hidden ||
-                         !restoreConfirmDialog?.hidden ||
+    const hasOpenPanels = publishDialog?.open ||
+                         importConfirmDialog?.open ||
+                         restoreConfirmDialog?.open ||
                          uiState.deleteConfirmOpen ||
                          uiState.clearDrawingsConfirmOpen ||
                          uiState.drawSizePopoverOpen ||
@@ -4653,19 +4653,19 @@ document.addEventListener('keydown', (e) => {
   }
 
   if (e.key === 'Escape') {
-    if (!publishDialog?.hidden) {
+    if (publishDialog?.open) {
       e.preventDefault();
       closePublishDialog({ restoreFocus: true });
       return;
     }
 
-    if (!importConfirmDialog?.hidden) {
+    if (importConfirmDialog?.open) {
       e.preventDefault();
       closeImportDialog({ restoreFocus: true });
       return;
     }
 
-    if (!restoreConfirmDialog?.hidden) {
+    if (restoreConfirmDialog?.open) {
       e.preventDefault();
       closeRestoreDialog({ restoreFocus: true });
       return;
