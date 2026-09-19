@@ -1110,8 +1110,18 @@ function getPageTabButton(pageId = editingPageId) {
     return null;
   }
 
-  return pageTabsList.querySelector(`.page-tab[data-page-id="${pageId}"]`);
+  return getPageTab(pageId);
 }
+
+
+function getPageTab(pageId) {
+  if (!pageTabsList) return null;
+  // Use data attribute matching without template interpolation to avoid injection
+  return Array.from(pageTabsList.querySelectorAll('.page-tab')).find(
+    tab => tab.getAttribute('data-page-id') === pageId
+  );
+}
+
 
 function getViewportScrollTop() {
   return Math.max(window.scrollY || window.pageYOffset || 0, 0);
@@ -2274,6 +2284,7 @@ async function saveContent() {
     workspaceChannel.post('page-saved', { pageId: currentPageId });
     showSaveIndicator();
     updateWordCount();
+    return true;
   } catch (error) {
     console.error('Error saving content:', error);
   }
@@ -2504,7 +2515,47 @@ async function updateRecoverySummary() {
   }
 }
 
+
+function validateWorkspace(workspace) {
+  if (!workspace || typeof workspace !== 'object') {
+    throw new Error('Invalid workspace: not an object');
+  }
+  
+  if (!Array.isArray(workspace.pages)) {
+    throw new Error('Invalid workspace: pages must be an array');
+  }
+  
+  // Validate each page
+  workspace.pages.forEach((page, index) => {
+    if (!page || typeof page !== 'object') {
+      throw new Error(`Invalid page at index ${index}: not an object`);
+    }
+    
+    if (typeof page.id !== 'string' || page.id.trim() === '') {
+      throw new Error(`Invalid page at index ${index}: id must be a non-empty string`);
+    }
+    
+    // Ensure content is a string
+    if (page.content !== undefined && typeof page.content !== 'string') {
+      throw new Error(`Invalid page at index ${index}: content must be a string`);
+    }
+  });
+  
+  // Check for duplicate IDs
+  const ids = new Set();
+  workspace.pages.forEach((page, index) => {
+    if (ids.has(page.id)) {
+      throw new Error(`Duplicate page ID "${page.id}" at index ${index}`);
+    }
+    ids.add(page.id);
+  });
+  
+  return true;
+}
+
+
 function applyWorkspaceToEditor(workspace) {
+  clearTextHistories();
   const settings = normalizeSettings(workspace.settings, DEFAULT_SETTINGS);
   pages = workspace.pages.map(page => normalizePage(page, settings.fontSize));
   currentPageId = workspace.currentPageId || pages[0]?.id || null;
@@ -2761,6 +2812,15 @@ function redoTextEdit() {
   applyTextHistoryState(history.states[history.index]);
   return true;
 }
+
+function clearTextHistories() {
+  textHistories.clear();
+  if (textSnapshotTimeout) {
+    clearTimeout(textSnapshotTimeout);
+    textSnapshotTimeout = null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 
 // Load page content
@@ -3980,6 +4040,7 @@ async function confirmWorkspaceImport() {
     // its recovery snapshot. This is why the snapshot can restore a note even
     // when import happens immediately after typing.
     await workspaceStore.saveWorkspace(getWorkspaceForPersistence({ captureEditor: true }));
+    validateWorkspace(importCandidate);
     await workspaceStore.replaceWorkspaceWithSnapshot(importCandidate, 'Before backup import');
 
     applyWorkspaceToEditor(importCandidate);
@@ -4054,8 +4115,20 @@ function setupPwaUpdatePrompt() {
       reloadForUpdateBtn?.addEventListener('click', async () => {
         reloadForUpdateBtn.disabled = true;
         flushPendingPersistence();
-        await workspaceStore.flush();
-        apply();
+        try {
+          await workspaceStore.flush();
+          apply();
+        } catch (error) {
+          console.error('Failed to save before reload:', error);
+          handleStorageError(error, 'saving before update');
+          reloadForUpdateBtn.disabled = false;
+          if (updateReadyNotice) {
+            const warning = document.createElement('div');
+            warning.style.cssText = 'color: #ff4444; margin-top: 8px; font-size: 14px;';
+            warning.textContent = 'Cannot reload: unsaved changes. Export your work first.';
+            updateReadyNotice.appendChild(warning);
+          }
+        }
       }, { once: true });
     },
     onControllerChange() {
@@ -4184,6 +4257,32 @@ editor.addEventListener('keydown', (e) => {
 
     debouncedSave();
     scheduleTextSnapshot();
+  }
+  
+  // BUG-08 fix: Allow keyboard exit from editor with Escape
+  if (e.key === 'Escape') {
+    // Don't interfere with IME composition
+    if (e.isComposing || e.keyCode === 229) {
+      return;
+    }
+    
+    // Check if any panels/dialogs are open - let document handler deal with those
+    const hasOpenPanels = !publishDialog?.hidden ||
+                         !importConfirmDialog?.hidden ||
+                         !restoreConfirmDialog?.hidden ||
+                         uiState.deleteConfirmOpen ||
+                         uiState.clearDrawingsConfirmOpen ||
+                         uiState.drawSizePopoverOpen ||
+                         colorPickerState.isOpen ||
+                         fontDropdownOpen ||
+                         emojiPicker?.classList.contains('visible') ||
+                         uiState.settingsOpen;
+    
+    if (!hasOpenPanels) {
+      e.preventDefault();
+      // Move focus to settings button to allow keyboard navigation
+      settingsToggleBtn?.focus();
+    }
   }
 });
 
