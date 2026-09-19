@@ -1124,7 +1124,8 @@ function getPageTab(pageId) {
 
 
 function getViewportScrollTop() {
-  return Math.max(window.scrollY || window.pageYOffset || 0, 0);
+  // The actual scroll container is document.documentElement (html) or body, not window
+  return Math.max(document.documentElement.scrollTop || document.body.scrollTop || 0, 0);
 }
 
 function getMaxViewportScrollTop() {
@@ -1167,10 +1168,10 @@ function restorePageScrollPosition(scrollTop = 0) {
   const targetScrollTop = Math.max(0, Number(scrollTop) || 0);
   const applyScroll = () => {
     const clampedScrollTop = Math.min(targetScrollTop, getMaxViewportScrollTop());
-    window.scrollTo(0, clampedScrollTop);
+    document.documentElement.scrollTop = clampedScrollTop;
 
     if (Math.abs(getViewportScrollTop() - clampedScrollTop) > 1) {
-      window.scrollTo(0, clampedScrollTop);
+      document.documentElement.scrollTop = clampedScrollTop;
     }
   };
 
