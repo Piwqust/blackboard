@@ -2862,7 +2862,6 @@ function renderPageTabs() {
     tab.setAttribute('tabindex', isActive ? '0' : '-1');
     tab.setAttribute('draggable', 'true');
     tab.setAttribute('aria-label', getPageTabAriaLabel(page, index, isActive));
-    tab.disabled = !workspaceWritable;
     tab.dataset.pageId = page.id;
     tab.dataset.pageIndex = index;
     
