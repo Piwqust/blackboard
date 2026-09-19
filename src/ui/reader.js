@@ -118,14 +118,14 @@ function applyShellPadding() {
 // the board, and strokes are stored against that same origin. The reader adds
 // a title row above the text, so the canvas is pushed down by exactly that row
 // to put the drawings back where they were relative to the words.
-function getCanvasOffsetTop() {
+function getCanvasOffsetTop(boardScale = 1) {
   if (!board || !content || header?.hidden) return 0;
   const boardTop = board.getBoundingClientRect().top;
   const contentTop = content.getBoundingClientRect().top;
   const shellPaddingTop = Number.parseFloat(getComputedStyle(content.parentElement).paddingTop) || 0;
-  return Math.max(0, Math.round(contentTop - boardTop - shellPaddingTop));
+  const scaledOffset = contentTop - boardTop - shellPaddingTop;
+  return Math.max(0, Math.round(scaledOffset / boardScale));
 }
-
 // A drawing can reach further down the page than the text does, so the board
 // has to grow to hold it — otherwise the canvas would clip the stroke.
 function getDrawnHeight(strokes, scale) {
@@ -150,7 +150,7 @@ function paintDrawings() {
   if (width < 1) return;
 
   const strokes = Array.isArray(published.note.drawings) ? published.note.drawings : [];
-  const offsetTop = getCanvasOffsetTop();
+  const offsetTop = getCanvasOffsetTop(boardScale);
   const drawnHeight = strokes.length > 0 ? offsetTop + getDrawnHeight(strokes, 1) + 48 : 0;
   // Measured from the flow content and the strokes, never from the board's own
   // scroll height: the canvas is a child of the board, so reading scrollHeight
@@ -253,3 +253,4 @@ if (document.fonts?.ready) {
 }
 
 void openNoteFromHash();
+
