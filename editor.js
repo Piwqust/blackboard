@@ -347,6 +347,7 @@ function initColorPickerSwatches() {
       colorPickerState.brightness = hsb.b;
       if (colorPickerHue) colorPickerHue.value = hsb.h;
       updateColorPickerDisplay();
+      applyColorLive();
     });
     colorPickerSwatches.appendChild(swatch);
   });
@@ -463,8 +464,6 @@ function updateColorPickerDisplay() {
   // Update hex input
   if (colorPickerHexInput) colorPickerHexInput.value = hex;
   
-  // Live update the color
-  applyColorLive();
 }
 
 function applyColorLive() {
@@ -505,6 +504,7 @@ function handleAreaInteraction(e) {
   colorPickerState.brightness = Math.round((1 - y) * 100);
   
   updateColorPickerDisplay();
+  applyColorLive();
 }
 
 // Color area pointer events — pointer capture keeps the drag alive even when
@@ -540,6 +540,7 @@ if (colorPickerHue) {
   colorPickerHue.addEventListener('input', () => {
     colorPickerState.hue = parseInt(colorPickerHue.value, 10);
     updateColorPickerDisplay();
+    applyColorLive();
   });
 }
 
@@ -555,6 +556,7 @@ if (colorPickerHexInput) {
       colorPickerState.brightness = hsb.b;
       if (colorPickerHue) colorPickerHue.value = hsb.h;
       updateColorPickerDisplay();
+      applyColorLive();
     }
   });
 }
@@ -574,6 +576,7 @@ colorPickerMatchTheme?.addEventListener('click', () => {
   colorPickerState.hue = hsb.h;
   colorPickerState.sat = hsb.s;
   colorPickerState.brightness = hsb.b;
+  applyColorLive();
   if (colorPickerHue) colorPickerHue.value = hsb.h;
   updateColorPickerDisplay();
   if (colorPickerMatchTheme) colorPickerMatchTheme.hidden = true;
