@@ -1,8 +1,12 @@
 import {test, expect} from '@playwright/test';
 
 test.beforeEach(async ({page}) => {
+  const errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  page.on('requestfailed',request=>errors.push(request.url()+': '+request.failure()?.errorText));
   await page.goto('editor.html');
-  await expect(page.locator('#editor')).toHaveAttribute('contenteditable', 'true');
+  try { await expect(page.locator('#editor')).toHaveAttribute('contenteditable', 'true'); }
+  catch(error) { throw new Error(error.message+'\nLoading errors: '+JSON.stringify(errors)); }
 });
 
 test('exact colors, theme reset and accessible palette', async ({page}) => {
@@ -44,6 +48,9 @@ test('modal dialog isolates background and restores focus', async ({page}) => {
   await page.locator('.page-tab').click();
   await page.locator('#emojiPickerPublish').click();
   await expect(page.locator('#publishDialog')).toBeVisible();
+  const pageCount = await page.locator('.page-tab').count();
+  await page.keyboard.press('Alt+Shift+n');
+  await expect(page.locator('.page-tab')).toHaveCount(pageCount);
   for(let i=0;i<12;i++) {
     await page.keyboard.press('Tab');
     expect(await page.evaluate(()=>!!document.activeElement.closest('#publishDialog'))).toBe(true);

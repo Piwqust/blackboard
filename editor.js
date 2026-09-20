@@ -2748,6 +2748,7 @@ function applyTextHistoryState(state) {
 }
 
 function undoTextEdit() {
+  if (!workspaceWritable || !workspaceReady) return false;
   if (!currentPageId) {
     return false;
   }
@@ -2764,6 +2765,7 @@ function undoTextEdit() {
 }
 
 function redoTextEdit() {
+  if (!workspaceWritable || !workspaceReady) return false;
   if (!currentPageId) {
     return false;
   }
@@ -4000,7 +4002,7 @@ async function selectWorkspaceBackup(file) {
       const exportedWhen = parsed.metadata.exportedAt
         ? ` It was exported ${new Date(parsed.metadata.exportedAt).toLocaleString('en-US')}.`
         : '';
-      importConfirmText.textContent = `This will replace the current ${describeBackup(getWorkspaceForPersistence())} with ${describeBackup(parsed.workspace)}. A local recovery snapshot is saved first.${exportedWhen}`;
+      importConfirmText.textContent = `Backup: ${describeBackup(parsed.workspace)}. Current workspace: ${describeBackup(getWorkspaceForPersistence())}. Choose Add to keep existing pages, or Replace to use the backup. A recovery snapshot is saved first.${exportedWhen}`;
     }
     if (importConfirmDialog) {
       importConfirmDialog.showModal();
@@ -4650,6 +4652,8 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
+  if (e.target instanceof Element && e.target.closest('#workspaceToolsDialog[open]')) return;
+
   if (e.key === 'Escape') {
     if (publishDialog?.open) {
       e.preventDefault();
@@ -4713,7 +4717,10 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
-  // Match on e.code as well as e.key — on macOS, Option+Shift+letter produces
+  // A modal owns keyboard actions; never mutate the inert editor behind it.
+  if (e.target instanceof Element && e.target.closest('dialog[open]')) return;
+
+  // On macOS, Option+Shift+letter produces
   // a different character in e.key, which would make these shortcuts dead.
   const matchesAltShiftKey = (letter, code) =>
     e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey &&

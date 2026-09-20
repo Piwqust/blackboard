@@ -9,7 +9,7 @@
 Write, sketch, and keep your notes in the browser profile you control. No
 account, telemetry, cloud database, or note sync service.
 
-![Version](https://img.shields.io/badge/version-2.2.0-3D47FF?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.2.1-3D47FF?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-offline--ready-3D47FF?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-5B4FA8?style=flat-square)
 
@@ -42,7 +42,7 @@ silent cloud sync.
 
 ## Publishing a note
 
-Open the page tab, then **Publish page…**.
+Choose **Page actions → Share a copy…**.
 
 The page — its text, its drawings, and the theme and typography it was written
 in — is compressed into the link itself, after the `#`. Browsers never send
@@ -166,3 +166,15 @@ Inter font licenses.
 Editing requires Web Locks (Chrome/Edge on HTTPS or localhost). Other contexts open read-only; page navigation and backup export remain available. A localStorage lease is not used because it cannot guarantee a single writer.
 
 Browser regressions: `npm run build`, `npx playwright install chromium`, then `npm run test:browser`. These tests run the generated PWA and extension UI over HTTP; extension APIs and a real installed PWA update require separate checks.
+
+## Changes in 2.2.1
+
+- Search names and note text with **Pages** or **Ctrl/⌘ K**.
+- **Page actions** provides sharing, TXT/Markdown export, recovery, drawing redo and keyboard help.
+- Import either replaces the workspace or adds pages. Matching IDs can be kept as separate copies or skipped.
+- **Settings → Your data → Browse recovery history** previews the seven local snapshots and recovers individual pages as new pages.
+- Published links retain the original board and offer **Readable text** plus board zoom. Drawings remain in the original view.
+- A visible local-save status supports retry; Backup is available from the top toolbar.
+- The rendering bitmap is capped at 8 million pixels / 8192 per side. Very long notes trade drawing sharpness for bounded memory; note data is retained.
+
+The automated suite covers Chromium, an unpacked extension in an isolated Chromium profile, and real service-worker installation/offline/update. Installed Chrome and Edge layout checks are recorded in the audit verification folder. VoiceOver, physical touch/stylus devices, and PDF/PNG export remain separate checks.
