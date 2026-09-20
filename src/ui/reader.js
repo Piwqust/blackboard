@@ -52,7 +52,7 @@ function applyView(view) {
   root.style.setProperty('--text-color', view.textColor);
   root.style.setProperty('--bg-color', view.backgroundColor);
   root.style.setProperty('--selection-color', view.selectionColor);
-  root.style.setProperty('--ui-text-muted', hexToRgba(view.textColor, 0.6));
+  root.style.setProperty('--ui-text-muted', hexToRgba(view.textColor, 0.85));
   root.style.setProperty('--ui-border', hexToRgba(view.textColor, 0.12));
   document.body.style.backgroundColor = view.backgroundColor;
 
@@ -109,7 +109,7 @@ function compensateScaledHeight(boardHeight, scale) {
 function applyShellPadding() {
   if (!shell) return;
   const publishedWidth = published?.board?.width || window.innerWidth;
-  shell.style.padding = publishedWidth <= 768
+  shell.style.padding = (published?.board?.paddingX ?? (publishedWidth <= 768 ? 24 : 48)) === 24
     ? '48px 24px 100px 24px'
     : '48px 48px 120px 48px';
 }

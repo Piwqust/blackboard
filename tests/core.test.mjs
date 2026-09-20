@@ -299,3 +299,25 @@ test('grades link length so the dialog can warn before a chat app truncates it',
   assert.equal(describePublishedLink('a'.repeat(9_000)).tier, 'long');
   assert.equal(describePublishedLink('a'.repeat(20_000)).tier, 'very-long');
 });
+
+
+test('rejects damaged pages instead of silently importing empty notes', () => {
+  for (const page of [null, 7, {content: 7}]) {
+    assert.throws(() => parseWorkspaceBackup(JSON.stringify({
+      format: 'BlackboardTextWorkspace', schemaVersion: 1,
+      workspace: {pages: [page]}
+    })), /damaged page/);
+  }
+});
+
+test('legacy pixel strokes remain four pixels at the saved font size', () => {
+  for (const fontSize of [18, 40, 80]) {
+    const workspace = migrateLegacyChromeWorkspace({
+      pages: [{id: 'old', content: 'old', drawings: [{width: 4, points: [{x: 48, y: 98}]}]}],
+      settings: {fontSize}
+    });
+    const stroke = workspace.pages[0].drawings[0];
+    assert.equal(stroke.width * fontSize, 4);
+    assert.deepEqual(stroke.points, [{x: 48, y: 98}]);
+  }
+});

@@ -820,7 +820,8 @@ let scrollRestoreNestedFrame = null;
 let isRestoringPageScroll = false;
 let hoverResetOnPointerMove = false;
 let drawSizeMarkerButtons = [];
-let workspaceWritable = true;
+let workspaceWritable = false;
+let workspaceReady = false;
 let workspaceLock = null;
 let pendingWorkspaceImport = null;
 let pendingRecoverySnapshot = null;
@@ -1127,8 +1128,7 @@ function getPageTab(pageId) {
 
 
 function getViewportScrollTop() {
-  // The actual scroll container is document.documentElement (html) or body, not window
-  return Math.max(document.documentElement.scrollTop || document.body.scrollTop || 0, 0);
+  return Math.max(document.body.scrollTop, 0);
 }
 
 function getMaxViewportScrollTop() {
@@ -1171,10 +1171,10 @@ function restorePageScrollPosition(scrollTop = 0) {
   const targetScrollTop = Math.max(0, Number(scrollTop) || 0);
   const applyScroll = () => {
     const clampedScrollTop = Math.min(targetScrollTop, getMaxViewportScrollTop());
-    document.documentElement.scrollTop = clampedScrollTop;
+    document.body.scrollTop = clampedScrollTop;
 
     if (Math.abs(getViewportScrollTop() - clampedScrollTop) > 1) {
-      document.documentElement.scrollTop = clampedScrollTop;
+      document.body.scrollTop = clampedScrollTop;
     }
   };
 
@@ -2163,7 +2163,7 @@ function debounce(func, wait) {
 // memory for fast drawing, but each record is persisted independently and all
 // multi-page operations are serialized by the store.
 async function safeLocalSet(payload, context = 'saving') {
-  if (!workspaceWritable) {
+  if (!workspaceWritable || !workspaceReady) {
     return false;
   }
 
@@ -2191,7 +2191,7 @@ const persistPagesState = debounce(() => {
 }, 200);
 
 async function persistPagesStateImmediately() {
-  await safeLocalSet({ pages, currentPageId }, 'saving pages');
+  return safeLocalSet({ pages, currentPageId }, 'saving pages');
 }
 
 // Apply settings to CSS custom properties
@@ -2214,7 +2214,7 @@ function applySettings(settings) {
   root.style.setProperty('--ui-border', hexToRgba(settings.textColor, 0.12));
   root.style.setProperty('--ui-border-strong', hexToRgba(settings.textColor, 0.2));
   root.style.setProperty('--ui-text', hexToRgba(settings.textColor, 0.88));
-  root.style.setProperty('--ui-text-muted', hexToRgba(settings.textColor, 0.6));
+  root.style.setProperty('--ui-text-muted', hexToRgba(settings.textColor, 0.85));
   root.style.setProperty('--ui-hover', hexToRgba(settings.textColor, 0.08));
   root.style.setProperty('--ui-hover-strong', hexToRgba(settings.textColor, 0.14));
   root.style.setProperty('--ui-track', hexToRgba(settings.textColor, 0.12));
@@ -2268,7 +2268,7 @@ function updateControlValues(settings) {
 
 // Save note content
 async function saveContent() {
-  if (!currentPageId || !workspaceWritable) return;
+  if (!currentPageId || !workspaceWritable || !workspaceReady) return;
   
   try {
     syncCurrentPageScrollPosition();
@@ -2290,7 +2290,8 @@ async function saveContent() {
     updateWordCount();
     return true;
   } catch (error) {
-    console.error('Error saving content:', error);
+    handleStorageError(error, 'saving content');
+    return false;
   }
 }
 
@@ -2307,15 +2308,7 @@ function handleStorageError(error, context = 'saving') {
   saveIndicator.setAttribute('aria-label', saveIndicator.title);
   statusAnnouncer.show(saveIndicator.title, { kind: 'error', duration: 8_000 });
 
-  // Auto-clear the error after a few seconds so the next successful save can
-  // overwrite it with the normal indicator state.
-  setTimeout(() => {
-    if (saveIndicator.classList.contains('error')) {
-      saveIndicator.classList.remove('error', 'visible');
-      saveIndicator.title = '';
-      saveIndicator.removeAttribute('aria-label');
-    }
-  }, 4000);
+
 }
 
 // Debounced save
@@ -2329,8 +2322,10 @@ function showSaveIndicator() {
   saveIndicator.setAttribute('aria-label', 'Saved locally.');
   saveIndicator.classList.add('visible');
   setTimeout(() => {
-    saveIndicator.classList.remove('visible');
-    saveIndicator.removeAttribute('aria-label');
+    if (!saveIndicator.classList.contains('error')) {
+      saveIndicator.classList.remove('visible');
+      saveIndicator.removeAttribute('aria-label');
+    }
   }, 1500);
 }
 
@@ -2448,9 +2443,12 @@ async function loadSavedData() {
       });
     }
 
+    workspaceReady = true;
     void updateStorageSummary();
     void updateRecoverySummary();
   } catch (error) {
+    workspaceReady = false;
+    setWorkspaceReadOnlyMode('Local data could not be loaded. Reload to retry.');
     console.error('Error loading saved data:', error);
     handleStorageError(error, 'loading local data');
     applySettings(DEFAULT_SETTINGS);
@@ -2580,15 +2578,15 @@ function setWorkspaceReadOnlyMode(reason = 'Another Blackboard Text tab is editi
   editor.contentEditable = 'false';
   editor.setAttribute('aria-readonly', 'true');
 
-  const allowed = new Set([exportWorkspaceBtn, reloadForUpdateBtn]);
+  const allowed = new Set([exportWorkspaceBtn, reloadForUpdateBtn, settingsToggleBtn, settingsCloseBtn]);
   document.querySelectorAll('button, input, select').forEach(control => {
-    if (allowed.has(control)) return;
+    if (allowed.has(control) || control.matches('.page-tab')) return;
     if (!control.disabled) control.dataset.workspaceLocked = 'true';
     control.disabled = true;
   });
 
   if (workspaceModeNotice) {
-    workspaceModeNotice.textContent = `${reason} This tab is read-only. Close the writing tab, then return here to continue.`;
+    workspaceModeNotice.textContent = `${reason} This tab is read-only and may show an older copy. You can browse pages and export a backup.`;
     workspaceModeNotice.hidden = false;
   }
 }
@@ -2611,8 +2609,11 @@ async function tryPromoteReadOnlyTab() {
   if (!nextLock.acquired) return;
 
   workspaceLock = nextLock;
-  setWorkspaceWritableMode();
+  workspaceReady = false;
+  clearTextHistories();
+  workspaceWritable = true;
   await loadSavedData();
+  if (workspaceReady) setWorkspaceWritableMode();
   statusAnnouncer.show('This tab now owns the writing lock.', { kind: 'success' });
 }
 
@@ -2860,7 +2861,7 @@ function renderPageTabs() {
     tab.setAttribute('role', 'tab');
     tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
     tab.setAttribute('tabindex', isActive ? '0' : '-1');
-    tab.setAttribute('draggable', 'true');
+    tab.setAttribute('draggable', String(workspaceWritable));
     tab.setAttribute('aria-label', getPageTabAriaLabel(page, index, isActive));
     tab.dataset.pageId = page.id;
     tab.dataset.pageIndex = index;
@@ -3936,7 +3937,8 @@ async function regeneratePublishLink() {
     const note = createPublishedNote({ ...page, content }, getCurrentSettings(), {
       appVersion: APP_VERSION,
       includeDrawings,
-      boardWidth: getBoardSize().width
+      boardWidth: getBoardSize().width,
+      paddingX: Number.parseFloat(getComputedStyle(editor).paddingLeft)
     });
     const token = await encodePublishedNote(note);
     const url = buildPublishedNoteUrl(getPublishBaseUrl(), token);
@@ -4117,8 +4119,10 @@ function setupPwaUpdatePrompt() {
       updateReadyNotice.hidden = false;
       reloadForUpdateBtn?.addEventListener('click', async () => {
         reloadForUpdateBtn.disabled = true;
-        flushPendingPersistence();
         try {
+          if (workspaceWritable) {
+            await workspaceStore.saveWorkspace(getWorkspaceForPersistence({ captureEditor: true }));
+          }
           await workspaceStore.flush();
           apply();
         } catch (error) {
@@ -4132,7 +4136,7 @@ function setupPwaUpdatePrompt() {
             updateReadyNotice.appendChild(warning);
           }
         }
-      }, { once: true });
+      });
     },
     onControllerChange() {
       window.location.reload();
@@ -4541,7 +4545,7 @@ window.addEventListener('wheel', (event) => {
   }
 }, { passive: false });
 
-window.addEventListener('scroll', () => {
+document.body.addEventListener('scroll', () => {
   handleScrollActivity({ persistPageScroll: !isRestoringPageScroll });
 }, { passive: true });
 
@@ -4565,6 +4569,7 @@ if (emojiPicker) {
 // editor.innerHTML into the page first, closing the tab within a second of the
 // last keystroke would lose those edits (debouncedSave waits 1000ms).
 function flushPendingPersistence() {
+  if (!workspaceReady || !workspaceWritable) return;
   syncCurrentPageScrollPosition();
 
   const page = getCurrentPage();
@@ -4792,9 +4797,12 @@ document.addEventListener('keydown', (e) => {
 })();
 
 async function bootstrapApp() {
+  editor.contentEditable = 'false';
   workspaceLock = await acquireWorkspaceLock();
   if (!workspaceLock.acquired) {
-    setWorkspaceReadOnlyMode('Another Blackboard Text tab already owns the writing lock.');
+    setWorkspaceReadOnlyMode(workspaceLock.reason === 'another-tab'
+      ? 'Another Blackboard Text tab already owns the writing lock.'
+      : 'Safe editing is unavailable in this browser. Use Chrome or Edge over HTTPS.');
   }
 
   workspaceChannel.onMessage(message => {
@@ -4803,7 +4811,9 @@ async function bootstrapApp() {
     }
   });
 
+  workspaceWritable = workspaceLock.acquired;
   await loadSavedData();
+  if (workspaceReady && workspaceWritable) setWorkspaceWritableMode();
   scheduleDrawingLayerSync({ forceRedraw: true });
   setupPwaUpdatePrompt();
 

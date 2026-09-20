@@ -74,7 +74,7 @@
   --ui-border: rgba(221, 218, 210, 0.12);
   --ui-border-strong: rgba(221, 218, 210, 0.2);
   --ui-text: rgba(221, 218, 210, 0.88);
-  --ui-text-muted: rgba(221, 218, 210, 0.6);
+  --ui-text-muted: rgba(221, 218, 210, 0.85);
   --ui-hover: rgba(221, 218, 210, 0.08);
   --ui-hover-strong: rgba(221, 218, 210, 0.14);
   --ui-track: rgba(221, 218, 210, 0.12);
@@ -142,7 +142,7 @@ html {
   width: 100%;
   min-height: 100vh;
   margin: 0;
-  padding: 48px 360px 120px 48px;
+  padding: 48px 48px 120px 48px;
   font-family: var(--font-family);
   font-size: var(--font-size);
   line-height: var(--line-height);
@@ -716,7 +716,7 @@ button.controls-icon {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 10px;
-  opacity: 0.7;
+  opacity: 1;
 }
 
 .control-divider {
@@ -2586,20 +2586,6 @@ body.workspace-readonly #drawingLayer {
 }
 
 /* Responsive */
-/* Tablets and medium screens: reduce right padding proportionally */
-@media (min-width: 769px) and (max-width: 1024px) {
-  #editor {
-    padding-right: 280px;
-  }
-}
-
-@media (min-width: 1025px) and (max-width: 1366px) {
-  #editor {
-    padding-right: 320px;
-  }
-}
-
-
 @media (max-width: 768px) {
   #editor {
     padding: 48px 24px 100px 24px;
@@ -2955,3 +2941,26 @@ body.workspace-readonly #drawingLayer {
   }
 }
 
+
+/* Keyboard focus remains distinct from hover across built-in themes. */
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 2px solid var(--text-color);
+  outline-offset: 3px;
+}
+
+/* Keep fixed tools outside the scrolling writing surface. */
+html:has(body:not(.reader-body):not(.legal-page-body)) { overflow: hidden; }
+body:has(#board) {
+  margin-top: 112px;
+  height: calc(100% - 112px);
+  width: calc(100% - 96px);
+  overflow: auto;
+}
+@media (max-width: 768px) {
+  body:has(#board) {
+    margin-top: 128px;
+    height: calc(100% - 128px);
+    width: calc(100% - 80px);
+  }
+}
+.reader-viewport { width: 100%; overflow: clip; }

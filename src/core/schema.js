@@ -105,12 +105,12 @@ export function normalizeStroke(stroke = {}, fallbackFontSize = DEFAULT_WORKSPAC
   let normalizedWidth;
   if (isLegacyFormat && source.width !== undefined) {
     // Legacy width was in pixels at fontSize=18 or the stroke's referenceFontSize
-    const legacyReferenceFontSize = finiteNumber(source.referenceFontSize, 18, 1, 512);
+    const legacyReferenceFontSize = finiteNumber(source.referenceFontSize, fallbackFontSize, 1, 512);
     const pixelWidth = finiteNumber(source.width, DEFAULT_WORKSPACE_SETTINGS.drawSize * fallbackFontSize, 0.01, 200);
     // Convert to font-relative: divide pixel width by reference font size
     normalizedWidth = pixelWidth / legacyReferenceFontSize;
     // Clamp to valid range
-    normalizedWidth = Math.min(1.4, Math.max(0.08, normalizedWidth));
+    normalizedWidth = Math.min(128, Math.max(0.01, normalizedWidth));
   } else {
     // Modern format or missing width: already in font-relative units
     normalizedWidth = finiteNumber(source.width, DEFAULT_WORKSPACE_SETTINGS.drawSize, 0.01, 128);

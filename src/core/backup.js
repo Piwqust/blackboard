@@ -55,6 +55,10 @@ export function parseWorkspaceBackup(text, options = {}) {
     throw new Error('The backup does not contain any pages.');
   }
 
+  if (sourceWorkspace.pages.some(page => !asRecord(page) ||
+      (page.content !== undefined && typeof page.content !== 'string'))) {
+    throw new Error('This backup contains a damaged page. Nothing was imported.');
+  }
   const workspace = normalizeWorkspace(sourceWorkspace, options);
   if (workspace.pages.length === 0) {
     throw new Error('The backup does not contain an importable page.');

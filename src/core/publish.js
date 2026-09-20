@@ -70,7 +70,8 @@ export function createPublishedNote(page, settings, {
   appVersion = 'development',
   publishedAt = new Date().toISOString(),
   includeDrawings = true,
-  boardWidth = null
+  boardWidth = null,
+  paddingX = null
 } = {}) {
   const source = page && typeof page === 'object' ? page : {};
   const content = typeof source.content === 'string' ? source.content : '';
@@ -92,7 +93,8 @@ export function createPublishedNote(page, settings, {
       editedAt: typeof source.editedAt === 'string' ? source.editedAt : null
     },
     view: pickView(settings),
-    board: { width: Number.isFinite(width) && width > 0 ? Math.round(width) : null }
+    board: { width: Number.isFinite(width) && width > 0 ? Math.round(width) : null,
+      paddingX: [24, 48].includes(paddingX) ? paddingX : null }
   };
 }
 
@@ -241,7 +243,8 @@ export async function decodePublishedNote(token, { sanitizeHtml, defaults = DEFA
     appVersion: typeof candidate.appVersion === 'string' ? candidate.appVersion : null,
     note,
     view,
-    board: { width: Number.isFinite(boardWidth) && boardWidth > 0 ? boardWidth : null }
+    board: { width: Number.isFinite(boardWidth) && boardWidth > 0 ? boardWidth : null,
+      paddingX: [24, 48].includes(candidate.board?.paddingX) ? candidate.board.paddingX : null }
   };
 }
 
