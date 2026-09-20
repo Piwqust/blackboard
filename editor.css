@@ -226,37 +226,40 @@ body.drawing-mode #editor {
   top: 24px;
   right: 24px;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   z-index: 2500;
 }
 
-/* Holds the toolbar and its arrow. Only the arrow occupies space here; the
-   toolbar hangs off the left edge so showing and hiding it moves nothing. */
+/* Holds the toolbar and its arrow. Only the arrow occupies space in the rail;
+   the palette hangs off the left edge, so showing and hiding it moves nothing
+   in the rail and never pushes the page tabs around. */
 .rail-tools {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
 }
 
 .drawing-toolbar {
   position: absolute;
-  top: 0;
-  right: calc(100% + 12px);
+  top: 50%;
+  right: calc(100% + 10px);
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 6px;
-  padding: 6px;
+  gap: 4px;
+  padding: 5px;
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
-  border-radius: 16px;
+  border-radius: 15px;
   box-shadow: none;
   backdrop-filter: blur(18px) saturate(135%);
   -webkit-backdrop-filter: blur(18px) saturate(135%);
   filter: blur(0);
-  transform: translate3d(0, 0, 0);
+  transform: translate(0, -50%);
   transition: opacity 0.26s ease,
               filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
               transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
@@ -268,8 +271,8 @@ body.drawing-mode #editor {
    flow, so the drift moves nothing else. */
 .top-right-rail.tools-collapsed .drawing-toolbar {
   opacity: 0;
-  filter: blur(28px);
-  transform: translate3d(18px, 0, 0);
+  filter: blur(24px);
+  transform: translate(16px, -50%);
   visibility: hidden;
   pointer-events: none;
   transition: opacity 0.26s ease,
@@ -278,28 +281,34 @@ body.drawing-mode #editor {
               visibility 0s linear 0.34s;
 }
 
-/* Adjacent collapse arrow — same glass chrome as the toolbar so the pair reads
-   as one control. The chevron flips to point back at whatever it will reveal. */
+/* The rail chip that reveals the palette. Same size and chrome as the add-page
+   chip below it, so the rail reads as one column of controls. The chevron flips
+   to point back at whatever it will reveal. */
 .rail-collapse-toggle {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 54px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   color: var(--ui-text);
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
   border-radius: 13px;
   cursor: pointer;
-  opacity: 0.72;
+  opacity: 0.82;
   transition: opacity 0.15s ease, background 0.15s ease;
   backdrop-filter: blur(18px) saturate(135%);
   -webkit-backdrop-filter: blur(18px) saturate(135%);
 }
 
 .rail-collapse-toggle:hover {
+  opacity: 1;
+  background: var(--ui-surface-strong);
+}
+
+.top-right-rail:not(.tools-collapsed) .rail-collapse-toggle {
   opacity: 1;
   background: var(--ui-surface-strong);
 }
@@ -326,7 +335,7 @@ body.drawing-mode #editor {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .drawing-toolbar-group + .drawing-toolbar-group {
@@ -336,7 +345,7 @@ body.drawing-mode #editor {
 
 .drawing-toolbar-group-actions {
   margin-left: 4px;
-  padding-left: 10px;
+  padding-left: 8px;
   border-left: 1px solid var(--ui-border);
 }
 
@@ -507,8 +516,8 @@ body.drawing-mode #editor {
 }
 
 .drawing-tool-button {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -516,7 +525,7 @@ body.drawing-mode #editor {
   color: var(--ui-text);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 11px;
   cursor: pointer;
   opacity: 0.8;
   transition: all 0.15s ease;
@@ -571,12 +580,12 @@ body.drawing-mode #editor {
 }
 
 .controls-icon {
-  width: 40px;
-  height: 40px;
-  padding: 10px;
+  width: 44px;
+  height: 44px;
+  padding: 12px;
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
-  border-radius: 10px;
+  border-radius: 13px;
   color: var(--ui-text);
   opacity: 0.82;
   cursor: pointer;
@@ -596,38 +605,45 @@ body.drawing-mode #editor {
   height: 100%;
 }
 
-/* Controls Panel */
+/* Controls Panel — a fixed shell: the title and Reset stay put while only the
+   settings themselves scroll, so the panel never loses its own header. */
 .controls-panel {
   position: absolute;
   bottom: calc(100% + 8px);
   right: 0;
-  width: min(280px, calc(100vw - 32px));
-  max-height: min(680px, calc(100dvh - 92px));
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 12px;
+  width: min(304px, calc(100vw - 32px));
+  max-height: min(660px, calc(100dvh - 96px));
   display: grid;
-  gap: 2px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  padding: 0;
   background: var(--ui-surface-strong);
   border: 1px solid var(--ui-border);
-  border-radius: 14px;
-  box-shadow: var(--ui-shadow-subtle);
-  backdrop-filter: blur(14px) saturate(120%);
-  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  border-radius: 16px;
+  box-shadow: var(--ui-shadow-soft);
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
 
   opacity: 0;
   visibility: hidden;
   transform: translateY(4px);
   transform-origin: bottom right;
-  transition: all 0.15s ease;
+  transition: opacity 0.16s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.2s;
 }
 
-.controls-panel::-webkit-scrollbar {
+.controls-panel-body {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 14px 10px;
+}
+
+.controls-panel-body::-webkit-scrollbar {
   width: 4px;
 }
 
-.controls-panel::-webkit-scrollbar-thumb {
+.controls-panel-body::-webkit-scrollbar-thumb {
   background: var(--ui-border-strong);
   border-radius: 999px;
 }
@@ -636,6 +652,7 @@ body.drawing-mode #editor {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
+  transition-delay: 0s;
 }
 
 .controls-container.open .controls-icon,
@@ -654,7 +671,8 @@ button.controls-icon {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding-bottom: 2px;
+  padding: 13px 13px 11px 14px;
+  border-bottom: 1px solid var(--ui-border);
 }
 
 .controls-panel-heading {
@@ -698,24 +716,28 @@ button.controls-icon {
 /* Control Sections */
 .control-section {
   margin: 0;
-  padding: 8px 0;
+  padding: 13px 0;
   background: transparent;
   border: 0;
   border-radius: 0;
 }
 
-.control-section:first-of-type {
-  padding-top: 4px;
+.control-section + .control-section {
+  border-top: 1px solid var(--ui-border);
+}
+
+.control-section:last-of-type {
+  padding-bottom: 4px;
 }
 
 .section-label {
   font-family: system-ui, -apple-system, sans-serif;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--ui-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 10px;
+  letter-spacing: 0.07em;
+  margin-bottom: 9px;
   opacity: 1;
 }
 
@@ -764,8 +786,8 @@ button.controls-icon {
 /* Theme Grid */
 .theme-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
 }
 
 .theme-swatch {
@@ -788,8 +810,9 @@ button.controls-icon {
 .theme-swatch-inner {
   position: relative;
   width: 100%;
-  aspect-ratio: 1;
-  border-radius: 7px;
+  aspect-ratio: 3 / 2;
+  min-height: 54px;
+  border-radius: 9px;
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
@@ -1438,10 +1461,6 @@ button.controls-icon {
 }
 
 /* Local backup controls stay compact so the writing surface remains primary. */
-.data-section {
-  border-top: 1px solid var(--ui-border);
-}
-
 .data-copy,
 .data-hint {
   margin: 0;
@@ -1455,7 +1474,7 @@ button.controls-icon {
 }
 
 .data-hint {
-  margin-top: 7px;
+  margin-top: 8px;
   font-size: 10px;
   line-height: 1.45;
 }
@@ -1475,7 +1494,7 @@ button.controls-icon {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  margin-top: 9px;
+  margin-top: 10px;
 }
 
 .data-action {
@@ -1504,22 +1523,23 @@ button.controls-icon {
 .controls-panel-footer {
   display: flex;
   justify-content: flex-end;
-  padding-top: 6px;
+  padding: 9px 12px;
+  border-top: 1px solid var(--ui-border);
 }
 
 /* Reset Button */
 .reset-btn {
   appearance: none;
   width: auto;
-  padding: 4px 8px;
+  padding: 5px 9px;
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--ui-text-muted);
   background: transparent;
   border: 0;
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1547,6 +1567,18 @@ button.controls-icon {
   font-size: 11px;
   font-weight: 500;
   color: var(--ui-text);
+}
+
+.data-recovery {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--ui-border);
+}
+
+.control-disclosure-content {
+  display: grid;
+  gap: 6px;
+  padding-top: 9px;
 }
 
 .control-disclosure-summary::-webkit-details-marker {
@@ -1617,7 +1649,7 @@ button.controls-icon {
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  max-height: min(70vh, calc(100vh - 140px));
+  max-height: min(70dvh, calc(100dvh - 190px));
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
@@ -1751,21 +1783,21 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
 }
 
 .add-page-btn {
-  flex: 0 0 40px;
+  flex: 0 0 44px;
   box-sizing: border-box;
-  width: 40px;
-  min-width: 40px;
-  max-width: 40px;
-  height: 40px;
-  min-height: 40px;
-  max-height: 40px;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--ui-text);
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
-  border-radius: 10px;
+  border-radius: 13px;
   cursor: pointer;
   opacity: 0.82;
   transition: all 0.15s ease;
@@ -2071,22 +2103,24 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   background: var(--ui-surface-strong);
 }
 
+/* A tidy 2x2 grid instead of a ragged wrap: the four actions keep the same
+   places whatever their labels are. */
 .emoji-picker-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
 }
 
 .emoji-picker-action {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 30px;
+  min-height: 32px;
   padding: 0 10px;
   white-space: nowrap;
   background: var(--ui-surface-soft);
   border: 1px solid var(--ui-border);
-  border-radius: 8px;
+  border-radius: 9px;
   color: var(--ui-text);
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 11px;
@@ -2097,6 +2131,18 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
 
 .emoji-picker-action:hover {
   background: var(--ui-hover);
+}
+
+/* Done is the way out of the panel, so it carries the only filled weight. */
+#emojiPickerClose {
+  color: var(--bg-color);
+  background: var(--text-color);
+  border-color: transparent;
+}
+
+#emojiPickerClose:hover {
+  background: var(--text-color);
+  opacity: 0.88;
 }
 
 .emoji-picker-action-danger {
@@ -2123,10 +2169,12 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   position: fixed;
   width: min(244px, calc(100vw - 24px));
   padding: 12px;
-  background: color-mix(in srgb, var(--ui-surface-strong) 76%, rgba(172, 92, 92, 0.28));
+  /* Opaque: this can open over the emoji grid, and a see-through warning that
+     mixes with the content behind it is unreadable. */
+  background: color-mix(in srgb, var(--bg-color) 88%, #AC5C5C);
   border: 1px solid var(--ui-danger-border);
   border-radius: 12px;
-  box-shadow: var(--ui-shadow-subtle);
+  box-shadow: var(--ui-shadow-soft);
   box-sizing: border-box;
   opacity: 0;
   visibility: hidden;
@@ -2335,9 +2383,9 @@ body.is-scrolling .drawing-tool-button:hover {
   position: fixed;
   z-index: 20;
   max-width: min(360px, calc(100vw - 32px));
-  padding: 9px 11px;
+  padding: 10px 12px;
   border: 1px solid var(--ui-border-strong);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--ui-surface-strong);
   box-shadow: var(--ui-shadow-subtle);
   backdrop-filter: blur(14px) saturate(120%);
@@ -2378,9 +2426,9 @@ body.is-scrolling .drawing-tool-button:hover {
 
 .update-ready-notice button {
   appearance: none;
-  padding: 4px 7px;
+  padding: 5px 9px;
   border: 1px solid var(--ui-border-strong);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--ui-surface-soft);
   color: inherit;
   font: inherit;
@@ -2394,31 +2442,54 @@ body.is-scrolling .drawing-tool-button:hover {
 
 .backup-dialog:not([open]) { display: none; }
 
+/* The universal margin reset strips the UA centering off <dialog>, which left
+   every modal pinned to the top-left corner. Own the geometry instead: the
+   dialog covers the viewport and centres its surface. */
 .backup-dialog {
   /* Native <dialog> uses top layer, no z-index needed */
-  border: none;
-  padding: 20px;
-  background: transparent;
-  max-width: 100vw;
-  max-height: 100vh;
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
   display: grid;
   place-items: center;
+  padding: 20px;
+  border: none;
+  background: transparent;
+  overflow: hidden;
 }
 
 .backup-dialog::backdrop {
-  background: rgba(15, 23, 42, 0.24);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  background: rgba(8, 8, 10, 0.44);
+  backdrop-filter: blur(6px) saturate(105%);
+  -webkit-backdrop-filter: blur(6px) saturate(105%);
 }
 
 .backup-dialog-surface {
-  width: min(390px, 100%);
+  width: min(400px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 20px;
   border: 1px solid var(--ui-border);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--ui-surface-strong);
   box-shadow: var(--ui-shadow-soft);
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
   color: var(--ui-text);
+}
+
+.backup-dialog-surface::-webkit-scrollbar {
+  width: 4px;
+}
+
+.backup-dialog-surface::-webkit-scrollbar-thumb {
+  background: var(--ui-border-strong);
+  border-radius: 999px;
 }
 
 .backup-dialog-eyebrow {
@@ -2434,12 +2505,12 @@ body.is-scrolling .drawing-tool-button:hover {
 .backup-dialog h2 {
   margin: 0;
   font-family: 'Inter Tight', system-ui, sans-serif;
-  font-size: 21px;
+  font-size: 19px;
   line-height: 1.15;
   letter-spacing: -0.02em;
 }
 
-.backup-dialog p:not(.backup-dialog-eyebrow) {
+.backup-dialog-surface > p:not(.backup-dialog-eyebrow):not(.dialog-note) {
   margin: 9px 0 0;
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 13px;
@@ -2451,23 +2522,41 @@ body.is-scrolling .drawing-tool-button:hover {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 18px;
+  margin-top: 20px;
+}
+
+.backup-dialog-actions .delete-confirm-cancel,
+.backup-dialog-actions .delete-confirm-delete {
+  flex: 0 0 auto;
+  min-width: 104px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 12px;
 }
 
 /* Publish dialog */
 #publishDialog .backup-dialog-surface {
-  width: min(460px, 100%);
+  width: min(452px, 100%);
 }
 
 .publish-option {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--ui-surface-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: 12px;
   font-family: system-ui, -apple-system, sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--ui-text);
   cursor: pointer;
+}
+
+.publish-option:hover {
+  background: var(--ui-hover);
 }
 
 .publish-option[hidden] {
@@ -2482,19 +2571,19 @@ body.is-scrolling .drawing-tool-button:hover {
 .publish-link-row {
   display: flex;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 0;
 }
 
 .publish-link-input {
   flex: 1;
   min-width: 0;
   padding: 8px 10px;
-  border: 1px solid var(--ui-border-strong);
-  border-radius: 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
   background: var(--ui-surface-soft);
   color: var(--ui-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  font-size: 11px;
   text-overflow: ellipsis;
 }
 
@@ -2593,22 +2682,30 @@ body.workspace-readonly #drawingLayer {
 
   .top-right-rail {
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     right: 16px;
     top: 16px;
-    gap: 10px;
+    gap: 8px;
   }
 
-  /* The toolbar keeps hanging to the left of its arrow here too — stacking it
+  /* The palette keeps hanging to the left of its chip here too — stacking it
      above would push it off the top of the screen — it just wraps to fit. */
   .drawing-toolbar {
-    right: calc(100% + 10px);
+    right: calc(100% + 8px);
+    /* Top-aligned with the rail: a wrapped palette grows downwards instead of
+       running off the top of the screen. */
+    top: 0;
+    transform: translate(0, 0);
     width: max-content;
-    max-width: min(100vw - 104px, 236px);
+    max-width: min(100vw - 80px, 244px);
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: 4px;
+    gap: 3px;
     padding: 5px;
+  }
+
+  .top-right-rail.tools-collapsed .drawing-toolbar {
+    transform: translate(14px, 0);
   }
 
    .drawing-toolbar-group {
@@ -2618,28 +2715,50 @@ body.workspace-readonly #drawingLayer {
   .drawing-toolbar-group-actions {
     margin-left: 2px;
     padding-left: 6px;
+    border-left-color: transparent;
   }
 
   .drawing-tool-button {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
   }
-  
+
+  .rail-collapse-toggle {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .controls-icon {
+    width: 40px;
+    height: 40px;
+    padding: 10px;
+    border-radius: 12px;
+  }
+
   .controls-container {
     bottom: 20px;
     right: 20px;
   }
-  
+
   .controls-panel {
-    width: min(280px, calc(100vw - 32px));
-    padding: 12px;
+    width: min(316px, calc(100vw - 24px));
+    max-height: min(620px, calc(100dvh - 88px));
   }
-  
+
+  .controls-panel-body {
+    padding: 2px 12px 10px;
+  }
+
+  .controls-panel-header {
+    padding: 12px 11px 10px 12px;
+  }
+
   .theme-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
   }
-  
+
   .color-controls {
     gap: 5px;
   }
@@ -2672,6 +2791,7 @@ body.workspace-readonly #drawingLayer {
     height: 40px;
     min-height: 40px;
     max-height: 40px;
+    border-radius: 12px;
   }
   
   .emoji-picker {
@@ -2716,7 +2836,7 @@ body.workspace-readonly #drawingLayer {
 .word-count {
   position: fixed;
   bottom: 30px;
-  right: 70px;
+  right: 76px;
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 11px;
   font-weight: 400;
@@ -2966,24 +3086,386 @@ body:has(#board) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 
-.workspace-dialog button, .reader-view-controls button {
+/* ---------------------------------------------------------------------------
+   Shared dialog language
+
+   Import, Share, Find a page and Recovery all use one surface, one heading
+   pattern and one set of controls, so a modal never looks like a different app.
+   --------------------------------------------------------------------------- */
+
+.dialog-close {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--ui-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.dialog-close:hover {
+  color: var(--ui-text);
+  background: var(--ui-hover);
+}
+
+.dialog-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Radio and checkbox groups read as selectable rows. The browser default drew
+   a square fieldset box whose legend cut through the first option. */
+.choice-group {
+  margin: 16px 0 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.choice-group legend {
+  display: block;
+  float: none;
+  padding: 0;
+  margin-bottom: 9px;
+  font: 500 10px/1 system-ui, -apple-system, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ui-text-muted);
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--ui-surface-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.choice:hover {
+  background: var(--ui-hover);
+}
+
+.choice:has(input:checked) {
+  background: var(--ui-hover-strong);
+  border-color: var(--ui-border-strong);
+}
+
+.choice:has(input:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.choice input {
+  flex: 0 0 auto;
+  margin: 1px 0 0;
+  accent-color: var(--selection-color);
+  cursor: inherit;
+}
+
+.choice-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.choice-title {
+  font: 500 12px/1.3 system-ui, -apple-system, sans-serif;
+  color: var(--ui-text);
+}
+
+.choice-note {
+  font: 11px/1.4 system-ui, -apple-system, sans-serif;
+  color: var(--ui-text-muted);
+}
+
+.dialog-field {
+  margin-top: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.dialog-field[hidden] {
+  display: none;
+}
+
+.dialog-field-label {
+  font: 11px/1.3 system-ui, -apple-system, sans-serif;
+  color: var(--ui-text-muted);
+}
+
+.dialog-select {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 30px 8px 10px;
+  font: 12px system-ui, -apple-system, sans-serif;
+  color: var(--ui-text);
+  background-color: var(--ui-surface-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M18 9L12 15L6 9' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.dialog-select:hover {
+  background-color: var(--ui-hover);
+}
+
+.dialog-note {
+  margin: 10px 0 0;
+  font: 11px/1.5 system-ui, -apple-system, sans-serif;
+  color: var(--ui-text-muted);
+}
+
+.dialog-note:empty {
+  display: none;
+}
+
+.dialog-panel {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.dialog-panel .dialog-note {
+  margin: 0;
+}
+
+.dialog-panel .secondary-btn {
+  justify-self: start;
+  width: auto;
+  padding: 8px 14px;
+}
+
+.dialog-panel-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dialog-link {
+  justify-self: start;
+  font: 12px system-ui, -apple-system, sans-serif;
+  color: var(--ui-text);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.dialog-link[hidden] {
+  display: none;
+}
+
+.dialog-disclosure {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ui-border);
+}
+
+.dialog-disclosure-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  list-style: none;
+  cursor: pointer;
+  font: 500 12px system-ui, -apple-system, sans-serif;
+  color: var(--ui-text);
+}
+
+.dialog-disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+
+.dialog-disclosure-summary::after {
+  content: '';
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--ui-text-muted);
+  border-bottom: 1.5px solid var(--ui-text-muted);
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.dialog-disclosure[open] .dialog-disclosure-summary::after {
+  transform: rotate(225deg);
+}
+
+.dialog-disclosure-content {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+/* Workspace panels: Find a page, Page actions, Recovery history. */
+.workspace-dialog .backup-dialog-surface {
+  width: min(520px, 100%);
+}
+
+.workspace-dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.workspace-dialog-title {
+  min-width: 0;
+}
+
+#workspaceToolsContent {
+  display: grid;
+  gap: 2px;
+  margin-top: 16px;
+}
+
+#workspaceToolsContent input[type="search"] {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  font: 13px system-ui, -apple-system, sans-serif;
+  color: var(--ui-text);
+  background: var(--ui-surface-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: 11px;
+  outline: none;
+}
+
+#workspaceToolsContent input[type="search"]:focus {
+  border-color: var(--ui-border-strong);
+}
+
+#workspaceToolsContent input[type="search"]::placeholder {
+  color: var(--ui-text-muted);
+  opacity: 0.7;
+}
+
+.workspace-dialog #workspaceToolsContent button,
+.workspace-results button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 12px;
+  color: var(--ui-text);
+  background: transparent;
+  border: 0;
+  border-radius: 11px;
+  font: 13px/1.35 system-ui, -apple-system, sans-serif;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.workspace-dialog #workspaceToolsContent button:hover:not(:disabled),
+.workspace-results button:hover {
+  background: var(--ui-hover);
+}
+
+.workspace-dialog #workspaceToolsContent button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.workspace-results {
+  display: grid;
+  gap: 2px;
+}
+
+.workspace-results small {
+  display: block;
+  max-height: 2.9em;
+  overflow: hidden;
+  font: 11px/1.45 system-ui, -apple-system, sans-serif;
+  color: var(--ui-text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+#workspaceToolsStatus {
+  margin-top: 12px;
+}
+
+.recovery-snapshot {
+  padding: 2px 0;
+  border-top: 1px solid var(--ui-border);
+}
+
+.recovery-snapshot > summary {
+  padding: 10px 2px;
+  list-style: none;
+  cursor: pointer;
+  font: 500 12px system-ui, -apple-system, sans-serif;
+  color: var(--ui-text);
+}
+
+.recovery-snapshot > summary::-webkit-details-marker {
+  display: none;
+}
+
+.recovery-page {
+  padding: 2px 0 6px;
+}
+
+.recovery-page strong {
+  font: 600 12px system-ui, -apple-system, sans-serif;
+  color: var(--ui-text);
+}
+
+.workspace-shortcuts {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 9px 16px;
+  margin-top: 4px;
+  font: 12px/1.4 system-ui, -apple-system, sans-serif;
+}
+
+.workspace-shortcuts dt {
+  color: var(--ui-text);
+}
+
+.workspace-shortcuts dd {
+  margin: 0;
+  color: var(--ui-text-muted);
+  text-align: right;
+}
+
+.recovery-page pre {
+  margin: 2px 0 8px;
+  padding: 10px 12px;
+  max-height: 140px;
+  overflow: auto;
+  background: var(--ui-surface-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  font: 11px/1.5 system-ui, -apple-system, sans-serif;
+  color: var(--ui-text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The reader keeps its own compact control bar. */
+.reader-view-controls button {
   color: var(--text-color); background: var(--bg-color);
   border: 1px solid var(--ui-border-strong); border-radius: 8px; padding: 8px 10px; cursor: pointer;
 }
-.workspace-dialog .backup-dialog-surface { width: min(600px, calc(100vw - 40px)); max-height: calc(100dvh - 80px); overflow: auto; }
-.workspace-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-#workspaceToolsContent { display: grid; gap: 10px; font: 14px/1.5 system-ui, sans-serif; }
-#workspaceToolsContent input { width: 100%; padding: 10px; font: inherit; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--ui-border-strong); border-radius: 8px; }
-.workspace-results { display: grid; gap: 6px; }
-.workspace-results button { text-align: left; }
-.workspace-results small { display: block; font: 12px/1.5 system-ui, sans-serif; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
-.recovery-page { padding: 12px 0; border-bottom: 1px solid var(--ui-border); }
-.recovery-page pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
-.import-options { margin: 14px 0; border: 1px solid var(--ui-border); display: grid; gap: 10px; font: 13px/1.4 system-ui, sans-serif; }
-.import-options label { display: block; }
-.import-options select { background: var(--bg-color); color: var(--text-color); padding: 6px; max-width: 100%; }
-#previewPublishLink { display: inline-block; margin-top: 12px; color: var(--text-color); font: 13px system-ui, sans-serif; }
-#previewPublishLink[hidden] { display: none; }
 .reader-view-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px 16px; font: 13px system-ui,sans-serif; }
 .reader-view-controls[hidden] {display:none;}
 .reader-view-controls select { background: var(--bg-color); color: var(--text-color); padding: 6px; }
@@ -2993,43 +3475,132 @@ body:has(#board) {
 .reader-text-mode .reader-shell { max-width: 75ch; margin: auto; }
 .reader-viewport.can-pan { overflow: auto; }
 @media print { .reader-view-controls {display:none;} }
+
 /* Share mode is explicit: opening the dialog never uploads a note. */
-#publishDialog .backup-dialog-surface { max-height: calc(100dvh - 64px); overflow: auto; }
-.share-modes { display: grid; gap: 9px; margin: 14px 0; padding: 10px; border: 1px solid var(--ui-border); font: 13px/1.5 system-ui, sans-serif; }
-.share-modes label { display: block; }
 #shortLinkPanel[hidden], #fullLinkPanel[hidden], #shortLinkResult[hidden], #previewShortLink[hidden], #copyShortLinkBtn[hidden] { display: none; }
-#shortLinkResult { width: 100%; margin: 10px 0; }
-#previewShortLink { margin-left: 8px; color: var(--text-color); font: 13px system-ui,sans-serif; }
-#sharedLinksDetails { margin-top: 16px; font: 13px/1.5 system-ui,sans-serif; }
-#sharedLinksDetails summary { cursor: pointer; }
-.shared-link-row { display: grid; gap: 8px; border-top: 1px solid var(--ui-border); padding: 12px 0; }
-.shared-link-row input { width: 100%; min-width: 0; color: var(--text-color); background: var(--bg-color); border: 1px solid var(--ui-border); padding: 8px; border-radius: 6px; font: 12px ui-monospace,monospace; }
-.shared-link-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+#shortLinkResult {
+  width: 100%;
+}
+
+.shared-link-row {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--ui-border);
+  font: 12px/1.5 system-ui, -apple-system, sans-serif;
+  color: var(--ui-text);
+}
+
+.shared-link-row strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.shared-link-row small {
+  font-size: 11px;
+  color: var(--ui-text-muted);
+}
+
+.shared-link-row p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ui-text-muted);
+}
+
+.shared-link-row input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  color: var(--ui-text);
+  background: var(--ui-surface-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: 9px;
+  font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.shared-link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shared-link-actions button {
+  flex: 0 0 auto;
+  min-width: 0;
+  height: 30px;
+  padding: 0 12px;
+}
 
 /* Workspace commands belong to Settings, never above the note. */
 .settings-action {
-  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px;
-  padding: 8px 4px; border: 0; border-radius: 6px; background: transparent;
-  color: var(--ui-text); font: 13px/1.4 system-ui, sans-serif; cursor: pointer; text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ui-text);
+  font: 12px/1.4 system-ui, -apple-system, sans-serif;
+  cursor: pointer;
+  text-align: left;
 }
-.settings-action:hover { background: var(--ui-hover); }
-.settings-action svg { flex: 0 0 16px; width: 16px; height: 16px; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.settings-action span { flex: 1; }
-.settings-action kbd { font: 11px system-ui, sans-serif; color: var(--ui-text-muted); }
-.settings-action .settings-action-chevron { width: 12px; height: 12px; flex-basis: 12px; }
-.storage-state { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; font: 12px/1.5 system-ui, sans-serif; color: var(--ui-text-muted); margin-bottom: 6px; }
-#retrySaveBtn { background: transparent; color: var(--text-color); font: inherit; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
-/* Drawing controls share the existing right gutter instead of hanging over text. */
-.top-right-rail { flex-direction: column; align-items: center; gap: 8px; }
-.rail-tools { flex-direction: column-reverse; align-items: center; gap: 8px; }
-.drawing-toolbar { position: static; flex-direction: column; flex-wrap: nowrap; width: auto; max-width: none; }
-.drawing-toolbar-group { flex-direction: column; }
-.drawing-toolbar-group-actions { margin-left: 0; padding-left: 0; border-left: 0; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--ui-border); }
-.rail-collapse-toggle { height: 32px; }
-.top-right-rail.tools-collapsed .drawing-toolbar { display: none; }
-.page-tabs-list { max-height: max(80px, calc(100dvh - 500px)); }
-.top-right-rail.tools-collapsed .page-tabs-list { max-height: min(70dvh, calc(100dvh - 190px)); }
-@media (max-width: 768px) { .page-tabs-list { max-height: max(64px, calc(100dvh - 440px)); } }
-@media (max-height: 560px) {
-  .top-right-rail { max-height: calc(100dvh - 96px); overflow-y: auto; }
+
+.settings-action:hover {
+  background: var(--ui-hover);
+}
+
+.settings-action svg {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.72;
+}
+
+.settings-action span {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-action kbd {
+  font: 11px system-ui, -apple-system, sans-serif;
+  color: var(--ui-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-action .settings-action-chevron {
+  flex-basis: 12px;
+  width: 12px;
+  height: 12px;
+  opacity: 0.5;
+}
+
+.storage-state {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font: 12px/1.5 system-ui, -apple-system, sans-serif;
+  color: var(--ui-text);
+}
+
+#retrySaveBtn {
+  flex: 0 0 auto;
+  padding: 0;
+  background: transparent;
+  color: var(--ui-text);
+  font: 11px system-ui, -apple-system, sans-serif;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }

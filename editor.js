@@ -27,7 +27,7 @@ import { acquireWorkspaceLock, createWorkspaceChannel } from './src/core/workspa
 import { createStatusAnnouncer } from './src/ui/app-status.js';
 import { registerPwaUpdates } from './src/ui/pwa-updates.js';
 
-const APP_VERSION = '2.3.2';
+const APP_VERSION = '2.3.3';
 
 // Links published from the local unpacked extension have to point somewhere a
 // recipient can actually open, so they use the public deployment rather than
@@ -4005,6 +4005,14 @@ function closeImportDialog({ restoreFocus = false } = {}) {
   if (restoreFocus) importWorkspaceBtn?.focus();
 }
 
+// The "matching page IDs" rule only means something in Add mode.
+function syncImportModeFields() {
+  const field = document.getElementById('importConflictField');
+  if (!field) return;
+  const mode = importConfirmDialog?.querySelector('input[name="importMode"]:checked')?.value;
+  field.hidden = mode !== 'add';
+}
+
 async function selectWorkspaceBackup(file) {
   if (!workspaceWritable || !file) return;
 
@@ -4027,6 +4035,7 @@ async function selectWorkspaceBackup(file) {
     }
     if (importConfirmDialog) {
       importConfirmDialog.showModal();
+      syncImportModeFields();
       requestAnimationFrame(() => confirmImportBtn?.focus());
     }
   } catch (error) {
@@ -4196,6 +4205,11 @@ if (importConfirmDialog) {
   importConfirmDialog.addEventListener('click', event => {
     if (event.target === importConfirmDialog) closeImportDialog({ restoreFocus: true });
   });
+  // The conflict rule only applies to Add mode, so it stays out of the way
+  // until Add is chosen instead of sitting there half-explained.
+  for (const radio of importConfirmDialog.querySelectorAll('input[name="importMode"]')) {
+    radio.addEventListener('change', syncImportModeFields);
+  }
 }
 
 if (restoreConfirmDialog) {

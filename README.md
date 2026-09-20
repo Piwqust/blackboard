@@ -9,7 +9,7 @@
 Write, sketch, and keep your notes in the browser profile you control. No
 account, telemetry, or automatic note sync. Short links optionally store only a copy you explicitly share.
 
-![Version](https://img.shields.io/badge/version-2.3.2-3D47FF?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.3.3-3D47FF?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-offline--ready-3D47FF?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-5B4FA8?style=flat-square)
 
@@ -172,7 +172,7 @@ Browser regressions: `npm run build`, `npx playwright install chromium`, then `n
 - Search names and note text with **Settings → Find a page** or **Ctrl/⌘ K**.
 - **Page actions** provides sharing, TXT/Markdown export, recovery, drawing redo and keyboard help.
 - Import either replaces the workspace or adds pages. Matching IDs can be kept as separate copies or skipped.
-- **Settings → Your data → Browse recovery history** previews the seven local snapshots and recovers individual pages as new pages.
+- **Settings → Your data → Recovery snapshots → Browse recovery history** previews the seven local snapshots and recovers individual pages as new pages.
 - Published links retain the original board and offer **Readable text** plus board zoom. Drawings remain in the original view.
 - Local-save status, retry and backup are available in **Settings → Your data**.
 - The rendering bitmap is capped at 8 million pixels / 8192 per side. Very long notes trade drawing sharpness for bounded memory; note data is retained.
@@ -188,3 +188,18 @@ The app remains on GitHub Pages. A separate Cloudflare Worker/D1 stores copies o
 ## Interface cleanup in 2.3.1
 
 Workspace commands have moved into Settings. The editor has no top workspace toolbar or reserved header gap. Drawing tools start collapsed and open vertically inside the right gutter. Hidden Settings controls are inert; search remains available with Ctrl/⌘ K. Short links and all existing data actions are preserved.
+
+## Interface pass in 2.3.3
+
+The right gutter is one column of equally sized chips: show drawing tools, the
+page tabs, and add a page. The brush palette is horizontal again and opens to
+the left of its chip as an overlay, so it no longer stretches down the gutter.
+
+Settings keeps its title and Reset in place while the middle scrolls, and runs
+Pages → Theme → Layout → Colours → Your data. Backup keeps two buttons, with
+snapshots behind a Recovery snapshots disclosure.
+
+Every modal is centred, scrolls inside one surface, and shares the same
+heading, option rows, select, disclosure and buttons. Import shows the
+matching-ID rule only in Add mode. Delete and Clear confirmations are opaque,
+so they can no longer be read through onto the emoji grid behind them.

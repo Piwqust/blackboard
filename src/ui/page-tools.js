@@ -10,7 +10,15 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
   dialog.className = 'backup-dialog workspace-dialog';
   dialog.id = 'workspaceToolsDialog';
   dialog.setAttribute('aria-labelledby', 'workspaceToolsTitle');
-  dialog.innerHTML = '<div class="backup-dialog-surface"><div class="workspace-dialog-heading"><h2 id="workspaceToolsTitle"></h2><button type="button" id="workspaceToolsClose" aria-label="Close workspace panel">Close</button></div><div id="workspaceToolsContent"></div><p id="workspaceToolsStatus" role="status"></p></div>';
+  dialog.innerHTML = '<div class="backup-dialog-surface">'
+    + '<div class="workspace-dialog-heading">'
+    + '<div class="workspace-dialog-title"><p class="backup-dialog-eyebrow">Workspace</p><h2 id="workspaceToolsTitle"></h2></div>'
+    + '<button type="button" id="workspaceToolsClose" class="dialog-close" aria-label="Close workspace panel">'
+    + '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6L18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    + '</button>'
+    + '</div>'
+    + '<div id="workspaceToolsContent"></div>'
+    + '<p id="workspaceToolsStatus" class="dialog-note" role="status"></p></div>';
   document.body.append(dialog);
   const content = dialog.querySelector('#workspaceToolsContent');
   const message = dialog.querySelector('#workspaceToolsStatus');
@@ -93,7 +101,7 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
       const snapshots=await listSnapshots();if(ticket!==request)return;
       message.textContent=snapshots.length?'Up to 7 snapshots are kept on this device. Recovering a page creates a new page.':'No snapshots yet. Importing or deleting saves a recovery snapshot first.';
       for(const snapshot of snapshots) {
-        const details=document.createElement('details');const summary=document.createElement('summary');
+        const details=document.createElement('details');details.className='recovery-snapshot';const summary=document.createElement('summary');
         summary.textContent=new Date(snapshot.createdAt).toLocaleString()+' · '+snapshot.label+' · '+snapshot.workspace.pages.length+' pages';details.append(summary);content.append(details);
         for(const page of snapshot.workspace.pages) {
           const row=document.createElement('div');row.className='recovery-page';
@@ -112,7 +120,7 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
   function showHelp() {
     open('Keyboard help');
     const lines=[['Find pages','Ctrl / ⌘ K'],['New page','Alt Shift N'],['Indent / unindent','Tab / Shift Tab in the editor'],['Leave the editor or close a panel','Escape'],['Undo / redo text or drawing','Ctrl / ⌘ Z · Ctrl / ⌘ Shift Z'],['Brush / eraser','Alt Shift B / E']];
-    const dl=document.createElement('dl');for(const [label,key]of lines){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=key;dl.append(dt,dd)}content.append(dl);
+    const dl=document.createElement('dl');dl.className='workspace-shortcuts';for(const [label,key]of lines){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=key;dl.append(dt,dd)}content.append(dl);
   }
   searchButton.addEventListener('click',showPages);
   actionsButton.addEventListener('click',showActions);

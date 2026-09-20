@@ -210,7 +210,9 @@
         </button>
       </div>
 
-      <div class="control-section workspace-tools" aria-label="Workspace tools">
+      <div class="controls-panel-body">
+      <div class="control-section workspace-tools" aria-labelledby="pagesSectionLabel">
+        <div class="section-label" id="pagesSectionLabel">Pages</div>
         <button id="findPagesBtn" class="settings-action" type="button">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
           <span>Find a page</span><kbd id="findPagesShortcut"></kbd>
@@ -222,23 +224,6 @@
         </button>
       </div>
 
-      <div class="control-section data-section" aria-labelledby="dataSectionLabel">
-        <div class="section-label" id="dataSectionLabel">Your data</div>
-        <div class="storage-state"><span id="storageStatus" role="status">Loading…</span><button id="retrySaveBtn" type="button" hidden>Retry save</button></div>
-        <p class="data-copy" id="storageSummary">Stored only in this browser on this device.</p>
-        <div class="data-actions">
-          <button id="exportWorkspaceBtn" class="secondary-btn data-action" type="button">Export backup</button>
-          <button id="importWorkspaceBtn" class="secondary-btn data-action" type="button">Import backup</button>
-          <button id="restoreSnapshotBtn" class="secondary-btn data-action data-action-wide" type="button" disabled>Restore latest snapshot</button>
-          <button id="recoveryHistoryBtn" class="secondary-btn data-action data-action-wide" type="button">Browse recovery history</button>
-          <input id="importWorkspaceInput" type="file" accept="application/json,.json,.blackboard.json" hidden>
-        </div>
-        <p class="data-hint">Export creates a portable <code>.blackboard.json</code> file. Import can add pages or replace the workspace after saving a recovery snapshot. <a href="privacy.html">Privacy</a></p>
-        <p class="data-hint" id="recoverySummary">Recovery snapshots appear here after an import or destructive change.</p>
-      </div>
-
-
-      <div class="section-label">Appearance</div>
       <!-- Theme Section -->
       <div class="control-section">
         <div class="section-label">Theme</div>
@@ -335,6 +320,28 @@
         </div>
       </div>
 
+      <div class="control-section data-section" aria-labelledby="dataSectionLabel">
+        <div class="section-label" id="dataSectionLabel">Your data</div>
+        <div class="storage-state"><span id="storageStatus" role="status">Loading…</span><button id="retrySaveBtn" type="button" hidden>Retry save</button></div>
+        <p class="data-copy" id="storageSummary">Stored only in this browser on this device.</p>
+        <div class="data-actions">
+          <button id="exportWorkspaceBtn" class="secondary-btn data-action" type="button">Export backup</button>
+          <button id="importWorkspaceBtn" class="secondary-btn data-action" type="button">Import backup</button>
+          <input id="importWorkspaceInput" type="file" accept="application/json,.json,.blackboard.json" hidden>
+        </div>
+        <p class="data-hint">Export creates a portable <code>.blackboard.json</code> file. Import can add pages or replace the workspace. <a href="privacy.html">Privacy</a></p>
+
+        <details class="control-disclosure data-recovery">
+          <summary class="control-disclosure-summary">Recovery snapshots</summary>
+          <div class="control-disclosure-content">
+            <button id="restoreSnapshotBtn" class="secondary-btn data-action data-action-wide" type="button" disabled>Restore latest snapshot</button>
+            <button id="recoveryHistoryBtn" class="secondary-btn data-action data-action-wide" type="button">Browse recovery history</button>
+            <p class="data-hint" id="recoverySummary">Recovery snapshots appear here after an import or destructive change.</p>
+          </div>
+        </details>
+      </div>
+      </div>
+
       <div class="controls-panel-footer">
         <button id="resetSettings" class="reset-btn" type="button">Reset to defaults</button>
       </div>
@@ -412,17 +419,31 @@
 
   <dialog id="importConfirmDialog" class="backup-dialog" aria-labelledby="importConfirmTitle" aria-describedby="importConfirmText">
     <div class="backup-dialog-surface">
-      <p class="backup-dialog-eyebrow">Import backup</p>
+      <p class="backup-dialog-eyebrow">Your data</p>
       <h2 id="importConfirmTitle">Import backup</h2>
       <p id="importConfirmText">Your current notes will be saved as a local recovery snapshot first.</p>
-      <fieldset class="import-options">
+      <fieldset class="choice-group import-options">
         <legend>How to import</legend>
-        <label><input type="radio" name="importMode" value="replace" checked> Replace workspace (save recovery snapshot)</label>
-        <label><input type="radio" name="importMode" value="add"> Add pages to this workspace</label>
-        <label for="importConflictMode">Matching page IDs in Add mode</label>
-        <select id="importConflictMode"><option value="copy">Keep both as separate pages</option><option value="skip">Skip matching IDs</option></select>
-        <p id="importConflictSummary"></p>
+        <label class="choice">
+          <input type="radio" name="importMode" value="replace" checked>
+          <span class="choice-copy">
+            <span class="choice-title">Replace workspace</span>
+            <span class="choice-note">A recovery snapshot is saved first.</span>
+          </span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="importMode" value="add">
+          <span class="choice-copy">
+            <span class="choice-title">Add pages to this workspace</span>
+            <span class="choice-note">Everything you have now is kept.</span>
+          </span>
+        </label>
       </fieldset>
+      <div class="dialog-field" id="importConflictField" hidden>
+        <label class="dialog-field-label" for="importConflictMode">Matching page IDs in Add mode</label>
+        <select id="importConflictMode" class="dialog-select"><option value="copy">Keep both as separate pages</option><option value="skip">Skip matching IDs</option></select>
+      </div>
+      <p id="importConflictSummary" class="dialog-note"></p>
       <div class="backup-dialog-actions">
         <button id="cancelImportBtn" class="delete-confirm-cancel" type="button">Cancel</button>
         <button id="confirmImportBtn" class="delete-confirm-delete" type="button">Import</button>
@@ -432,7 +453,7 @@
 
   <dialog id="restoreConfirmDialog" class="backup-dialog" aria-labelledby="restoreConfirmTitle" aria-describedby="restoreConfirmText">
     <div class="backup-dialog-surface">
-      <p class="backup-dialog-eyebrow">Recovery snapshot</p>
+      <p class="backup-dialog-eyebrow">Your data</p>
       <h2 id="restoreConfirmTitle">Restore this snapshot?</h2>
       <p id="restoreConfirmText">The current workspace will be saved as a new recovery snapshot first.</p>
       <div class="backup-dialog-actions">
@@ -444,42 +465,57 @@
 
   <dialog id="publishDialog" class="backup-dialog" aria-labelledby="publishDialogTitle" aria-describedby="publishDialogText">
     <div class="backup-dialog-surface">
-      <p class="backup-dialog-eyebrow">Publish page</p>
+      <p class="backup-dialog-eyebrow">Share</p>
       <h2 id="publishDialogTitle">Share a copy of this page</h2>
       <p id="publishDialogText">Choose how to share a copy. Anyone with the link can read it. Later edits to your page do not change the shared copy.</p>
 
-      <fieldset class="share-modes">
+      <fieldset class="choice-group share-modes">
         <legend>Link type</legend>
-        <label><input id="shareModeShort" name="shareMode" type="radio" value="short"> Short link · stores this copy online</label>
-        <label><input id="shareModeFull" name="shareMode" type="radio" value="full" checked> Full link · the copy is inside the address</label>
+        <label class="choice">
+          <input id="shareModeShort" name="shareMode" type="radio" value="short">
+          <span class="choice-copy">
+            <span class="choice-title">Short link</span>
+            <span class="choice-note">Stores this copy online.</span>
+          </span>
+        </label>
+        <label class="choice">
+          <input id="shareModeFull" name="shareMode" type="radio" value="full" checked>
+          <span class="choice-copy">
+            <span class="choice-title">Full link</span>
+            <span class="choice-note">The copy travels inside the address.</span>
+          </span>
+        </label>
       </fieldset>
-      <p id="shortLinkSetupHint">Short links are not connected yet. You can still share a full link.</p>
+      <p id="shortLinkSetupHint" class="dialog-note">Short links are not connected yet. You can still share a full link.</p>
       <label class="publish-option" id="publishDrawingsOption">
         <input type="checkbox" id="publishIncludeDrawings" checked>
         <span>Include this page's drawings</span>
       </label>
 
-      <div id="shortLinkPanel" hidden>
+      <div id="shortLinkPanel" class="dialog-panel" hidden>
         <button id="createShortLinkBtn" class="secondary-btn" type="button">Create short link</button>
-        <p id="shortLinkStatus" role="status"></p>
+        <p id="shortLinkStatus" class="dialog-note" role="status"></p>
         <input id="shortLinkResult" class="publish-link-input" aria-label="Created short link" readonly hidden>
-        <button id="copyShortLinkBtn" class="delete-confirm-cancel" type="button" hidden>Copy short link</button>
-        <a id="previewShortLink" target="_blank" rel="noopener" hidden>Open short link</a>
+        <div class="dialog-panel-actions">
+          <button id="copyShortLinkBtn" class="secondary-btn" type="button" hidden>Copy short link</button>
+          <a id="previewShortLink" class="dialog-link" target="_blank" rel="noopener" hidden>Open short link</a>
+        </div>
       </div>
-      <div id="fullLinkPanel">
-      <p>The full link uploads nothing. It cannot be disabled once shared.</p>
-      <div class="publish-link-row">
-        <input type="text" id="publishLinkInput" class="publish-link-input" readonly spellcheck="false" aria-label="Published note link">
-        <button id="copyPublishLinkBtn" class="secondary-btn" type="button">Copy link</button>
+      <div id="fullLinkPanel" class="dialog-panel">
+        <p class="dialog-note">The full link uploads nothing. It cannot be disabled once shared.</p>
+        <div class="publish-link-row">
+          <input type="text" id="publishLinkInput" class="publish-link-input" readonly spellcheck="false" aria-label="Published note link">
+          <button id="copyPublishLinkBtn" class="secondary-btn" type="button">Copy link</button>
+        </div>
+        <p class="publish-size" id="publishSizeHint" data-tier="ok">Building the link…</p>
+        <a id="previewPublishLink" class="dialog-link" target="_blank" rel="noopener" hidden>Preview this copy</a>
       </div>
-      <a id="previewPublishLink" target="_blank" rel="noopener" hidden>Preview this copy</a>
-      <p class="publish-size" id="publishSizeHint" data-tier="ok">Building the link…</p>
-
-      </div>
-      <details id="sharedLinksDetails">
-        <summary>Shared links from this browser</summary>
-        <p>Keep this browser's site data to manage your links. Workspace backups do not include management keys. Disabling a link stops future opening; recipients may already have saved a copy.</p>
-        <div id="sharedLinksList"></div>
+      <details id="sharedLinksDetails" class="dialog-disclosure">
+        <summary class="dialog-disclosure-summary">Shared links from this browser</summary>
+        <div class="dialog-disclosure-content">
+          <p class="dialog-note">Keep this browser's site data to manage your links. Workspace backups do not include management keys. Disabling a link stops future opening; recipients may already have saved a copy.</p>
+          <div id="sharedLinksList"></div>
+        </div>
       </details>
       <div class="backup-dialog-actions">
         <button id="closePublishBtn" class="delete-confirm-cancel" type="button">Done</button>

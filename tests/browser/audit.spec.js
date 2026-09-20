@@ -118,20 +118,48 @@ test('write failure is visible and current text remains exportable', async ({pag
   expect(data).toContain('Unsaved text must survive');
 });
 
-test('icons stay beside a full-height writing area without a header', async ({page}) => {
-  await openDrawingTools(page);
+// The rail is permanent chrome, so it has to live outside the writing column.
+// The brush palette is an overlay the reader asks for, so it may sit over the
+// note, but it must stay on screen and must never widen the page.
+test('the icon rail stays beside a full-height writing area; the palette is an overlay', async ({page}) => {
   for(const width of [1440,1280,390,320]) {
     await page.setViewportSize({width,height:900});
     await page.locator('#editor').fill(Array(50).fill('A long line of text '.repeat(8)).join('\n'));
-    const result=await page.evaluate(()=>{
+    await expect(page.locator('#drawingToolbar')).toBeHidden();
+    const rail=await page.evaluate(()=>{
       const body=document.body.getBoundingClientRect();
-      const tools=document.querySelector('#drawingToolbar').getBoundingClientRect();
-      const rail=document.querySelector('#pageTabsList').getBoundingClientRect();
-      return {bodyTop:body.top,toolsLeft:tools.left,bodyRight:body.right,railLeft:rail.left};
+      return {
+        bodyTop:body.top,
+        bodyRight:body.right,
+        tabsLeft:document.querySelector('#pageTabsList').getBoundingClientRect().left,
+        toggleLeft:document.querySelector('#drawingToolbarVisibilityToggleBtn').getBoundingClientRect().left,
+        addLeft:document.querySelector('#addPageBtn').getBoundingClientRect().left,
+        overflow:document.body.scrollWidth>document.body.clientWidth
+      };
     });
-    expect(result.bodyTop).toBe(0);
-    expect(result.bodyRight).toBeLessThanOrEqual(result.toolsLeft);
-    expect(result.bodyRight).toBeLessThanOrEqual(result.railLeft);
+    expect(rail.bodyTop).toBe(0);
+    expect(rail.overflow).toBe(false);
+    expect(rail.bodyRight).toBeLessThanOrEqual(rail.tabsLeft);
+    expect(rail.bodyRight).toBeLessThanOrEqual(rail.toggleLeft);
+    expect(rail.bodyRight).toBeLessThanOrEqual(rail.addLeft);
+
+    await openDrawingTools(page);
+    await expect(page.locator('#drawingToolbar')).toBeVisible();
+    // The palette settles out of a transform, so poll until it has landed.
+    const measurePalette=()=>page.evaluate(()=>{
+      const tools=document.querySelector('#drawingToolbar').getBoundingClientRect();
+      const toggle=document.querySelector('#drawingToolbarVisibilityToggleBtn').getBoundingClientRect();
+      return {onScreen:tools.left>=6 && tools.top>=0 && tools.bottom<=window.innerHeight,
+        besideRail:tools.right<=toggle.left,
+        overflow:document.body.scrollWidth>document.body.clientWidth};
+    });
+    await expect.poll(async()=>(await measurePalette()).besideRail).toBe(true);
+    const palette=await measurePalette();
+    expect(palette.onScreen).toBe(true);
+    expect(palette.overflow).toBe(false);
+
+    await page.locator('#drawingToolbarVisibilityToggleBtn').click();
+    await expect(page.locator('#drawingToolbar')).toBeHidden();
   }
 });
 
