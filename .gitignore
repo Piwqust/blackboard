@@ -13,3 +13,7 @@
 dist/
 node_modules/
 *.log
+
+.playwright-cli/
+test-results/
+playwright-report/

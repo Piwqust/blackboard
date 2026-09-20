@@ -160,3 +160,9 @@ and Inter Tight are bundled under the SIL Open Font License 1.1; see
 [`fonts/Inter-OFL.txt`](./fonts/Inter-OFL.txt). Board Grotesk is a proprietary
 project-owner asset supplied with permission; it is not covered by the MIT or
 Inter font licenses.
+
+### Safe editing support
+
+Editing requires Web Locks (Chrome/Edge on HTTPS or localhost). Other contexts open read-only; page navigation and backup export remain available. A localStorage lease is not used because it cannot guarantee a single writer.
+
+Browser regressions: `npm run build`, `npx playwright install chromium`, then `npm run test:browser`. These tests run the generated PWA and extension UI over HTTP; extension APIs and a real installed PWA update require separate checks.

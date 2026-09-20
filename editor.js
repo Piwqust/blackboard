@@ -1,3 +1,4 @@
+import { bindModalDialog } from './src/ui/dialogs.js';
 import { createWorkspaceBackup, describeBackup, makeBackupFilename, parseWorkspaceBackup, serializeWorkspaceBackup } from './src/core/backup.js';
 import { isExtensionContext, readLegacyChromeWorkspace } from './src/core/legacy-chrome.js';
 import { migrateFontFamily, normalizeSettings } from './src/core/schema.js';
@@ -22,7 +23,7 @@ import { acquireWorkspaceLock, createWorkspaceChannel } from './src/core/workspa
 import { createStatusAnnouncer } from './src/ui/app-status.js';
 import { registerPwaUpdates } from './src/ui/pwa-updates.js';
 
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.2.1';
 
 // Links published from the local unpacked extension have to point somewhere a
 // recipient can actually open, so they use the public deployment rather than
@@ -1132,13 +1133,17 @@ function getViewportScrollTop() {
 }
 
 function getMaxViewportScrollTop() {
-  const documentHeight = Math.max(
-    document.documentElement?.scrollHeight || 0,
-    document.body?.scrollHeight || 0,
-    board?.scrollHeight || 0
-  );
+  return Math.max(document.body.scrollHeight - document.body.clientHeight, 0);
+}
 
-  return Math.max(documentHeight - window.innerHeight, 0);
+function cancelPageScrollRestore() {
+  clearTimeout(scrollRestoreTimeout);
+  cancelAnimationFrame(scrollRestoreFrame);
+  cancelAnimationFrame(scrollRestoreNestedFrame);
+  scrollRestoreTimeout = null;
+  scrollRestoreFrame = null;
+  scrollRestoreNestedFrame = null;
+  isRestoringPageScroll = false;
 }
 
 function syncCurrentPageScrollPosition() {
@@ -1926,7 +1931,7 @@ function positionEmojiPicker(pageId = editingPageId) {
     return;
   }
 
-  const anchor = pageTabsList?.querySelector(`.page-tab[data-page-id="${pageId}"]`);
+  const anchor = getPageTab(pageId);
   if (!anchor) {
     return;
   }
@@ -2604,7 +2609,7 @@ function setWorkspaceWritableMode() {
 }
 
 async function tryPromoteReadOnlyTab() {
-  if (workspaceWritable) return;
+  if (workspaceWritable || !workspaceReady) return;
   const nextLock = await acquireWorkspaceLock();
   if (!nextLock.acquired) return;
 
@@ -2929,7 +2934,7 @@ function updatePageTabsScrollState() {
 
 function scrollActivePageTabIntoView() {
   if (!pageTabsList || !currentPageId) return;
-  const activeTab = pageTabsList.querySelector(`.page-tab[data-page-id="${currentPageId}"]`);
+  const activeTab = getPageTab(currentPageId);
   if (!activeTab) return;
   const tabTop = activeTab.offsetTop;
   const tabBottom = tabTop + activeTab.offsetHeight;
@@ -3251,7 +3256,7 @@ function handleDragOver(e) {
   clearPageTabDragState();
 
   const draggedTab = draggedPageId
-    ? pageTabsList?.querySelector(`.page-tab[data-page-id="${draggedPageId}"]`)
+    ? getPageTab(draggedPageId)
     : null;
 
   if (draggedTab) {
@@ -4148,6 +4153,9 @@ function setupPwaUpdatePrompt() {
 }
 
 // Event Listeners
+bindModalDialog(publishDialog, closePublishDialog);
+bindModalDialog(importConfirmDialog, closeImportDialog);
+bindModalDialog(restoreConfirmDialog, closeRestoreDialog);
 
 if (exportWorkspaceBtn) {
   exportWorkspaceBtn.addEventListener('click', downloadWorkspaceBackup);
@@ -4222,6 +4230,9 @@ if (publishDialog) {
 }
 
 // Editor input - auto-save
+editor.addEventListener('input', cancelPageScrollRestore);
+document.body.addEventListener('wheel', cancelPageScrollRestore, {passive:true});
+document.body.addEventListener('touchstart', cancelPageScrollRestore, {passive:true});
 editor.addEventListener('input', debouncedSave);
 editor.addEventListener('input', () => scheduleDrawingLayerSync());
 editor.addEventListener('input', scheduleTextSnapshot);

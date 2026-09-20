@@ -15,7 +15,8 @@ const staticFiles = [
   'read.html',
   'privacy.html',
   'service-worker.js',
-  'site.webmanifest'
+  'site.webmanifest',
+  'LICENSE'
 ];
 
 // Files the app shell is cached from. Anything not listed here still works
@@ -46,7 +47,7 @@ async function copyRuntime(destination, { includePwaWorker }) {
   await mkdir(destination, { recursive: true });
   await Promise.all(staticFiles.map(file => copyFile(file, destination)));
   await cp(path.join(root, 'src'), path.join(destination, 'src'), { recursive: true });
-  await cp(path.join(root, 'icons'), path.join(destination, 'icons'), { recursive: true });
+  await cp(path.join(root, 'icons'), path.join(destination, 'icons'), { recursive: true, filter: source => !source.endsWith('generate-icons.html') });
   await copyFile('fonts/InterVariable.woff2', destination);
   await copyFile('fonts/InterTight-Variable.ttf', destination);
   await copyFile('fonts/BoardGrotesqueSans-Light.otf', destination);

@@ -34,6 +34,7 @@ function snapshotId() {
 export function createWorkspaceStore({ dbName = 'blackboard-text', maxSnapshots = 7 } = {}) {
   let databasePromise;
   let writeTail = Promise.resolve();
+  let writeError = null;
 
   function openDatabase() {
     if (databasePromise) return databasePromise;
@@ -62,7 +63,7 @@ export function createWorkspaceStore({ dbName = 'blackboard-text', maxSnapshots 
 
   function enqueue(task) {
     const result = writeTail.then(task);
-    writeTail = result.catch(() => undefined);
+    writeTail = result.catch(error => { writeError = error; });
     return result;
   }
 
@@ -173,7 +174,10 @@ export function createWorkspaceStore({ dbName = 'blackboard-text', maxSnapshots 
 
   return {
     readWorkspace: () => writeTail.then(readWorkspaceNow),
-    saveWorkspace: workspace => enqueue(() => replaceWorkspaceNow(workspace)),
+    saveWorkspace: workspace => enqueue(async () => {
+      await replaceWorkspaceNow(workspace);
+      writeError = null;
+    }),
     savePage: (page, currentPageId) => enqueue(() => savePageNow(page, currentPageId)),
     saveSettings: settings => enqueue(() => saveSettingsNow(settings)),
     saveCurrentPageId: currentPageId => enqueue(() => saveCurrentPageIdNow(currentPageId)),
@@ -203,6 +207,9 @@ export function createWorkspaceStore({ dbName = 'blackboard-text', maxSnapshots 
       await replaceWorkspaceNow(snapshot.workspace);
       return copy(snapshot.workspace);
     }),
-    flush: () => writeTail
+    flush: async () => {
+      await writeTail;
+      if (writeError) throw writeError;
+    }
   };
 }

@@ -1,13 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Blackboard Text",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "A quiet, local-first writing space with portable backups",
   "icons": {
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "action": {
     "default_icon": {
       "48": "icons/icon-48.png"

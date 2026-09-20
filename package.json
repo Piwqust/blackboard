@@ -1,6 +1,6 @@
 {
   "name": "blackboard-text",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "private": true,
   "type": "module",
   "description": "Local-first PWA and personal browser extension for quiet note taking.",
@@ -8,12 +8,14 @@
     "build": "node scripts/build.mjs",
     "lint": "node scripts/check.mjs",
     "test": "node --test tests/core.test.mjs",
-    "verify": "npm run lint && npm run test && npm run build && node scripts/verify-dist.mjs"
+    "verify": "npm run lint && npm run test && npm run build && node scripts/verify-dist.mjs",
+    "test:browser": "playwright test"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "fake-indexeddb": "^6.2.5"
   }
 }

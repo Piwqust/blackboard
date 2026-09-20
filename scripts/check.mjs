@@ -33,3 +33,6 @@ if (editorVersion !== packageVersion) {
 }
 
 console.log(`Syntax and JSON checks passed for ${checkedFiles.length} JavaScript files.`);
+
+const manifestVersion = JSON.parse(await readFile(path.join(root, 'manifest.json'), 'utf8')).version;
+if (manifestVersion !== packageVersion) throw new Error('Root manifest version differs from package version.');
