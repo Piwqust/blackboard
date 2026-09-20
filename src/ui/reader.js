@@ -123,8 +123,7 @@ function getCanvasOffsetTop(boardScale = 1) {
   const boardTop = board.getBoundingClientRect().top;
   const contentTop = content.getBoundingClientRect().top;
   const shellPaddingTop = Number.parseFloat(getComputedStyle(content.parentElement).paddingTop) || 0;
-  const scaledOffset = contentTop - boardTop - shellPaddingTop;
-  return Math.max(0, Math.round(scaledOffset / boardScale));
+  return Math.max(0, Math.round((contentTop - boardTop) / boardScale - shellPaddingTop));
 }
 // A drawing can reach further down the page than the text does, so the board
 // has to grow to hold it — otherwise the canvas would clip the stroke.

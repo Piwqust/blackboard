@@ -340,14 +340,15 @@ function initColorPickerSwatches() {
     swatch.type = 'button';
     swatch.className = 'color-picker-swatch';
     swatch.style.backgroundColor = color;
+    swatch.setAttribute("aria-label", "Color " + color);
     swatch.addEventListener('click', () => {
       const hsb = hexToHsb(color);
       colorPickerState.hue = hsb.h;
       colorPickerState.sat = hsb.s;
       colorPickerState.brightness = hsb.b;
       if (colorPickerHue) colorPickerHue.value = hsb.h;
-      updateColorPickerDisplay();
-      applyColorLive();
+      updateColorPickerDisplay(color);
+      applyColorLive(color);
     });
     colorPickerSwatches.appendChild(swatch);
   });
@@ -392,8 +393,8 @@ function openColorPicker(colorKey, triggerElement) {
   // Set current preview
   if (colorPickerPreviewCurrent) colorPickerPreviewCurrent.style.backgroundColor = currentHex;
   
-  // Update displays
-  updateColorPickerDisplay();
+  // Opening the picker must preserve the exact stored color.
+  updateColorPickerDisplay(currentHex);
   
   // Position popup near trigger. The popup is hidden via opacity/visibility,
   // not display, so its rendered size is measurable before it becomes visible.
@@ -440,9 +441,9 @@ function closeColorPicker() {
   colorPickerPopup.classList.remove('visible');
 }
 
-function updateColorPickerDisplay() {
+function updateColorPickerDisplay(exactHex) {
   const { hue, sat, brightness } = colorPickerState;
-  const hex = hsbToHex(hue, sat, brightness);
+  const hex = exactHex || hsbToHex(hue, sat, brightness);
   
   // Update color area background (hue)
   if (colorPickerArea) {
@@ -466,10 +467,10 @@ function updateColorPickerDisplay() {
   
 }
 
-function applyColorLive() {
+function applyColorLive(exactHex) {
   if (!colorPickerState.activeColorKey) return;
   
-  const hex = hsbToHex(colorPickerState.hue, colorPickerState.sat, colorPickerState.brightness);
+  const hex = exactHex || hsbToHex(colorPickerState.hue, colorPickerState.sat, colorPickerState.brightness);
   const colorKey = colorPickerState.activeColorKey;
   
   // Update the native color input and hex input
@@ -555,8 +556,8 @@ if (colorPickerHexInput) {
       colorPickerState.sat = hsb.s;
       colorPickerState.brightness = hsb.b;
       if (colorPickerHue) colorPickerHue.value = hsb.h;
-      updateColorPickerDisplay();
-      applyColorLive();
+      updateColorPickerDisplay(val);
+      applyColorLive(val);
     }
   });
 }
@@ -576,9 +577,8 @@ colorPickerMatchTheme?.addEventListener('click', () => {
   colorPickerState.hue = hsb.h;
   colorPickerState.sat = hsb.s;
   colorPickerState.brightness = hsb.b;
-  applyColorLive();
   if (colorPickerHue) colorPickerHue.value = hsb.h;
-  updateColorPickerDisplay();
+  updateColorPickerDisplay(themeColor);
   if (colorPickerMatchTheme) colorPickerMatchTheme.hidden = true;
 });
 

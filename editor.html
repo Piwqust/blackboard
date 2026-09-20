@@ -283,7 +283,7 @@
           <div class="color-control" data-color-type="textColor">
             <label for="textColor">Text</label>
             <div class="color-input-wrapper">
-              <input type="text" class="color-hex-input" id="textColorHex" value="#5B4FA8" maxlength="7" placeholder="#000000" spellcheck="false">
+              <input type="text" class="color-hex-input" id="textColorHex" value="#5B4FA8" maxlength="7" placeholder="#000000" spellcheck="false" aria-label="Text color hex value">
               <input type="color" id="textColor" value="#5B4FA8" aria-label="Text color">
             </div>
           </div>
@@ -291,7 +291,7 @@
           <div class="color-control" data-color-type="backgroundColor">
             <label for="backgroundColor">Background</label>
             <div class="color-input-wrapper">
-              <input type="text" class="color-hex-input" id="backgroundColorHex" value="#F2F0F8" maxlength="7" placeholder="#FFFFFF" spellcheck="false">
+              <input type="text" class="color-hex-input" id="backgroundColorHex" value="#F2F0F8" maxlength="7" placeholder="#FFFFFF" spellcheck="false" aria-label="Background color hex value">
               <input type="color" id="backgroundColor" value="#F2F0F8" aria-label="Background color">
             </div>
           </div>
@@ -299,7 +299,7 @@
           <div class="color-control" data-color-type="selectionColor">
             <label for="selectionColor">Highlight</label>
             <div class="color-input-wrapper">
-              <input type="text" class="color-hex-input" id="selectionColorHex" value="#5B4FA8" maxlength="7" placeholder="#0000FF" spellcheck="false">
+              <input type="text" class="color-hex-input" id="selectionColorHex" value="#5B4FA8" maxlength="7" placeholder="#0000FF" spellcheck="false" aria-label="Highlight color hex value">
               <input type="color" id="selectionColor" value="#5B4FA8" aria-label="Highlight color">
             </div>
           </div>
@@ -336,7 +336,7 @@
   <div class="color-picker-popup" id="colorPickerPopup">
     <div class="color-picker-header">
       <span class="color-picker-title" id="colorPickerTitle">Text Color</span>
-      <button class="color-picker-close" id="colorPickerClose" type="button">
+      <button class="color-picker-close" id="colorPickerClose" type="button" aria-label="Close color picker">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M6 6L18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -351,7 +351,7 @@
     
     <!-- Hue Slider -->
     <div class="color-picker-hue-wrap">
-      <input type="range" class="color-picker-hue" id="colorPickerHue" min="0" max="360" value="0">
+      <input type="range" class="color-picker-hue" id="colorPickerHue" min="0" max="360" value="0" aria-label="Hue">
     </div>
     
     <!-- Color Preview & Hex -->
@@ -360,7 +360,7 @@
         <div class="color-picker-preview-current" id="colorPickerPreviewCurrent" title="Current"></div>
         <div class="color-picker-preview-new" id="colorPickerPreviewNew" title="New"></div>
       </div>
-      <input type="text" class="color-picker-hex" id="colorPickerHexInput" maxlength="7" placeholder="#000000" spellcheck="false">
+      <input type="text" class="color-picker-hex" id="colorPickerHexInput" maxlength="7" placeholder="#000000" spellcheck="false" aria-label="Hex color value">
     </div>
     
     <!-- Preset Swatches -->
@@ -404,7 +404,7 @@
         <button id="confirmImportBtn" class="delete-confirm-delete" type="button">Replace workspace</button>
       </div>
     </div>
-  </div>
+  </dialog>
 
   <dialog id="restoreConfirmDialog" class="backup-dialog" aria-labelledby="restoreConfirmTitle" aria-describedby="restoreConfirmText">
     <div class="backup-dialog-surface">
@@ -439,7 +439,7 @@
         <button id="closePublishBtn" class="delete-confirm-cancel" type="button">Done</button>
       </div>
     </div>
-  </div>
+  </dialog>
 
   <script type="module" src="editor.js"></script>
 </body>

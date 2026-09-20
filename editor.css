@@ -2392,6 +2392,8 @@ body.is-scrolling .drawing-tool-button:hover {
   background: var(--ui-surface-strong);
 }
 
+.backup-dialog:not([open]) { display: none; }
+
 .backup-dialog {
   /* Native <dialog> uses top layer, no z-index needed */
   border: none;
