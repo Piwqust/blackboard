@@ -17,3 +17,7 @@ node_modules/
 .playwright-cli/
 test-results/
 playwright-report/
+
+**/.wrangler/
+**/.dev.vars*
+backend/short-links/worker-configuration.d.ts

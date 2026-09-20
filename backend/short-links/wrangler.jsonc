@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "blackboard-text-shares",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "vars": {
+    "ALLOWED_ORIGINS": "https://piwqust.github.io",
+    "ALLOW_EXTENSION_ORIGINS": "true"
+  },
+  "d1_databases": [{"binding": "DB", "database_name": "blackboard-text-shares", "migrations_dir": "migrations"}],
+  "ratelimits": [
+    {"name": "WRITE_LIMITER", "namespace_id": "92001", "simple": {"limit": 5, "period": 60}},
+    {"name": "READ_LIMITER", "namespace_id": "92002", "simple": {"limit": 120, "period": 60}}
+  ],
+  "observability": {"enabled": true, "logs": {"enabled": true, "invocation_logs": false}}
+}
