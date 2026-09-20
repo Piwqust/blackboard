@@ -15,6 +15,7 @@ try {
   await page.goto(app+'editor.html', {waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('#editor[contenteditable=true]').waitFor();
   await page.locator('#editor').fill(note);
+  await page.locator('#settingsToggleBtn').click();
   await page.locator('#pageActionsBtn').click();
   await page.getByRole('button',{name:'Share a copy…',exact:true}).click();
   await page.locator('#createShortLinkBtn').waitFor({state:'visible'});

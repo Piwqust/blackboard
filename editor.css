@@ -169,6 +169,7 @@ html {
 }
 
 #drawingLayer {
+  max-width: 100%;
   position: absolute;
   inset: 0;
   width: 100%;
@@ -631,8 +632,7 @@ body.drawing-mode #editor {
   border-radius: 999px;
 }
 
-.controls-container.open .controls-panel,
-.controls-panel:focus-within {
+.controls-container.open .controls-panel {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -2948,20 +2948,16 @@ body.workspace-readonly #drawingLayer {
   outline-offset: 3px;
 }
 
-/* Keep fixed tools outside the scrolling writing surface. */
-html:has(body:not(.reader-body):not(.legal-page-body)) { overflow: hidden; }
+/* One full-height scroller. The narrow icon rail is outside the writing width. */
+html:has(body:has(#board)) { overflow: hidden; }
 body:has(#board) {
-  margin-top: 112px;
-  height: calc(100% - 112px);
+  margin: 0;
+  height: 100%;
   width: calc(100% - 96px);
   overflow: auto;
 }
 @media (max-width: 768px) {
-  body:has(#board) {
-    margin-top: 128px;
-    height: calc(100% - 128px);
-    width: calc(100% - 80px);
-  }
+  body:has(#board) { width: calc(100% - 80px); }
 }
 .reader-viewport { width: 100%; overflow: clip; }
 
@@ -2970,17 +2966,10 @@ body:has(#board) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 
-.workspace-actions {
-  position: fixed; top: 24px; left: 24px; z-index: 2400;
-  display: flex; gap: 6px; flex-wrap: wrap;
-  max-width: calc(100vw - 510px);
-  font: 13px system-ui, sans-serif;
-}
-.workspace-actions button, .workspace-dialog button, .reader-view-controls button {
+.workspace-dialog button, .reader-view-controls button {
   color: var(--text-color); background: var(--bg-color);
   border: 1px solid var(--ui-border-strong); border-radius: 8px; padding: 8px 10px; cursor: pointer;
 }
-.workspace-actions kbd { font: inherit; opacity: .8; margin-left: 6px; }
 .workspace-dialog .backup-dialog-surface { width: min(600px, calc(100vw - 40px)); max-height: calc(100dvh - 80px); overflow: auto; }
 .workspace-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 #workspaceToolsContent { display: grid; gap: 10px; font: 14px/1.5 system-ui, sans-serif; }
@@ -2995,13 +2984,6 @@ body:has(#board) {
 .import-options select { background: var(--bg-color); color: var(--text-color); padding: 6px; max-width: 100%; }
 #previewPublishLink { display: inline-block; margin-top: 12px; color: var(--text-color); font: 13px system-ui, sans-serif; }
 #previewPublishLink[hidden] { display: none; }
-@media (max-width: 900px) {
-  .workspace-actions { top: 100px; left: 16px; max-width: calc(100vw - 96px); gap: 4px; }
-  .workspace-actions button { padding: 6px; font-size: 11px; }
-  .workspace-actions kbd { display: none; }
-  body:has(#board) { margin-top: 192px; height: calc(100% - 192px); }
-}
-@media print { .workspace-actions {display:none;} }
 .reader-view-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px 16px; font: 13px system-ui,sans-serif; }
 .reader-view-controls[hidden] {display:none;}
 .reader-view-controls select { background: var(--bg-color); color: var(--text-color); padding: 6px; }
@@ -3023,3 +3005,31 @@ body:has(#board) {
 .shared-link-row { display: grid; gap: 8px; border-top: 1px solid var(--ui-border); padding: 12px 0; }
 .shared-link-row input { width: 100%; min-width: 0; color: var(--text-color); background: var(--bg-color); border: 1px solid var(--ui-border); padding: 8px; border-radius: 6px; font: 12px ui-monospace,monospace; }
 .shared-link-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Workspace commands belong to Settings, never above the note. */
+.settings-action {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px;
+  padding: 8px 4px; border: 0; border-radius: 6px; background: transparent;
+  color: var(--ui-text); font: 13px/1.4 system-ui, sans-serif; cursor: pointer; text-align: left;
+}
+.settings-action:hover { background: var(--ui-hover); }
+.settings-action svg { flex: 0 0 16px; width: 16px; height: 16px; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.settings-action span { flex: 1; }
+.settings-action kbd { font: 11px system-ui, sans-serif; color: var(--ui-text-muted); }
+.settings-action .settings-action-chevron { width: 12px; height: 12px; flex-basis: 12px; }
+.storage-state { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; font: 12px/1.5 system-ui, sans-serif; color: var(--ui-text-muted); margin-bottom: 6px; }
+#retrySaveBtn { background: transparent; color: var(--text-color); font: inherit; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+/* Drawing controls share the existing right gutter instead of hanging over text. */
+.top-right-rail { flex-direction: column; align-items: center; gap: 8px; }
+.rail-tools { flex-direction: column-reverse; align-items: center; gap: 8px; }
+.drawing-toolbar { position: static; flex-direction: column; flex-wrap: nowrap; width: auto; max-width: none; }
+.drawing-toolbar-group { flex-direction: column; }
+.drawing-toolbar-group-actions { margin-left: 0; padding-left: 0; border-left: 0; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--ui-border); }
+.rail-collapse-toggle { height: 32px; }
+.top-right-rail.tools-collapsed .drawing-toolbar { display: none; }
+.page-tabs-list { max-height: max(80px, calc(100dvh - 500px)); }
+.top-right-rail.tools-collapsed .page-tabs-list { max-height: min(70dvh, calc(100dvh - 190px)); }
+@media (max-width: 768px) { .page-tabs-list { max-height: max(64px, calc(100dvh - 440px)); } }
+@media (max-height: 560px) {
+  .top-right-rail { max-height: calc(100dvh - 96px); overflow-y: auto; }
+}

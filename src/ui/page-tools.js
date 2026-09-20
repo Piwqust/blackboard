@@ -1,12 +1,10 @@
 import { bindModalDialog } from './dialogs.js';
 import { pageText } from '../core/page-tools.js';
 
-export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSettings, publishPage, exportBackup, listSnapshots, recoverPage, retrySave, redoDrawing, restoreDrawings }) {
-  const bar = document.createElement('nav');
-  bar.className = 'workspace-actions';
-  bar.setAttribute('aria-label', 'Workspace');
-  bar.innerHTML = '<button type="button" id="findPagesBtn">Pages <kbd>⌘/Ctrl K</kbd></button><button type="button" id="pageActionsBtn">Page actions</button><button type="button" id="quickBackupBtn">Backup</button><button type="button" id="storageStatusBtn">Saved locally</button>';
-  document.body.append(bar);
+export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSettings, publishPage, listSnapshots, recoverPage, retrySave, redoDrawing, restoreDrawings, closeSettings, openSettings }) {
+  const searchButton = document.getElementById('findPagesBtn');
+  const actionsButton = document.getElementById('pageActionsBtn');
+  document.getElementById('findPagesShortcut').textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ K' : 'Ctrl K';
 
   const dialog = document.createElement('dialog');
   dialog.className = 'backup-dialog workspace-dialog';
@@ -17,13 +15,25 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
   const content = dialog.querySelector('#workspaceToolsContent');
   const message = dialog.querySelector('#workspaceToolsStatus');
   let launcher;
+  let launchedFromSettings = false;
   let request = 0;
-  const close = () => { request++; dialog.close(); launcher?.focus(); };
+  const close = ({restoreFocus = true} = {}) => {
+    request++;
+    dialog.close();
+    if (restoreFocus) {
+      if (launchedFromSettings) openSettings();
+      launcher?.focus();
+    }
+  };
   bindModalDialog(dialog, close);
   dialog.querySelector('#workspaceToolsClose').addEventListener('click', close);
   dialog.addEventListener('click', event => { if (event.target === dialog) close(); });
   function open(title) {
-    launcher = document.activeElement;
+    if (!dialog.open) {
+      launcher = document.activeElement;
+      launchedFromSettings = Boolean(launcher?.closest('.controls-panel'));
+    }
+    closeSettings();
     request++;
     content.replaceChildren();
     message.textContent = '';
@@ -48,7 +58,7 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
       const query=input.value.trim().toLocaleLowerCase();
       const matches=indexed.filter(({page,text})=>(page.title+' '+text).toLocaleLowerCase().includes(query));
       for(const {page,text} of matches.slice(0,100)) {
-        const row=button((page.emoji || '')+' '+(page.title || text.slice(0,48) || 'Untitled page'),()=>{close();selectPage(page.id)},results);
+        const row=button((page.emoji || '')+' '+(page.title || text.slice(0,48) || 'Untitled page'),()=>{close({restoreFocus:false});selectPage(page.id)},results);
         const snippet=document.createElement('small');snippet.textContent=text.slice(0,150);row.append(snippet);
       }
       message.textContent=matches.length ? matches.length+' pages'+(matches.length>100?' · first 100 shown':'') : 'No pages match your search.';
@@ -67,8 +77,8 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
     open('Page actions');
     const workspace=getWorkspace();const page=workspace.pages.find(p=>p.id===workspace.currentPageId);
     if(!page)return;
-    button('Name, emoji and delete…',()=>{close();pageSettings(page.id)}).disabled=!isWritable();
-    button('Share a copy…',()=>{close();publishPage(page.id)});
+    button('Name, emoji and delete…',()=>{close({restoreFocus:false});pageSettings(page.id)}).disabled=!isWritable();
+    button('Share a copy…',()=>{close({restoreFocus:false});publishPage(page.id)});
     button('Export text (.txt)',()=>downloadPage(false));
     button('Export Markdown (.md)',()=>downloadPage(true));
     button('Redo drawing',()=>{redoDrawing();message.textContent='Drawing redo applied if available.';}).disabled=!isWritable();
@@ -104,18 +114,24 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
     const lines=[['Find pages','Ctrl / ⌘ K'],['New page','Alt Shift N'],['Indent / unindent','Tab / Shift Tab in the editor'],['Leave the editor or close a panel','Escape'],['Undo / redo text or drawing','Ctrl / ⌘ Z · Ctrl / ⌘ Shift Z'],['Brush / eraser','Alt Shift B / E']];
     const dl=document.createElement('dl');for(const [label,key]of lines){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=key;dl.append(dt,dd)}content.append(dl);
   }
-  bar.querySelector('#findPagesBtn').addEventListener('click',showPages);
-  bar.querySelector('#pageActionsBtn').addEventListener('click',showActions);
-  bar.querySelector('#quickBackupBtn').addEventListener('click',exportBackup);
-  const status=bar.querySelector('#storageStatusBtn');
+  searchButton.addEventListener('click',showPages);
+  actionsButton.addEventListener('click',showActions);
+  const status=document.getElementById('storageStatus');
+  const retry=document.getElementById('retrySaveBtn');
   const indicator=document.querySelector('#saveIndicator');
-  const updateStatus=()=>{status.textContent=!isWritable()?'Read-only copy':indicator.classList.contains('error')?'Save failed · retry':'Saved locally';};
+  const updateStatus=()=>{
+    const failed=indicator.classList.contains('error');
+    status.textContent=!isWritable()?'Read-only copy':failed?'Could not save changes':'Saved on this device';
+    retry.hidden=!failed || !isWritable();
+  };
   new MutationObserver(updateStatus).observe(indicator,{attributes:true});
   new MutationObserver(updateStatus).observe(document.body,{attributes:true,attributeFilter:['class']});
   document.querySelector('#editor').addEventListener('input',()=>{status.textContent='Saving…';});
-  status.addEventListener('click',async()=>{
+  retry.addEventListener('click',async()=>{
     if(!isWritable())return;
-    status.disabled=true;try{await retrySave();status.textContent='Saved locally';}catch{status.textContent='Save failed · retry';}finally{status.disabled=false;}
+    retry.disabled=true;
+    try{await retrySave();}catch{status.textContent='Could not save changes';}
+    finally{retry.disabled=false;updateStatus();}
   });
   document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'&&!event.isComposing){event.preventDefault();showPages();}});
   document.querySelector('#recoveryHistoryBtn')?.addEventListener('click',()=>void showRecovery());

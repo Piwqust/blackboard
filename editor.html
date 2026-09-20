@@ -18,7 +18,7 @@
     <canvas id="drawingLayer" aria-label="Drawing canvas — toggle the brush tool to draw"></canvas>
   </div>
 
-  <div class="top-right-rail">
+  <div class="top-right-rail tools-collapsed">
     <!-- The toolbar floats out of this wrapper's flow, so hiding it never
          shifts the arrow or the page rail — it just dissolves in place. -->
     <div class="rail-tools">
@@ -91,7 +91,7 @@
 
     </div>
 
-      <button id="drawingToolbarVisibilityToggleBtn" class="rail-collapse-toggle" type="button" aria-expanded="true" aria-controls="drawingToolbar" title="Hide drawing tools">
+      <button id="drawingToolbarVisibilityToggleBtn" class="rail-collapse-toggle" type="button" aria-expanded="false" aria-controls="drawingToolbar" title="Show drawing tools" aria-label="Show drawing tools">
         <svg class="rail-collapse-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M9.5 5.25L16.25 12L9.5 18.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -197,7 +197,7 @@
 
   <!-- Hidden controls - visible on hover -->
   <div class="controls-container">
-    <div class="controls-panel">
+    <div class="controls-panel" inert>
       <div class="controls-panel-header">
         <div class="controls-panel-heading">
           <h3>Settings</h3>
@@ -210,8 +210,21 @@
         </button>
       </div>
 
+      <div class="control-section workspace-tools" aria-label="Workspace tools">
+        <button id="findPagesBtn" class="settings-action" type="button">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+          <span>Find a page</span><kbd id="findPagesShortcut"></kbd>
+        </button>
+        <button id="pageActionsBtn" class="settings-action" type="button">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3.5h8l4 4v13H6zM14 3.5v4h4M9 12h6M9 16h6"/></svg>
+          <span>Page actions</span>
+          <svg class="settings-action-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+        </button>
+      </div>
+
       <div class="control-section data-section" aria-labelledby="dataSectionLabel">
         <div class="section-label" id="dataSectionLabel">Your data</div>
+        <div class="storage-state"><span id="storageStatus" role="status">Loading…</span><button id="retrySaveBtn" type="button" hidden>Retry save</button></div>
         <p class="data-copy" id="storageSummary">Stored only in this browser on this device.</p>
         <div class="data-actions">
           <button id="exportWorkspaceBtn" class="secondary-btn data-action" type="button">Export backup</button>

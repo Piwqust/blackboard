@@ -1,3 +1,4 @@
+import {openPageActions, openSettings, openDrawingTools} from './settings-helpers.js';
 import {test, expect} from '@playwright/test';
 
 test.beforeEach(async ({page}) => {
@@ -10,6 +11,7 @@ test.beforeEach(async ({page}) => {
 });
 
 test('exact colors, theme reset and accessible palette', async ({page}) => {
+  await openDrawingTools(page);
   await page.locator('#drawColorBtn').click();
   await expect(page.locator('#colorPickerHexInput')).toHaveValue('#dddad2', {ignoreCase:true});
   await page.locator('#colorPickerHexInput').fill('#123456');
@@ -40,7 +42,7 @@ test('readonly tabs expose navigation and backup without writing', async ({page,
   await other.locator('#exportWorkspaceBtn').click();
   expect((await download).suggestedFilename()).toMatch(/json$/);
   await other.locator('#settingsCloseBtn').click();
-  await other.locator('#pageActionsBtn').click();
+  await openPageActions(other);
   await other.getByRole('button',{name:'Share a copy…',exact:true}).click();
   await other.locator('#shareModeFull').check();
   await expect(other.locator('#copyPublishLinkBtn')).toBeEnabled();
@@ -116,7 +118,8 @@ test('write failure is visible and current text remains exportable', async ({pag
   expect(data).toContain('Unsaved text must survive');
 });
 
-test('fixed tools stay outside the scrolling writing area', async ({page}) => {
+test('icons stay beside a full-height writing area without a header', async ({page}) => {
+  await openDrawingTools(page);
   for(const width of [1440,1280,390,320]) {
     await page.setViewportSize({width,height:900});
     await page.locator('#editor').fill(Array(50).fill('A long line of text '.repeat(8)).join('\n'));
@@ -124,9 +127,10 @@ test('fixed tools stay outside the scrolling writing area', async ({page}) => {
       const body=document.body.getBoundingClientRect();
       const tools=document.querySelector('#drawingToolbar').getBoundingClientRect();
       const rail=document.querySelector('#pageTabsList').getBoundingClientRect();
-      return {bodyTop:body.top,toolsBottom:tools.bottom,bodyRight:body.right,railLeft:rail.left};
+      return {bodyTop:body.top,toolsLeft:tools.left,bodyRight:body.right,railLeft:rail.left};
     });
-    expect(result.bodyTop).toBeGreaterThanOrEqual(result.toolsBottom);
+    expect(result.bodyTop).toBe(0);
+    expect(result.bodyRight).toBeLessThanOrEqual(result.toolsLeft);
     expect(result.bodyRight).toBeLessThanOrEqual(result.railLeft);
   }
 });
@@ -241,11 +245,12 @@ test('page search, non-destructive merge and single-page recovery', async ({page
   await page.locator('#confirmImportBtn').click();
   await expect(page.locator('.page-tab')).toHaveCount(2);
   await expect(page.locator('#editor')).toHaveText('Unique first note');
+  await openSettings(page);
   await page.locator('#findPagesBtn').click();
   await page.getByRole('searchbox',{name:'Search pages'}).fill('incoming');
   await page.locator('.workspace-results button').click();
   await expect(page.locator('#editor')).toHaveText('Unique incoming note');
-  await page.locator('#pageActionsBtn').click();
+  await openPageActions(page);
   await page.getByRole('button',{name:'Recovery history…',exact:true}).click();
   await page.locator('#workspaceToolsContent summary').first().click();
   await page.getByRole('button',{name:'Recover as new page'}).first().click();
@@ -255,7 +260,7 @@ test('page search, non-destructive merge and single-page recovery', async ({page
 
 test('readable mode preserves original drawings and offers zoom', async ({page}) => {
   await page.locator('#editor').fill('Readable copy');
-  await page.locator('#pageActionsBtn').click();
+  await openPageActions(page);
   await page.getByRole('button',{name:'Share a copy…',exact:true}).click();
   await page.locator('#shareModeFull').check();
   await expect(page.locator('#previewPublishLink')).toBeVisible();
@@ -268,6 +273,7 @@ test('readable mode preserves original drawings and offers zoom', async ({page})
 });
 
 test('drawing undo redo and restore after clear preserve strokes', async ({page}) => {
+  await openDrawingTools(page);
   await page.locator('#drawToggleBtn').click();
   const rect=await page.locator('#drawingLayer').boundingBox();
   await page.mouse.move(rect.x+60,rect.y+60);await page.mouse.down();await page.mouse.move(rect.x+160,rect.y+110,{steps:5});await page.mouse.up();
@@ -276,5 +282,38 @@ test('drawing undo redo and restore after clear preserve strokes', async ({page}
   await page.locator('#undoDrawingBtn').click();await expect.poll(count).toBe(0);
   await page.keyboard.press('ControlOrMeta+Shift+z');await expect.poll(count).toBe(1);
   await page.locator('#clearDrawingsBtn').click();await page.locator('#confirmClearDrawingsBtn').click();await expect.poll(count).toBe(0);
-  await page.locator('#pageActionsBtn').click();await page.getByRole('button',{name:'Restore cleared drawings',exact:true}).click();await expect.poll(count).toBe(1);
+  await openPageActions(page);await page.getByRole('button',{name:'Restore cleared drawings',exact:true}).click();await expect.poll(count).toBe(1);
+});
+
+test('workspace tools only appear in settings; heading fits without clipping', async ({page}) => {
+  await expect(page.locator('.workspace-actions')).toHaveCount(0);
+  await expect(page.locator('#findPagesBtn')).toBeHidden();
+  await expect(page.locator('#pageActionsBtn')).toBeHidden();
+  await expect(page.locator('.controls-panel')).toHaveAttribute('inert','');
+  for (const width of [1440,1280,768,390,320]) {
+    await page.setViewportSize({width,height:720});
+    await page.locator('#editor').fill('1. Их оформление, содержание. А для\nПроверка полного текста');
+    await page.evaluate(()=>document.body.scrollTop=0);
+    const geometry=await page.locator('#editor').evaluate(el=>{
+      const range=document.createRange(); range.setStart(el.firstChild,0);range.setEnd(el.firstChild,1);
+      const first=range.getBoundingClientRect();const body=document.body.getBoundingClientRect();
+      return {top:first.top,left:first.left,bottom:first.bottom,bodyTop:body.top,overflow:document.body.scrollWidth>document.body.clientWidth};
+    });
+    expect(geometry.bodyTop).toBe(0);
+    expect(geometry.top).toBeGreaterThanOrEqual(40);
+    expect(geometry.top).toBeLessThan(85);
+    expect(geometry.overflow).toBe(false);
+  }
+  await page.keyboard.press('ControlOrMeta+k');
+  await expect(page.getByRole('searchbox',{name:'Search pages'})).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.controls-panel')).toHaveAttribute('inert','');
+  await openSettings(page);
+  await expect(page.locator('#findPagesBtn')).toBeVisible();
+  await page.locator('#findPagesBtn').click();
+  await expect(page.getByRole('searchbox',{name:'Search pages'})).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#findPagesBtn')).toBeFocused();
+  await page.locator('#settingsCloseBtn').click();
+  await expect(page.locator('#findPagesBtn')).toBeHidden();
 });

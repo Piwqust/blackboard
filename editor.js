@@ -27,7 +27,7 @@ import { acquireWorkspaceLock, createWorkspaceChannel } from './src/core/workspa
 import { createStatusAnnouncer } from './src/ui/app-status.js';
 import { registerPwaUpdates } from './src/ui/pwa-updates.js';
 
-const APP_VERSION = '2.3.0';
+const APP_VERSION = '2.3.1';
 
 // Links published from the local unpacked extension have to point somewhere a
 // recipient can actually open, so they use the public deployment rather than
@@ -826,7 +826,7 @@ const uiState = {
   deleteConfirmOpen: false,
   drawSizePopoverOpen: false,
   clearDrawingsConfirmOpen: false,
-  drawingToolbarCollapsed: false
+  drawingToolbarCollapsed: true
 };
 
 // Drawing state
@@ -1316,6 +1316,7 @@ function setDrawMode(enabled) {
   updateDrawingToolButtons();
 
   if (drawingState.enabled) {
+    setDrawingToolbarCollapsed(false);
     drawingState.scrollTopBeforeMode = viewportScrollTop;
     syncCurrentPageScrollPosition();
     editor.blur();
@@ -1787,6 +1788,7 @@ function setSettingsPanelOpen(isOpen) {
 
   if (controlsContainer) {
     controlsContainer.classList.toggle('open', uiState.settingsOpen);
+    controlsContainer.querySelector('.controls-panel').inert = !uiState.settingsOpen;
   }
 
   if (settingsToggleBtn) {
@@ -2540,7 +2542,7 @@ function setWorkspaceReadOnlyMode(reason = 'Another Blackboard Text tab is editi
   const allowed = new Set([exportWorkspaceBtn, reloadForUpdateBtn, settingsToggleBtn, settingsCloseBtn,
     copyPublishLinkBtn, closePublishBtn, publishIncludeDrawings]);
   document.querySelectorAll('button, input, select').forEach(control => {
-    if (allowed.has(control) || control.closest('.workspace-actions, #workspaceToolsDialog, #publishDialog') || control.matches('.page-tab, #recoveryHistoryBtn')) return;
+    if (allowed.has(control) || control.closest('.workspace-tools, #workspaceToolsDialog, #publishDialog') || control.matches('.page-tab, #recoveryHistoryBtn')) return;
     if (!control.disabled) control.dataset.workspaceLocked = 'true';
     control.disabled = true;
   });
@@ -4871,7 +4873,8 @@ setupPageTools({
   },
   pageSettings: openEmojiPicker,
   publishPage: openPublishDialog,
-  exportBackup: downloadWorkspaceBackup,
+  closeSettings: () => setSettingsPanelOpen(false),
+  openSettings: () => setSettingsPanelOpen(true),
   redoDrawing: redoLastStroke,
   restoreDrawings: restoreClearedDrawings,
   listSnapshots: () => workspaceStore.listSnapshots(),

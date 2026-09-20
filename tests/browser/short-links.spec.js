@@ -1,3 +1,4 @@
+import {openPageActions} from './settings-helpers.js';
 import {test,expect} from '@playwright/test';
 
 // Run against a real workerd/D1 dev server; normal regression runs need no backend.
@@ -12,7 +13,7 @@ test('create, open under a Pages subpath, keep immutable copy and disable',async
   await expect(page.locator('#editor')).toHaveAttribute('contenteditable','true');
   await page.locator('#editor').fill('Original shared copy');
   const puts=[];page.on('request',req=>{if(req.url().startsWith(endpoint)&&req.method()==='PUT')puts.push(req)});
-  await page.locator('#pageActionsBtn').click();
+  await openPageActions(page);
   await page.getByRole('button',{name:'Share a copy…',exact:true}).click();
   expect(puts).toHaveLength(0);
   await page.locator('#createShortLinkBtn').click();
@@ -25,7 +26,7 @@ test('create, open under a Pages subpath, keep immutable copy and disable',async
   await page.locator('#editor').fill('Edited private version');
   const reader=await context.newPage();await reader.goto(url);
   await expect(reader.locator('#readerContent')).toHaveText('Original shared copy');
-  await page.locator('#pageActionsBtn').click();await page.getByRole('button',{name:'Share a copy…',exact:true}).click();
+  await openPageActions(page);await page.getByRole('button',{name:'Share a copy…',exact:true}).click();
   await page.locator('#sharedLinksDetails summary').click();
   await page.getByRole('button',{name:'Disable link',exact:true}).click();
   await page.getByRole('button',{name:'Confirm disable',exact:true}).click();
@@ -48,7 +49,7 @@ test('lost response retries the same link, without uploading a second copy',asyn
   });
   await page.goto('editor.html');await expect(page.locator('#editor')).toHaveAttribute('contenteditable','true');
   await page.locator('#editor').fill('Network interruption copy');
-  await page.locator('#pageActionsBtn').click();await page.getByRole('button',{name:'Share a copy…',exact:true}).click();
+  await openPageActions(page);await page.getByRole('button',{name:'Share a copy…',exact:true}).click();
   await page.locator('#createShortLinkBtn').click();
   await expect(page.locator('#shortLinkStatus')).toContainText('Cannot reach');
   await page.locator('#sharedLinksDetails summary').click();
