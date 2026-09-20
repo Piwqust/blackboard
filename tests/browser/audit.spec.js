@@ -40,6 +40,10 @@ test('readonly tabs expose navigation and backup without writing', async ({page,
   await other.locator('#exportWorkspaceBtn').click();
   expect((await download).suggestedFilename()).toMatch(/json$/);
   await other.locator('#settingsCloseBtn').click();
+  await other.locator('#pageActionsBtn').click();
+  await other.getByRole('button',{name:'Share a copy…',exact:true}).click();
+  await expect(other.locator('#copyPublishLinkBtn')).toBeEnabled();
+  await other.locator('#closePublishBtn').click();
   await expect(other.locator('#editor')).toHaveAttribute('contenteditable','false');
 });
 

@@ -98,7 +98,7 @@ extension's storage: browser extension storage is isolated by extension ID.
 
 ## Development
 
-Requires Node 20 or later.
+Requires Node 22.13 or later.
 
 ```bash
 npm ci
@@ -134,7 +134,7 @@ Add a brand-new top-level page to the `staticFiles` list in
 1. In the repository's GitHub settings, enable **Pages** and choose **GitHub
    Actions** as the deployment source.
 2. Change the version in `package.json` and `APP_VERSION` in `editor.js`, then
-   create a matching tag such as `v2.2.0`.
+   create a matching tag such as `v2.2.1`.
 3. Push the tag. The release workflow verifies the project, builds the PWA,
    and deploys it to GitHub Pages.
 4. Visit `https://<account>.github.io/<repository>/` once while

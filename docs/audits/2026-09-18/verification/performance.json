@@ -1,0 +1,32 @@
+{
+  "measurements": [
+    {
+      "pages": 100,
+      "bytes": 275839,
+      "writeMs": 6,
+      "readMs": 2
+    },
+    {
+      "pages": 1000,
+      "bytes": 2759839,
+      "writeMs": 14,
+      "readMs": 11
+    },
+    {
+      "strokePoints": 10000,
+      "pathMs": 2
+    },
+    {
+      "strokePoints": 100000,
+      "pathMs": 2
+    }
+  ],
+  "heap": 15200000,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+  "canvasBudget": {
+    "width": 117,
+    "height": 8192,
+    "scaleX": 0.08125,
+    "scaleY": 0.08192
+  }
+}
