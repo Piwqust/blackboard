@@ -2536,7 +2536,8 @@ function setWorkspaceReadOnlyMode(reason = 'Another Blackboard Text tab is editi
   editor.contentEditable = 'false';
   editor.setAttribute('aria-readonly', 'true');
 
-  const allowed = new Set([exportWorkspaceBtn, reloadForUpdateBtn, settingsToggleBtn, settingsCloseBtn]);
+  const allowed = new Set([exportWorkspaceBtn, reloadForUpdateBtn, settingsToggleBtn, settingsCloseBtn,
+    copyPublishLinkBtn, closePublishBtn, publishIncludeDrawings]);
   document.querySelectorAll('button, input, select').forEach(control => {
     if (allowed.has(control) || control.closest('.workspace-actions, #workspaceToolsDialog') || control.matches('.page-tab, #recoveryHistoryBtn')) return;
     if (!control.disabled) control.dataset.workspaceLocked = 'true';
