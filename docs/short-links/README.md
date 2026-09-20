@@ -1,6 +1,6 @@
 # Short links on GitHub Pages
 
-The app stays at https://piwqust.github.io/blackboard/. A real static route, s/index.html, accepts a random 128-bit ID in the fragment and opens read.html?s=ID in the same project directory. GitHub Pages needs no rewrite or server function. Public addresses are roughly 66 characters regardless of note size.
+The app stays at https://piwqust.github.io/blackboard/. A real static route, s/index.html, accepts a random 128-bit ID in the fragment and opens read.html?s=ID in the same project directory. GitHub Pages needs no rewrite or server function. Public addresses are 62 characters on the current domain regardless of note size.
 
 The immutable copy is stored by a Cloudflare Worker and D1. SHORT_LINKS_API_URL is a public build setting, never a secret. Cloudflare credentials are not shipped to browsers.
 
@@ -57,3 +57,16 @@ The extension artifact's CSP allows only the configured API origin. An unbuilt s
 ## Rollback
 
 Keep the Worker and database alive when reverting the frontend: existing shared URLs need the reader route and API. To stop new creation, disable Create in the frontend or reject PUT while retaining GET/DELETE. Do not delete the database for rollback. It contains published copies. This schema is independent of local workspaces.
+
+## Deployment verified on 20 September 2026
+
+- Pages: https://piwqust.github.io/blackboard/
+- API: https://blackboard-text-shares.pewqust.workers.dev
+- Release tag: v2.3.0, source commit 4822a9cd18e0556b86f0f02c0d7623b8692f7a1c.
+- Release workflow: https://github.com/Piwqust/blackboard/actions/runs/35499263715 — success, including Pages deployment.
+- Validate workflow: https://github.com/Piwqust/blackboard/actions/runs/35499263708 — success.
+- On live Pages, a disposable Chrome creator session made a synthetic short link (62 characters). A separate recipient session read the exact snapshot. The creator disabled it; reloading in the recipient session showed that the note was unavailable. No user notes were used.
+- Full local regression: 24 core tests, 37 applicable browser tests; dedicated share suite: HTTP API checks and 4 browser tests against local workerd/D1.
+- Live verification details: live-verification.json. The script scripts/verify-live-short-link.mjs uses synthetic data and disables its test link after use.
+
+The D1 schema uses atomic batches rather than SQL triggers because the remote migration API rejected the original compound trigger statement. Both local and live creation/revocation were rechecked after this change.
