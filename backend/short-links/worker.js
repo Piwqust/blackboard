@@ -83,8 +83,10 @@ export default {
         // Database comparison uses a fixed-size digest, never a plaintext credential.
         const row = await env.DB.prepare('SELECT revoked_at FROM shares WHERE id = ? AND owner_hash = ?').bind(id, ownerHash).first();
         if (!row) return respond(404, {error: 'Link not found or management key is invalid.'});
-        await env.DB.prepare('UPDATE shares SET token = NULL, revoked_at = coalesce(revoked_at, ?) WHERE id = ? AND owner_hash = ?')
-          .bind(new Date().toISOString(), id, ownerHash).run();
+        await env.DB.batch([
+          env.DB.prepare('UPDATE share_budget SET bytes = bytes - coalesce((SELECT length(token) FROM shares WHERE id = ? AND owner_hash = ?), 0) WHERE singleton = 1').bind(id, ownerHash),
+          env.DB.prepare('UPDATE shares SET token = NULL, revoked_at = coalesce(revoked_at, ?) WHERE id = ? AND owner_hash = ?').bind(new Date().toISOString(), id, ownerHash)
+        ]);
         return respond(204);
       }
       if (!request.headers.get('Content-Type')?.startsWith('application/json')) return respond(415, {error: 'Expected JSON.'});
@@ -96,8 +98,13 @@ export default {
       catch { return respond(400, {error: 'Invalid Blackboard note.'}); }
       const payloadHash = await digest(body.token);
       const createdAt = new Date().toISOString();
-      await env.DB.prepare('INSERT INTO shares (id, token, owner_hash, payload_hash, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING')
-        .bind(id, body.token, ownerHash, payloadHash, createdAt).run();
+      // D1 batch is one transaction. changes() counts the preceding insert,
+      // so retries and collisions never consume storage budget twice.
+      await env.DB.batch([
+        env.DB.prepare('INSERT INTO shares (id, token, owner_hash, payload_hash, created_at) SELECT ?, ?, ?, ?, ? WHERE (SELECT bytes + ? <= 100000000 AND records < 10000 FROM share_budget WHERE singleton = 1) ON CONFLICT(id) DO NOTHING')
+          .bind(id, body.token, ownerHash, payloadHash, createdAt, body.token.length),
+        env.DB.prepare('UPDATE share_budget SET bytes = bytes + ?, records = records + 1 WHERE singleton = 1 AND changes() = 1').bind(body.token.length)
+      ]);
       const row = await env.DB.prepare('SELECT created_at, revoked_at, payload_hash FROM shares WHERE id = ? AND owner_hash = ?').bind(id, ownerHash).first();
       if (!row) return respond(409, {error: 'This link ID is already in use.'});
       if (row.revoked_at) return respond(410, {error: 'This link was disabled and cannot be recreated.'});
