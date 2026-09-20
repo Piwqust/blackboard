@@ -9,7 +9,7 @@
 Write, sketch, and keep your notes in the browser profile you control. No
 account, telemetry, or automatic note sync. Short links optionally store only a copy you explicitly share.
 
-![Version](https://img.shields.io/badge/version-2.3.1-3D47FF?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.3.2-3D47FF?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-offline--ready-3D47FF?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-5B4FA8?style=flat-square)
 

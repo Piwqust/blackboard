@@ -7,6 +7,15 @@ export function bindModalDialog(dialog, close) {
     close({ restoreFocus: true });
   });
   dialog.addEventListener('keydown', event => {
+    if (event.isComposing || event.keyCode === 229) return;
+    // Chrome search fields consume Escape to clear their value. Handle it
+    // before that default so the dialog consistently closes and restores focus.
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      close({ restoreFocus: true });
+      return;
+    }
     if (event.key !== 'Tab') return;
     const controls = [...dialog.querySelectorAll('button, input, select, textarea, a[href], [tabindex]')]
       .filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);

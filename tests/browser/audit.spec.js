@@ -312,7 +312,9 @@ test('workspace tools only appear in settings; heading fits without clipping', a
   await expect(page.locator('#findPagesBtn')).toBeVisible();
   await page.locator('#findPagesBtn').click();
   await expect(page.getByRole('searchbox',{name:'Search pages'})).toBeFocused();
+  await page.getByRole('searchbox',{name:'Search pages'}).fill('оформление');
   await page.keyboard.press('Escape');
+  await expect(page.locator('#workspaceToolsDialog')).not.toBeVisible();
   await expect(page.locator('#findPagesBtn')).toBeFocused();
   await page.locator('#settingsCloseBtn').click();
   await expect(page.locator('#findPagesBtn')).toBeHidden();

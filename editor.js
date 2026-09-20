@@ -27,7 +27,7 @@ import { acquireWorkspaceLock, createWorkspaceChannel } from './src/core/workspa
 import { createStatusAnnouncer } from './src/ui/app-status.js';
 import { registerPwaUpdates } from './src/ui/pwa-updates.js';
 
-const APP_VERSION = '2.3.1';
+const APP_VERSION = '2.3.2';
 
 // Links published from the local unpacked extension have to point somewhere a
 // recipient can actually open, so they use the public deployment rather than
