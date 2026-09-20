@@ -6,7 +6,7 @@
   "description": "Local-first PWA and personal browser extension for quiet note taking.",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "lint": "node scripts/check.mjs",
+    "lint": "eslint . && node scripts/check.mjs",
     "test": "node --test tests/core.test.mjs",
     "verify": "npm run lint && npm run test && npm run build && node scripts/verify-dist.mjs",
     "test:browser": "playwright test"
@@ -15,7 +15,10 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
-    "fake-indexeddb": "^6.2.5"
+    "eslint": "^10.11.0",
+    "fake-indexeddb": "^6.2.5",
+    "globals": "^17.12.0"
   }
 }

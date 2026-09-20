@@ -11,6 +11,7 @@ export function registerPwaUpdates({ onUpdateReady, onControllerChange, onError 
   if (!canRegisterServiceWorker()) return null;
 
   let registration;
+  let updateRequested = false;
   const hasExistingController = Boolean(globalThis.navigator.serviceWorker.controller);
   const announceWaitingWorker = () => {
     // A first install becomes the controller through clients.claim(), so use
@@ -19,6 +20,7 @@ export function registerPwaUpdates({ onUpdateReady, onControllerChange, onError 
     if (!registration?.waiting || !hasExistingController) return;
     onUpdateReady?.({
       apply() {
+        updateRequested = true;
         registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
       }
     });
@@ -44,11 +46,14 @@ export function registerPwaUpdates({ onUpdateReady, onControllerChange, onError 
       return null;
     });
 
-  globalThis.navigator.serviceWorker.addEventListener('controllerchange', () => onControllerChange?.());
+  globalThis.navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (updateRequested) onControllerChange?.();
+  });
 
   return {
     ready,
     applyUpdate() {
+      updateRequested = true;
       registration?.waiting?.postMessage({ type: 'SKIP_WAITING' });
     }
   };

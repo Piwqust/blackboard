@@ -37,6 +37,8 @@ export function sanitizeStoredContent(html, { allowRemoteMedia = true } = {}) {
       for (const attr of Array.from(node.attributes)) {
         const name = attr.name.toLowerCase();
         if (name === 'href' && node.tagName === 'A') {
+          // URL schemes ignore ASCII whitespace and controls.
+          // eslint-disable-next-line no-control-regex
           const value = attr.value.replace(/[\u0000-\u0020\u007f]/g, '');
           if (/^(https?:|mailto:|#)/i.test(value)) continue;
         }

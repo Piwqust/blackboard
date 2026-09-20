@@ -16,12 +16,13 @@ const staticFiles = [
   'privacy.html',
   'service-worker.js',
   'site.webmanifest',
-  'LICENSE'
+  'LICENSE',
+  'fonts/Inter-OFL.txt'
 ];
 
 // Files the app shell is cached from. Anything not listed here still works
 // online, but would not survive going offline.
-const SHELL_EXTENSIONS = new Set(['.html', '.css', '.js', '.woff2', '.ttf', '.otf', '.png', '.webmanifest']);
+const SHELL_EXTENSIONS = new Set(['.html', '.css', '.js', '.woff2', '.ttf', '.otf', '.png', '.webmanifest', '.txt', '']);
 const SHELL_EXCLUDED = new Set(['service-worker.js', 'pwa-sw.js', 'icons/generate-icons.html']);
 
 async function listShellFiles(destination) {

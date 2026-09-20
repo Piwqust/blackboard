@@ -74,7 +74,7 @@
   --ui-border: rgba(221, 218, 210, 0.12);
   --ui-border-strong: rgba(221, 218, 210, 0.2);
   --ui-text: rgba(221, 218, 210, 0.88);
-  --ui-text-muted: rgba(221, 218, 210, 0.85);
+  --ui-text-muted: #DDDAD2;
   --ui-hover: rgba(221, 218, 210, 0.08);
   --ui-hover-strong: rgba(221, 218, 210, 0.14);
   --ui-track: rgba(221, 218, 210, 0.12);
@@ -2325,7 +2325,7 @@ body.is-scrolling .drawing-tool-button:hover {
 .emoji-option:focus-visible,
 .secondary-btn:focus-visible,
 .backup-dialog button:focus-visible {
-  outline: 2px solid var(--ui-border-strong);
+  outline: 2px solid var(--text-color);
   outline-offset: 2px;
 }
 
@@ -2721,7 +2721,7 @@ body.workspace-readonly #drawingLayer {
   font-size: 11px;
   font-weight: 400;
   color: var(--text-color);
-  opacity: 0.3;
+  opacity: 1;
   pointer-events: none;
   transition: opacity 0.2s ease;
   font-variant-numeric: tabular-nums;
@@ -2943,7 +2943,7 @@ body.workspace-readonly #drawingLayer {
 
 
 /* Keyboard focus remains distinct from hover across built-in themes. */
-button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+:root :is(button, input, select, a):focus-visible {
   outline: 2px solid var(--text-color);
   outline-offset: 3px;
 }
@@ -2964,3 +2964,8 @@ body:has(#board) {
   }
 }
 .reader-viewport { width: 100%; overflow: clip; }
+
+.save-indicator.error.visible { opacity: 1; color: var(--text-color); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

@@ -321,3 +321,12 @@ test('legacy pixel strokes remain four pixels at the saved font size', () => {
     assert.deepEqual(stroke.points, [{x: 48, y: 98}]);
   }
 });
+
+test('queued writes capture data before callers mutate their objects', async () => {
+  const store=createWorkspaceStore({dbName:'queue-'+crypto.randomUUID()});
+  const workspace={pages:[{id:'a',content:'before',drawings:[]}],currentPageId:'a',settings:{}};
+  const writing=store.saveWorkspace(workspace);
+  workspace.pages[0].content='after';
+  await writing;
+  assert.equal((await store.readWorkspace()).pages[0].content,'before');
+});

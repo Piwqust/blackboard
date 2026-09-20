@@ -95,35 +95,22 @@ export function normalizeStroke(stroke = {}, fallbackFontSize = DEFAULT_WORKSPAC
     ? source.points.map(normalizePoint).filter(Boolean)
     : [];
 
-  // Determine coordinate space BEFORE applying normalization
+  const referenceFontSize = finiteNumber(source.referenceFontSize ?? source.fontSize, fallbackFontSize, 1, 512);
   const hasCoordinateSpace = typeof source.coordinateSpace === 'string' && source.coordinateSpace;
-  const isLegacyFormat = !hasCoordinateSpace;
-  const coordinateSpace = hasCoordinateSpace ? source.coordinateSpace : 'text-scaled-px';
-  
-  // For legacy format without coordinateSpace, width is in pixels at a reference font size
-  // Need to convert to the new format (font-relative units)
-  let normalizedWidth;
-  if (isLegacyFormat && source.width !== undefined) {
-    // Legacy width was in pixels at fontSize=18 or the stroke's referenceFontSize
-    const legacyReferenceFontSize = finiteNumber(source.referenceFontSize, fallbackFontSize, 1, 512);
-    const pixelWidth = finiteNumber(source.width, DEFAULT_WORKSPACE_SETTINGS.drawSize * fallbackFontSize, 0.01, 200);
-    // Convert to font-relative: divide pixel width by reference font size
-    normalizedWidth = pixelWidth / legacyReferenceFontSize;
-    // Clamp to valid range
-    normalizedWidth = Math.min(128, Math.max(0.01, normalizedWidth));
-  } else {
-    // Modern format or missing width: already in font-relative units
-    normalizedWidth = finiteNumber(source.width, DEFAULT_WORKSPACE_SETTINGS.drawSize, 0.01, 128);
-  }
+  const width = finiteNumber(source.width, hasCoordinateSpace ? DEFAULT_WORKSPACE_SETTINGS.drawSize : 4, 0.001, 128);
+  const normalizedWidth = hasCoordinateSpace ? width : width / referenceFontSize;
+  const normalizedPoints = source.coordinateSpace === 'font-relative'
+    ? points.map(({x, y}) => ({x: x * referenceFontSize, y: y * referenceFontSize}))
+    : points;
 
   return {
     id: typeof source.id === 'string' && source.id ? source.id : createWorkspaceId(),
     tool: source.tool === 'eraser' ? 'eraser' : 'brush',
     color: normalizeHex(source.color, DEFAULT_WORKSPACE_SETTINGS.drawColor),
     width: normalizedWidth,
-    points,
-    coordinateSpace,
-    referenceFontSize: finiteNumber(source.referenceFontSize, fallbackFontSize, 1, 512)
+    points: normalizedPoints,
+    coordinateSpace: 'text-scaled-px',
+    referenceFontSize
   };
 }
 

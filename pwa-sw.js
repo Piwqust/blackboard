@@ -1,5 +1,6 @@
 const APP_VERSION = '__APP_VERSION__';
-const CACHE_NAME = `blackboard-text-shell-${APP_VERSION}`;
+const CACHE_PREFIX = `blackboard-text-shell-${encodeURIComponent(self.registration.scope)}:`;
+const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}`;
 // The build replaces this placeholder with the files it actually copied into
 // dist/pwa, so a new page or module can never be left out of the offline
 // shell by hand. See scripts/build.mjs.
@@ -15,7 +16,7 @@ self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const cacheNames = await caches.keys();
     await Promise.all(cacheNames
-      .filter(cacheName => cacheName.startsWith('blackboard-text-shell-') && cacheName !== CACHE_NAME)
+      .filter(cacheName => cacheName.startsWith(CACHE_PREFIX) && cacheName !== CACHE_NAME)
       .map(cacheName => caches.delete(cacheName)));
     await self.clients.claim();
   })());
@@ -31,7 +32,8 @@ self.addEventListener('fetch', event => {
   if (requestUrl.origin !== self.location.origin) return;
 
   event.respondWith((async () => {
-    const cached = await caches.match(event.request);
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(event.request);
     if (cached) return cached;
 
     try {
@@ -43,7 +45,7 @@ self.addEventListener('fetch', event => {
       return response;
     } catch (error) {
       if (event.request.mode === 'navigate') {
-        return (await caches.match('./editor.html')) || Response.error();
+        return (await cache.match('./editor.html')) || Response.error();
       }
       return Response.error();
     }

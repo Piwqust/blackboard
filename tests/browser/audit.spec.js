@@ -166,3 +166,56 @@ test('quoted IDs import safely and do not inherit the previous Undo history', as
   await page.locator('.page-tab').nth(1).click();
   await expect(page.locator('#editor')).toHaveText('Quoted ID');
 });
+
+test('keyboard exit retains Tab indentation and ignores composing Escape', async ({page}) => {
+  await page.locator('#editor').focus();
+  await page.keyboard.type('Text');
+  await page.keyboard.press('Tab');
+  expect(await page.locator('#editor').textContent()).toContain('\t');
+  await page.locator('#editor').dispatchEvent('keydown',{key:'Escape',isComposing:true});
+  await expect(page.locator('#editor')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#settingsToggleBtn')).toBeFocused();
+});
+
+test('loading failure cannot write an empty workspace', async ({page}) => {
+  await page.locator('#editor').fill('Keep existing notes');
+  await expect(page.locator('#saveIndicator')).toHaveAttribute('aria-label','Saved locally.');
+  await page.addInitScript(()=>{
+    window.testWrites=0;
+    const original=IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put=function(...args){window.testWrites++;return original.apply(this,args)};
+    IDBFactory.prototype.open=function(){throw new Error('Test unavailable storage')};
+  });
+  await page.reload();
+  await expect(page.locator('#workspaceModeNotice')).toContainText('could not be loaded');
+  await expect(page.locator('#editor')).toHaveAttribute('contenteditable','false');
+  await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
+  expect(await page.evaluate(()=>window.testWrites)).toBe(0);
+});
+
+test('built-in themes have readable labels and visible keyboard focus', async ({page}) => {
+  await page.locator('#editor').fill('Count me');
+  await page.locator('#settingsToggleBtn').click();
+  const themes=await page.locator('[data-theme]').evaluateAll(nodes=>nodes.map(n=>n.dataset.theme));
+  for(const theme of themes) {
+    await page.locator('[data-theme="'+theme+'"]').click();
+    await page.waitForTimeout(350);
+    const ratios=await page.evaluate(()=>{
+      const parse=c=>c.match(/[\d.]+/g).map(Number);
+      const mix=(fg,bg,opacity=1)=>fg.slice(0,3).map((v,i)=>v*(fg[3]??1)*opacity+bg[i]*(1-(fg[3]??1)*opacity));
+      const luminance=c=>c.slice(0,3).map(v=>{v/=255;return v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4}).reduce((v,c,i)=>v+c*[.2126,.7152,.0722][i],0);
+      const ratio=(a,b)=>(Math.max(luminance(a),luminance(b))+.05)/(Math.min(luminance(a),luminance(b))+.05);
+      return [...document.querySelectorAll('.section-label,#wordCount')].map(el=>{
+        let bg=[255,255,255];let opacity=1;const chain=[];for(let n=el;n;n=n.parentElement)chain.unshift(n);
+        for(const n of chain){const st=getComputedStyle(n);bg=mix(parse(st.backgroundColor),bg);opacity*=Number(st.opacity)}
+        return ratio(mix(parse(getComputedStyle(el).color),bg,opacity),bg);
+      });
+    });
+    for(const ratio of ratios) expect(ratio,theme).toBeGreaterThanOrEqual(4.5);
+    await page.locator('#fontSize').focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    expect(await page.locator('#fontSize').evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('solid');
+  }
+});

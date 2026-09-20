@@ -55,7 +55,9 @@ export function convertPointToCanvasPixels(point, referenceFontSize, fontSize, s
 
 export function getBrushSizeInPixels(size, fontSize, scale = 1) {
   const normalizedScale = Number.isFinite(Number(scale)) && Number(scale) > 0 ? Number(scale) : 1;
-  return Math.max(1, clampBrushSize(size) * getNormalizedFontSize(fontSize) * normalizedScale);
+  // Existing strokes may be thinner than the current brush picker minimum.
+  const width = Number.isFinite(Number(size)) && Number(size) > 0 ? Number(size) : DEFAULT_DRAW_SIZE;
+  return Math.max(1, width * getNormalizedFontSize(fontSize) * normalizedScale);
 }
 
 // Draws one stored stroke onto a 2D context whose transform is already set for

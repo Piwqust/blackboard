@@ -174,12 +174,21 @@ export function createWorkspaceStore({ dbName = 'blackboard-text', maxSnapshots 
 
   return {
     readWorkspace: () => writeTail.then(readWorkspaceNow),
-    saveWorkspace: workspace => enqueue(async () => {
-      await replaceWorkspaceNow(workspace);
-      writeError = null;
-    }),
-    savePage: (page, currentPageId) => enqueue(() => savePageNow(page, currentPageId)),
-    saveSettings: settings => enqueue(() => saveSettingsNow(settings)),
+    saveWorkspace(workspace) {
+      const snapshot = copy(workspace);
+      return enqueue(async () => {
+        await replaceWorkspaceNow(snapshot);
+        writeError = null;
+      });
+    },
+    savePage(page, currentPageId) {
+      const snapshot = copy(page);
+      return enqueue(() => savePageNow(snapshot, currentPageId));
+    },
+    saveSettings(settings) {
+      const snapshot = copy(settings);
+      return enqueue(() => saveSettingsNow(snapshot));
+    },
     saveCurrentPageId: currentPageId => enqueue(() => saveCurrentPageIdNow(currentPageId)),
     createSnapshot: (label, workspace) => enqueue(async () => {
       const source = workspace || await readWorkspaceNow();

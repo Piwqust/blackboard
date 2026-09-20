@@ -1,7 +1,7 @@
 import { bindModalDialog } from './src/ui/dialogs.js';
-import { createWorkspaceBackup, describeBackup, makeBackupFilename, parseWorkspaceBackup, serializeWorkspaceBackup } from './src/core/backup.js';
+import { describeBackup, makeBackupFilename, parseWorkspaceBackup, serializeWorkspaceBackup } from './src/core/backup.js';
 import { isExtensionContext, readLegacyChromeWorkspace } from './src/core/legacy-chrome.js';
-import { migrateFontFamily, normalizeSettings } from './src/core/schema.js';
+import { DEFAULT_WORKSPACE_SETTINGS, migrateFontFamily, normalizeSettings, normalizePage as normalizeWorkspacePage } from './src/core/schema.js';
 import { sanitizeStoredContent } from './src/core/sanitize-html.js';
 import {
   MAX_DRAW_SIZE,
@@ -89,23 +89,9 @@ const THEMES = {
 };
 
 // Default settings
-const DEFAULT_SETTINGS = {
-  fontFamily: "'Inter Tight', sans-serif",
-  fontSize: 40,
-  lineHeight: 1.6,
-  letterSpacing: 0,
-  maxWidth: 1600,
-  drawSize: 4 / 18,
-  drawColor: '#DDDAD2',
-  drawColorMode: 'theme',
-  textColor: '#DDDAD2',
-  backgroundColor: '#0B0B0D',
-  selectionColor: '#3D47FF',
-  currentTheme: 'blackboard'
-};
+const DEFAULT_SETTINGS = DEFAULT_WORKSPACE_SETTINGS;
 
 const DRAWING_COORDINATE_SPACE = 'text-scaled-px';
-const LEGACY_DRAWING_COORDINATE_SPACE = 'font-relative';
 // Squared minimum distance (px²) between consecutive stored stroke points.
 const MIN_STROKE_POINT_DISTANCE_SQ = 1.5 * 1.5;
 
@@ -328,7 +314,7 @@ function getContrastingTextColor(hex) {
     return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
   };
   const luminance = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
-  return luminance > 0.5 ? '#000000' : '#FFFFFF';
+  return luminance > 0.179 ? '#000000' : '#FFFFFF';
 }
 
 // Initialize preset swatches
@@ -885,16 +871,6 @@ function getStrokeReferenceFontSize(stroke = {}, fallbackFontSize = DEFAULT_SETT
   return getStrokeReferenceFontSizeValue(stroke, fallbackFontSize);
 }
 
-function convertLegacyPointToStoredPixels(point, fontSize = DEFAULT_SETTINGS.fontSize) {
-  const normalizedFontSize = getNormalizedFontSize(fontSize);
-  const normalizedPoint = normalizeStoredPoint(point);
-
-  return {
-    x: normalizedPoint.x * normalizedFontSize,
-    y: normalizedPoint.y * normalizedFontSize
-  };
-}
-
 function convertPointToCanvasPixels(point, referenceFontSize = DEFAULT_SETTINGS.fontSize, fontSize = getNormalizedFontSize()) {
   return convertPointToCanvasPixelsValue(point, referenceFontSize, fontSize);
 }
@@ -995,60 +971,8 @@ function updateBrushSizeButtons() {
   updateBrushSizeMarkers(normalizedBrushSize);
 }
 
-function normalizeStroke(stroke = {}, fontSize = DEFAULT_SETTINGS.fontSize) {
-  const points = Array.isArray(stroke.points) ? stroke.points : [];
-  const isCurrentCoordinateSpace = stroke.coordinateSpace === DRAWING_COORDINATE_SPACE;
-  const isLegacyFontRelativeStroke = stroke.coordinateSpace === LEGACY_DRAWING_COORDINATE_SPACE;
-  const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
-
-  return {
-    id: stroke.id || generateId(),
-    tool: stroke.tool === 'eraser' ? 'eraser' : 'brush',
-    color: stroke.tool === 'eraser' ? null : (stroke.color || null),
-    width: isCurrentCoordinateSpace || isLegacyFontRelativeStroke
-      ? clampBrushSize(stroke.width)
-      : normalizeBrushSizeSetting(stroke.width, referenceFontSize),
-    points: points.map(point => {
-      if (isCurrentCoordinateSpace) {
-        return normalizeStoredPoint(point);
-      }
-
-      if (isLegacyFontRelativeStroke) {
-        return convertLegacyPointToStoredPixels(point, referenceFontSize);
-      }
-
-      return normalizeStoredPoint(point);
-    }),
-    coordinateSpace: DRAWING_COORDINATE_SPACE,
-    referenceFontSize
-  };
-}
-
 function normalizePage(page = {}, fontSize = DEFAULT_SETTINGS.fontSize) {
-  const parsedScrollTop = Number(page.scrollTop);
-
-  return {
-    id: page.id || generateId(),
-    emoji: typeof page.emoji === 'string' ? page.emoji : DEFAULT_PAGE_EMOJI,
-    title: typeof page.title === 'string' ? page.title.slice(0, MAX_PAGE_TITLE_LENGTH) : '',
-    content: typeof page.content === 'string' ? page.content : '',
-    drawings: Array.isArray(page.drawings) ? page.drawings.map(stroke => normalizeStroke(stroke, fontSize)) : [],
-    scrollTop: Number.isFinite(parsedScrollTop) && parsedScrollTop > 0 ? parsedScrollTop : 0,
-    // Pages written before these existed stay null rather than claiming a
-    // timestamp they never had — the preview shows "—" for those.
-    createdAt: normalizeTimestamp(page.createdAt),
-    editedAt: normalizeTimestamp(page.editedAt)
-  };
-}
-
-// Timestamps are stored as ISO strings so they survive JSON backups intact.
-function normalizeTimestamp(value) {
-  if (typeof value !== 'string' || value === '') {
-    return null;
-  }
-
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
+  return normalizeWorkspacePage(page, {fontSize, sanitizeHtml: sanitizeStoredContent});
 }
 
 // Records "last edited" on a page. Called from the places that actually change
@@ -2219,7 +2143,7 @@ function applySettings(settings) {
   root.style.setProperty('--ui-border', hexToRgba(settings.textColor, 0.12));
   root.style.setProperty('--ui-border-strong', hexToRgba(settings.textColor, 0.2));
   root.style.setProperty('--ui-text', hexToRgba(settings.textColor, 0.88));
-  root.style.setProperty('--ui-text-muted', hexToRgba(settings.textColor, 0.85));
+  root.style.setProperty('--ui-text-muted', settings.textColor);
   root.style.setProperty('--ui-hover', hexToRgba(settings.textColor, 0.08));
   root.style.setProperty('--ui-hover-strong', hexToRgba(settings.textColor, 0.14));
   root.style.setProperty('--ui-track', hexToRgba(settings.textColor, 0.12));
@@ -2337,7 +2261,7 @@ function showSaveIndicator() {
 // Save settings
 async function saveSettings(settings) {
   settingsSaveDirty = false;
-  if (!workspaceWritable) return;
+  if (!workspaceWritable || !workspaceReady) return;
   try {
     await workspaceStore.saveSettings(normalizeSettings(settings, DEFAULT_SETTINGS));
     workspaceChannel.post('settings-saved');
@@ -2567,7 +2491,7 @@ function applyWorkspaceToEditor(workspace) {
   pages = workspace.pages.map(page => normalizePage(page, settings.fontSize));
   currentPageId = workspace.currentPageId || pages[0]?.id || null;
   if (!pages.some(page => page.id === currentPageId)) currentPageId = pages[0]?.id || null;
-  currentTheme = settings.currentTheme || 'lavender';
+  currentTheme = settings.currentTheme || DEFAULT_SETTINGS.currentTheme;
 
   applySettings(settings);
   updateControlValues(settings);
@@ -2618,7 +2542,8 @@ async function tryPromoteReadOnlyTab() {
   clearTextHistories();
   workspaceWritable = true;
   await loadSavedData();
-  if (workspaceReady) setWorkspaceWritableMode();
+  if (!workspaceReady) return;
+  setWorkspaceWritableMode();
   statusAnnouncer.show('This tab now owns the writing lock.', { kind: 'success' });
 }
 
@@ -3882,6 +3807,7 @@ function resetSettings() {
 }
 
 function downloadWorkspaceBackup() {
+  if (!workspaceReady) return;
   try {
     const content = serializeWorkspaceBackup(getWorkspaceForPersistence({ captureEditor: true }), { appVersion: APP_VERSION });
     const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
@@ -4808,7 +4734,7 @@ document.addEventListener('keydown', (e) => {
 })();
 
 async function bootstrapApp() {
-  editor.contentEditable = 'false';
+  setWorkspaceReadOnlyMode('Loading local notes.');
   workspaceLock = await acquireWorkspaceLock();
   if (!workspaceLock.acquired) {
     setWorkspaceReadOnlyMode(workspaceLock.reason === 'another-tab'
