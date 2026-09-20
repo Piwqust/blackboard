@@ -203,3 +203,11 @@ Every modal is centred, scrolls inside one surface, and shares the same
 heading, option rows, select, disclosure and buttons. Import shows the
 matching-ID rule only in Add mode. Delete and Clear confirmations are opaque,
 so they can no longer be read through onto the emoji grid behind them.
+
+A second pass added the finish: one stroked icon set for rows and commands,
+press feedback on every control, panels that grow out of the control they
+belong to, modals that scale in through `@starting-style`, and disclosures
+that animate their own height. Ctrl/⌘ K opens search with no animation at all.
+On phones the brush palette docks to the bottom of the screen with 44 px
+targets instead of hanging over the note. Reduced motion drops travel and blur
+but keeps the fades.

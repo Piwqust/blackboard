@@ -145,15 +145,25 @@ test('the icon rail stays beside a full-height writing area; the palette is an o
 
     await openDrawingTools(page);
     await expect(page.locator('#drawingToolbar')).toBeVisible();
-    // The palette settles out of a transform, so poll until it has landed.
+    // The palette settles out of a transform, so poll until it has landed. It
+    // hangs beside the rail on a desktop and docks to the bottom on a phone;
+    // either way it must stay on screen and clear of the rail's own controls.
     const measurePalette=()=>page.evaluate(()=>{
       const tools=document.querySelector('#drawingToolbar').getBoundingClientRect();
-      const toggle=document.querySelector('#drawingToolbarVisibilityToggleBtn').getBoundingClientRect();
-      return {onScreen:tools.left>=6 && tools.top>=0 && tools.bottom<=window.innerHeight,
-        besideRail:tools.right<=toggle.left,
-        overflow:document.body.scrollWidth>document.body.clientWidth};
+      const clears=selector=>{
+        const other=document.querySelector(selector).getBoundingClientRect();
+        return tools.right<=other.left || tools.left>=other.right
+          || tools.bottom<=other.top || tools.top>=other.bottom;
+      };
+      return {
+        onScreen:tools.left>=6 && tools.right<=window.innerWidth-6
+          && tools.top>=0 && tools.bottom<=window.innerHeight,
+        clearsRail:clears('#drawingToolbarVisibilityToggleBtn') && clears('#pageTabsList')
+          && clears('#addPageBtn') && clears('#settingsToggleBtn'),
+        overflow:document.body.scrollWidth>document.body.clientWidth
+      };
     });
-    await expect.poll(async()=>(await measurePalette()).besideRail).toBe(true);
+    await expect.poll(async()=>(await measurePalette()).clearsRail).toBe(true);
     const palette=await measurePalette();
     expect(palette.onScreen).toBe(true);
     expect(palette.overflow).toBe(false);

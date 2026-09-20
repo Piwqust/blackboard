@@ -46,15 +46,58 @@ They are opaque now.
 - Screenshots in `before/` and `after/` were taken at 1440x900 and 390x844,
   DPR 2, in Chromium, on synthetic notes.
 
+## Second pass: icons, motion and measured targets
+
+The first pass fixed the structure but left the surfaces plain and static.
+This pass adds the layer that makes them feel finished, working from
+[emil-design-eng](../../../.codex/skills/emil-design-eng/SKILL.md) for motion
+and component craft and [apple-design](../../../.codex/skills/apple-design/SKILL.md)
+for materials and reduced motion, plus the row and toolbar conventions in
+Raycast, Linear, Figma, Apple Markup and Excalidraw.
+
+**One icon set.** `src/ui/icons.js` holds every glyph at 24x24 with a 1.5
+stroke and round joins, matching the drawing toolbar icons that already
+existed. Static markup ships placeholders that reserve the icon box, so
+hydrating them on load cannot shift a row. Icons appear where they help
+scanning — settings rows, backup buttons, command lists — and nowhere
+decorative.
+
+**Rows are surfaces.** A settings row is now a 40 px target with a leading
+icon, a label, and its shortcut or chevron, highlighted across the full width
+of the panel. The chevron nudges 2 px on hover.
+
+**Motion with a reason.** Tokens in `:root` fix one strong ease-out curve and
+durations from 120 to 220 ms. Every pressable control scales to 0.97 on
+`:active`, so feedback lands on press rather than release. Settings grows out
+of the gear it belongs to and leaves faster than it arrives. Modals fade and
+scale from 0.97 with `@starting-style`, no JavaScript. Disclosures animate
+their height through `::details-content` with a chevron that turns. Opening
+Find a page with Ctrl/Cmd K plays no animation at all: a shortcut used dozens
+of times a day should never wait.
+
+**Measured targets.** The palette keeps 44–52 px height, 32–40 px buttons and
+12 px between groups. On phones it docks to the bottom centre with 44 px
+targets, out of the way of the note, and rises from the edge it lives on.
+
+**Reduced motion is gentler, not absent.** `--motion-shift` and
+`--motion-blur` collapse to zero and press scaling to 1, so travel and blur
+disappear while the fades that explain a change remain.
+
+**One behaviour fix.** The colour picker and font menu used to close when the
+pointer left them, a leftover from when Settings opened on hover. That could
+dismiss the picker mid-adjustment — choosing a custom colour hides the "Match
+theme" button, the panel resizes, and the pointer is suddenly outside it. Both
+now close on an outside click or Escape like everything else.
+
 ## Known trade-off
 
-While the palette is open it can overlap the right end of the first line of a
+On a desktop, an open palette can overlap the right end of the first line of a
 wide note. That is the cost of the requested top-right position; the palette is
-translucent, closed by default, and only open while drawing.
+translucent, closed by default, and only open while drawing. Phones avoid it
+entirely by docking the palette to the bottom.
 
 ## Not verified here
 
 Installed Chrome/Edge builds, a real installed PWA, physical touch and stylus
 input, VoiceOver, and live short-link endpoints. The version was bumped to 2.3.3
 but nothing was deployed.
-

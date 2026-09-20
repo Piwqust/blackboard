@@ -214,13 +214,13 @@
       <div class="control-section workspace-tools" aria-labelledby="pagesSectionLabel">
         <div class="section-label" id="pagesSectionLabel">Pages</div>
         <button id="findPagesBtn" class="settings-action" type="button">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
-          <span>Find a page</span><kbd id="findPagesShortcut"></kbd>
+          <span class="settings-action-icon" data-icon="search"></span>
+          <span class="settings-action-label">Find a page</span><kbd id="findPagesShortcut"></kbd>
         </button>
         <button id="pageActionsBtn" class="settings-action" type="button">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3.5h8l4 4v13H6zM14 3.5v4h4M9 12h6M9 16h6"/></svg>
-          <span>Page actions</span>
-          <svg class="settings-action-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+          <span class="settings-action-icon" data-icon="page"></span>
+          <span class="settings-action-label">Page actions</span>
+          <span class="settings-action-chevron" data-icon="chevron"></span>
         </button>
       </div>
 
@@ -325,17 +325,20 @@
         <div class="storage-state"><span id="storageStatus" role="status">Loading…</span><button id="retrySaveBtn" type="button" hidden>Retry save</button></div>
         <p class="data-copy" id="storageSummary">Stored only in this browser on this device.</p>
         <div class="data-actions">
-          <button id="exportWorkspaceBtn" class="secondary-btn data-action" type="button">Export backup</button>
-          <button id="importWorkspaceBtn" class="secondary-btn data-action" type="button">Import backup</button>
+          <button id="exportWorkspaceBtn" class="secondary-btn data-action" type="button"><span class="btn-icon" data-icon="download"></span>Export backup</button>
+          <button id="importWorkspaceBtn" class="secondary-btn data-action" type="button"><span class="btn-icon" data-icon="upload"></span>Import backup</button>
           <input id="importWorkspaceInput" type="file" accept="application/json,.json,.blackboard.json" hidden>
         </div>
         <p class="data-hint">Export creates a portable <code>.blackboard.json</code> file. Import can add pages or replace the workspace. <a href="privacy.html">Privacy</a></p>
 
         <details class="control-disclosure data-recovery">
-          <summary class="control-disclosure-summary">Recovery snapshots</summary>
+          <summary class="control-disclosure-summary">
+            <span>Recovery snapshots</span>
+            <span class="disclosure-chevron" data-icon="chevron"></span>
+          </summary>
           <div class="control-disclosure-content">
-            <button id="restoreSnapshotBtn" class="secondary-btn data-action data-action-wide" type="button" disabled>Restore latest snapshot</button>
-            <button id="recoveryHistoryBtn" class="secondary-btn data-action data-action-wide" type="button">Browse recovery history</button>
+            <button id="restoreSnapshotBtn" class="secondary-btn data-action data-action-wide" type="button" disabled><span class="btn-icon" data-icon="history"></span>Restore latest snapshot</button>
+            <button id="recoveryHistoryBtn" class="secondary-btn data-action data-action-wide" type="button"><span class="btn-icon" data-icon="archive"></span>Browse recovery history</button>
             <p class="data-hint" id="recoverySummary">Recovery snapshots appear here after an import or destructive change.</p>
           </div>
         </details>
@@ -511,7 +514,10 @@
         <a id="previewPublishLink" class="dialog-link" target="_blank" rel="noopener" hidden>Preview this copy</a>
       </div>
       <details id="sharedLinksDetails" class="dialog-disclosure">
-        <summary class="dialog-disclosure-summary">Shared links from this browser</summary>
+        <summary class="dialog-disclosure-summary">
+          <span>Shared links from this browser</span>
+          <span class="disclosure-chevron" data-icon="chevron"></span>
+        </summary>
         <div class="dialog-disclosure-content">
           <p class="dialog-note">Keep this browser's site data to manage your links. Workspace backups do not include management keys. Disabling a link stops future opening; recipients may already have saved a copy.</p>
           <div id="sharedLinksList"></div>

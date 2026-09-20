@@ -83,6 +83,59 @@
   --ui-danger-text: #8C4A4A;
   --ui-danger-surface: rgba(172, 92, 92, 0.14);
   --ui-danger-border: rgba(172, 92, 92, 0.24);
+
+  /* Motion. The built-in easings are too weak to read as intentional, so UI
+     enters on a strong ease-out and nothing runs longer than ~250ms. Movement
+     is scaled by --motion-shift and blur by --motion-blur so reduced motion
+     can drop travel while keeping the fades that explain what happened. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-press: 120ms;
+  --dur-hover: 150ms;
+  --dur-pop: 180ms;
+  --dur-panel: 220ms;
+  --dur-exit: 150ms;
+  --press-scale: 0.97;
+  --motion-shift: 1;
+  --motion-blur: 1;
+  --transition-control:
+    background-color var(--dur-hover) var(--ease-out),
+    border-color var(--dur-hover) var(--ease-out),
+    color var(--dur-hover) var(--ease-out),
+    opacity var(--dur-hover) var(--ease-out),
+    box-shadow var(--dur-hover) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+
+  /* Lets a disclosure animate from 0 to its intrinsic height. */
+  interpolate-size: allow-keywords;
+}
+
+/* Press feedback belongs on pointer-down, not on release: it is the moment
+   the interface proves it heard you. */
+:is(.drawing-tool-button,
+    .rail-collapse-toggle,
+    .add-page-btn,
+    .controls-icon,
+    .page-tab,
+    .secondary-btn,
+    .settings-action,
+    .emoji-picker-action,
+    .emoji-option,
+    .theme-swatch,
+    .reset-btn,
+    .delete-confirm-cancel,
+    .delete-confirm-delete,
+    .color-picker-swatch,
+    .color-picker-close,
+    .controls-close,
+    .dialog-close,
+    .font-dropdown-trigger,
+    .font-dropdown-option,
+    .update-ready-notice button,
+    .workspace-results button,
+    .workspace-dialog #workspaceToolsContent button):active:not(:disabled) {
+  transform: scale(var(--press-scale));
+  transition-duration: var(--dur-press);
 }
 
 html, body {
@@ -260,9 +313,11 @@ body.drawing-mode #editor {
   -webkit-backdrop-filter: blur(18px) saturate(135%);
   filter: blur(0);
   transform: translate(0, -50%);
-  transition: opacity 0.26s ease,
-              filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+  /* Materialise rather than fade: blur and scale resolve together so the
+     palette reads as a pane of glass arriving, not a decal fading in. */
+  transition: opacity var(--dur-panel) var(--ease-out),
+              filter var(--dur-panel) var(--ease-out),
+              transform var(--dur-panel) var(--ease-out),
               visibility 0s linear 0s;
 }
 
@@ -271,14 +326,14 @@ body.drawing-mode #editor {
    flow, so the drift moves nothing else. */
 .top-right-rail.tools-collapsed .drawing-toolbar {
   opacity: 0;
-  filter: blur(24px);
-  transform: translate(16px, -50%);
+  filter: blur(calc(20px * var(--motion-blur)));
+  transform: translate(calc(14px * var(--motion-shift)), -50%) scale(calc(1 - 0.02 * var(--motion-shift)));
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.26s ease,
-              filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
-              visibility 0s linear 0.34s;
+  transition: opacity var(--dur-exit) var(--ease-out),
+              filter var(--dur-exit) var(--ease-out),
+              transform var(--dur-exit) var(--ease-out),
+              visibility 0s linear var(--dur-exit);
 }
 
 /* The rail chip that reveals the palette. Same size and chrome as the add-page
@@ -316,7 +371,7 @@ body.drawing-mode #editor {
 .rail-collapse-chevron {
   width: 16px;
   height: 16px;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--dur-panel) var(--ease-out);
 }
 
 .top-right-rail.tools-collapsed .rail-collapse-chevron {
@@ -344,8 +399,8 @@ body.drawing-mode #editor {
 }
 
 .drawing-toolbar-group-actions {
-  margin-left: 4px;
-  padding-left: 8px;
+  margin-left: 6px;
+  padding-left: 12px;
   border-left: 1px solid var(--ui-border);
 }
 
@@ -391,8 +446,11 @@ body.drawing-mode #editor {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translateY(8px) scale(0.96);
-  transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.24s;
+  transform-origin: top center;
+  transform: translateY(calc(-6px * var(--motion-shift))) scale(0.97);
+  transition: opacity var(--dur-pop) var(--ease-out),
+              transform var(--dur-pop) var(--ease-out),
+              visibility 0s linear var(--dur-pop);
   z-index: 3200;
 }
 
@@ -401,7 +459,9 @@ body.drawing-mode #editor {
   visibility: visible;
   pointer-events: auto;
   transform: translateY(0) scale(1);
-  transition-delay: 0s;
+  transition: opacity var(--dur-pop) var(--ease-out),
+              transform var(--dur-pop) var(--ease-out),
+              visibility 0s linear 0s;
 }
 
 .drawing-size-popover-header {
@@ -528,7 +588,7 @@ body.drawing-mode #editor {
   border-radius: 11px;
   cursor: pointer;
   opacity: 0.8;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
 }
 
 .drawing-tool-button:hover {
@@ -592,7 +652,7 @@ body.drawing-mode #editor {
   box-shadow: none;
   backdrop-filter: blur(18px) saturate(135%);
   -webkit-backdrop-filter: blur(18px) saturate(135%);
-  transition: all 0.2s ease;
+  transition: var(--transition-control);
 }
 
 .controls-icon:hover {
@@ -626,9 +686,13 @@ body.drawing-mode #editor {
 
   opacity: 0;
   visibility: hidden;
-  transform: translateY(4px);
+  transform: translateY(calc(6px * var(--motion-shift))) scale(calc(1 - 0.025 * var(--motion-shift)));
   transform-origin: bottom right;
-  transition: opacity 0.16s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.2s;
+  /* The panel grows out of the gear it belongs to, and leaves faster than it
+     arrives. */
+  transition: opacity var(--dur-exit) var(--ease-out),
+              transform var(--dur-exit) var(--ease-out),
+              visibility 0s linear var(--dur-exit);
 }
 
 .controls-panel-body {
@@ -651,8 +715,10 @@ body.drawing-mode #editor {
 .controls-container.open .controls-panel {
   opacity: 1;
   visibility: visible;
-  transform: translateY(0);
-  transition-delay: 0s;
+  transform: none;
+  transition: opacity var(--dur-panel) var(--ease-out),
+              transform var(--dur-panel) var(--ease-out),
+              visibility 0s linear 0s;
 }
 
 .controls-container.open .controls-icon,
@@ -800,7 +866,7 @@ button.controls-icon {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
 }
 
 .theme-swatch:hover {
@@ -818,7 +884,7 @@ button.controls-icon {
   justify-content: flex-start;
   padding: 6px;
   border: 1px solid transparent;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
   box-shadow: none;
   overflow: hidden;
 }
@@ -939,7 +1005,7 @@ button.controls-icon {
   text-align: right;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
 }
 
 .color-hex-input:hover {
@@ -968,7 +1034,10 @@ button.controls-icon {
   opacity: 0;
   visibility: hidden;
   transform: translateY(8px) scale(0.95);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top center;
+  transition: opacity var(--dur-pop) var(--ease-out),
+              transform var(--dur-pop) var(--ease-out),
+              visibility 0s linear var(--dur-pop);
   overflow: visible;
   backdrop-filter: blur(22px) saturate(140%);
   -webkit-backdrop-filter: blur(22px) saturate(140%);
@@ -978,6 +1047,9 @@ button.controls-icon {
   opacity: 1;
   visibility: visible;
   transform: translateY(0) scale(1);
+  transition: opacity var(--dur-pop) var(--ease-out),
+              transform var(--dur-pop) var(--ease-out),
+              visibility 0s linear 0s;
 }
 
 .color-picker-header {
@@ -1007,7 +1079,7 @@ button.controls-icon {
   border-radius: 5px;
   color: var(--ui-text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
 }
 
 .color-picker-close svg {
@@ -1130,7 +1202,7 @@ button.controls-icon {
   border: 1px solid transparent;
   border-radius: 10px;
   outline: none;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
 }
 
 .color-picker-hex:hover {
@@ -1157,7 +1229,7 @@ button.controls-icon {
   border-radius: 4px;
   border: none;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
@@ -1212,7 +1284,7 @@ button.controls-icon {
   border-radius: 8px;
   outline: none;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
   -webkit-appearance: none;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M18 9L12 15L6 9' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -1248,7 +1320,7 @@ button.controls-icon {
   border-radius: 8px;
   outline: none;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1299,13 +1371,19 @@ button.controls-icon {
   opacity: 0;
   visibility: hidden;
   transform: translateY(-4px);
-  transition: all 0.15s ease;
+  transform-origin: top center;
+  transition: opacity var(--dur-pop) var(--ease-out),
+              transform var(--dur-pop) var(--ease-out),
+              visibility 0s linear var(--dur-pop);
 }
 
 .font-dropdown-menu.visible {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
+  transition: opacity var(--dur-pop) var(--ease-out),
+              transform var(--dur-pop) var(--ease-out),
+              visibility 0s linear 0s;
 }
 
 .font-dropdown-menu.flip-up {
@@ -1403,7 +1481,7 @@ button.controls-icon {
   border: 1px solid var(--control-border);
   border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-control);
 }
 
 .control-group input[type="color"]:hover {
@@ -1433,7 +1511,7 @@ button.controls-icon {
   background: var(--ui-surface-soft);
   color: var(--ui-text);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
 }
 
 .mode-toggle-btn:hover,
@@ -1541,7 +1619,7 @@ button.controls-icon {
   border: 0;
   border-radius: 7px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
 }
 
 .reset-btn:hover {
@@ -1585,15 +1663,33 @@ button.controls-icon {
   display: none;
 }
 
-.control-disclosure-summary::after {
-  content: '+';
-  font-size: 14px;
-  line-height: 1;
+/* One disclosure language everywhere: a chevron that turns, and content that
+   grows instead of snapping open. */
+.disclosure-chevron {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
   color: var(--ui-text-muted);
+  transform: rotate(90deg);
+  transition: transform var(--dur-pop) var(--ease-out);
 }
 
-.control-disclosure[open] .control-disclosure-summary::after {
-  content: '−';
+details[open] > summary .disclosure-chevron {
+  transform: rotate(-90deg);
+}
+
+details::details-content {
+  block-size: 0;
+  overflow: clip;
+  opacity: 0;
+  transition: block-size var(--dur-panel) var(--ease-out),
+              opacity var(--dur-pop) var(--ease-out),
+              content-visibility var(--dur-panel) allow-discrete;
+}
+
+details[open]::details-content {
+  block-size: auto;
+  opacity: 1;
 }
 
 /* Save Indicator */
@@ -1609,7 +1705,7 @@ button.controls-icon {
   color: var(--text-color);
   opacity: 0;
   transform: scale(0.8);
-  transition: all 0.2s ease;
+  transition: opacity var(--dur-hover) ease, transform var(--dur-hover) var(--ease-out);
   pointer-events: none;
 }
 
@@ -1704,7 +1800,7 @@ button.controls-icon {
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
   opacity: 0.8;
   overflow: hidden;
 }
@@ -1739,7 +1835,7 @@ button.controls-icon {
   line-height: 1;
   pointer-events: none;
   opacity: 0.7;
-  transition: all 0.2s ease;
+  transition: opacity var(--dur-hover) ease;
 }
 
 .page-tab:hover .page-tab-emoji,
@@ -1800,7 +1896,7 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   border-radius: 13px;
   cursor: pointer;
   opacity: 0.82;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
   box-shadow: none;
   backdrop-filter: blur(18px) saturate(135%);
   -webkit-backdrop-filter: blur(18px) saturate(135%);
@@ -1841,9 +1937,9 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
      the same way the drawing tools do. Blur is GPU-composited and only runs
      for the length of the transition, so it stays cheap on a card this size. */
   filter: blur(26px);
-  transition: opacity 0.26s ease,
-              filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
-              visibility 0s linear 0.34s;
+  transition: opacity var(--dur-exit) var(--ease-out),
+              filter var(--dur-exit) var(--ease-out),
+              visibility 0s linear var(--dur-exit);
   z-index: 90;
 }
 
@@ -1853,12 +1949,12 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   opacity: 1;
   visibility: visible;
   filter: blur(0);
-  transition: opacity 0.26s ease,
-              filter 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+  transition: opacity var(--dur-pop) var(--ease-out),
+              filter var(--dur-panel) var(--ease-out),
               visibility 0s linear 0s,
-              top 0.24s cubic-bezier(0.16, 1, 0.3, 1),
-              left 0.24s cubic-bezier(0.16, 1, 0.3, 1),
-              height 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+              top var(--dur-panel) var(--ease-out),
+              left var(--dur-panel) var(--ease-out),
+              height var(--dur-panel) var(--ease-out);
 }
 
 .page-preview-content,
@@ -2007,8 +2103,10 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translate3d(var(--emoji-picker-enter-x, 10px), 8px, 0) scale(0.96);
-  transition: opacity 0.18s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.28s;
+  transform: translate3d(calc(var(--emoji-picker-enter-x, 10px) * var(--motion-shift)), calc(6px * var(--motion-shift)), 0) scale(0.97);
+  transition: opacity var(--dur-exit) var(--ease-out),
+              transform var(--dur-exit) var(--ease-out),
+              visibility 0s linear var(--dur-exit);
   z-index: 100;
 }
 
@@ -2027,7 +2125,9 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   visibility: visible;
   pointer-events: auto;
   transform: translate3d(0, 0, 0) scale(1);
-  transition-delay: 0s;
+  transition: opacity var(--dur-panel) var(--ease-out),
+              transform var(--dur-panel) var(--ease-out),
+              visibility 0s linear 0s;
 }
 
 .emoji-picker-header {
@@ -2126,7 +2226,7 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
 }
 
 .emoji-picker-action:hover {
@@ -2179,8 +2279,11 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translateY(6px) scale(0.96);
-  transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.24s;
+  transform-origin: top right;
+  transform: translateY(calc(-4px * var(--motion-shift))) scale(0.97);
+  transition: opacity var(--dur-exit) var(--ease-out),
+              transform var(--dur-exit) var(--ease-out),
+              visibility 0s linear var(--dur-exit);
   z-index: 120;
 }
 
@@ -2197,7 +2300,9 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   visibility: visible;
   pointer-events: auto;
   transform: translateY(0) scale(1);
-  transition-delay: 0s;
+  transition: opacity var(--dur-pop) var(--ease-out),
+              transform var(--dur-pop) var(--ease-out),
+              visibility 0s linear 0s;
 }
 
 .delete-confirm-title {
@@ -2232,7 +2337,7 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: var(--transition-control);
 }
 
 .delete-confirm-cancel {
@@ -2273,7 +2378,7 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.1s ease;
+  transition: var(--transition-control);
   opacity: 0.8;
 }
 
@@ -2440,8 +2545,6 @@ body.is-scrolling .drawing-tool-button:hover {
   background: var(--ui-surface-strong);
 }
 
-.backup-dialog:not([open]) { display: none; }
-
 /* The universal margin reset strips the UA centering off <dialog>, which left
    every modal pinned to the top-left corner. Own the geometry instead: the
    dialog covers the viewport and centres its surface. */
@@ -2454,18 +2557,47 @@ body.is-scrolling .drawing-tool-button:hover {
   max-width: none;
   height: 100dvh;
   max-height: none;
-  display: grid;
+  display: none;
   place-items: center;
   padding: 20px;
   border: none;
   background: transparent;
   overflow: hidden;
+  opacity: 0;
+  transition: opacity var(--dur-exit) var(--ease-out),
+              display var(--dur-exit) allow-discrete,
+              overlay var(--dur-exit) allow-discrete;
+}
+
+.backup-dialog[open] {
+  display: grid;
+  opacity: 1;
+  transition: opacity var(--dur-pop) var(--ease-out),
+              display var(--dur-pop) allow-discrete,
+              overlay var(--dur-pop) allow-discrete;
+}
+
+@starting-style {
+  .backup-dialog[open] { opacity: 0; }
 }
 
 .backup-dialog::backdrop {
   background: rgba(8, 8, 10, 0.44);
   backdrop-filter: blur(6px) saturate(105%);
   -webkit-backdrop-filter: blur(6px) saturate(105%);
+  opacity: 0;
+  transition: opacity var(--dur-exit) var(--ease-out),
+              display var(--dur-exit) allow-discrete,
+              overlay var(--dur-exit) allow-discrete;
+}
+
+.backup-dialog[open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--dur-pop);
+}
+
+@starting-style {
+  .backup-dialog[open]::backdrop { opacity: 0; }
 }
 
 .backup-dialog-surface {
@@ -2481,6 +2613,28 @@ body.is-scrolling .drawing-tool-button:hover {
   backdrop-filter: blur(20px) saturate(130%);
   -webkit-backdrop-filter: blur(20px) saturate(130%);
   color: var(--ui-text);
+  /* A modal is not anchored to a trigger, so it stays centred and scales from
+     its own centre. */
+  transform: scale(calc(1 - 0.03 * var(--motion-shift)));
+  transition: transform var(--dur-pop) var(--ease-out);
+}
+
+.backup-dialog[open] .backup-dialog-surface {
+  transform: none;
+}
+
+@starting-style {
+  .backup-dialog[open] .backup-dialog-surface {
+    transform: scale(calc(1 - 0.03 * var(--motion-shift)));
+  }
+}
+
+/* Opened from the keyboard: no entrance at all. A shortcut used dozens of
+   times a day should never wait on an animation. */
+.backup-dialog.is-instant,
+.backup-dialog.is-instant::backdrop,
+.backup-dialog.is-instant .backup-dialog-surface {
+  transition-duration: 0s;
 }
 
 .backup-dialog-surface::-webkit-scrollbar {
@@ -2688,52 +2842,67 @@ body.workspace-readonly #drawingLayer {
     gap: 8px;
   }
 
-  /* The palette keeps hanging to the left of its chip here too — stacking it
-     above would push it off the top of the screen — it just wraps to fit. */
+  /* On a phone the palette cannot hang beside the rail without covering the
+     line you are annotating, so it docks to the bottom of the screen, clear of
+     the gear, and rises from the edge it lives on. */
   .drawing-toolbar {
-    right: calc(100% + 8px);
-    /* Top-aligned with the rail: a wrapped palette grows downwards instead of
-       running off the top of the screen. */
-    top: 0;
-    transform: translate(0, 0);
+    position: fixed;
+    top: auto;
+    right: auto;
+    left: 50%;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, 0);
     width: max-content;
-    max-width: min(100vw - 80px, 244px);
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 3px;
+    max-width: calc(100vw - 24px);
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 4px;
     padding: 5px;
   }
 
   .top-right-rail.tools-collapsed .drawing-toolbar {
-    transform: translate(14px, 0);
+    transform: translate(-50%, calc(14px * var(--motion-shift))) scale(calc(1 - 0.02 * var(--motion-shift)));
   }
 
    .drawing-toolbar-group {
-    gap: 2px;
+    gap: 4px;
   }
 
   .drawing-toolbar-group-actions {
-    margin-left: 2px;
-    padding-left: 6px;
-    border-left-color: transparent;
+    margin-left: 4px;
+    padding-left: 8px;
+    border-left-color: var(--ui-border);
   }
 
+  /* Phone-sized screens get phone-sized targets: 44px is the smallest square
+     a finger hits reliably. */
   .drawing-tool-button {
-    width: 34px;
-    height: 34px;
+    width: 44px;
+    height: 44px;
   }
+}
 
-  .rail-collapse-toggle {
+/* Narrowest phones: keep the docked palette on one row. */
+@media (max-width: 360px) {
+  .drawing-tool-button {
     width: 40px;
     height: 40px;
-    border-radius: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+
+  .rail-collapse-toggle {
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
   }
 
   .controls-icon {
-    width: 40px;
-    height: 40px;
-    padding: 10px;
-    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    padding: 12px;
+    border-radius: 13px;
   }
 
   .controls-container {
@@ -2769,29 +2938,29 @@ body.workspace-readonly #drawingLayer {
   }
   
   .page-tab {
-    flex: 0 0 40px;
-    width: 40px;
-    min-width: 40px;
-    max-width: 40px;
-    height: 40px;
-    min-height: 40px;
-    max-height: 40px;
-    border-radius: 9px;
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    border-radius: 11px;
   }
 
   .page-tab-emoji {
-    font-size: 20px;
+    font-size: 21px;
   }
 
   .add-page-btn {
-    flex: 0 0 40px;
-    width: 40px;
-    min-width: 40px;
-    max-width: 40px;
-    height: 40px;
-    min-height: 40px;
-    max-height: 40px;
-    border-radius: 12px;
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    border-radius: 13px;
   }
   
   .emoji-picker {
@@ -3082,8 +3251,42 @@ body:has(#board) {
 .reader-viewport { width: 100%; overflow: clip; }
 
 .save-indicator.error.visible { opacity: 1; color: var(--text-color); }
+/* Reduced motion means gentler motion, not none: the fades that explain what
+   just happened stay, the travel and the blur go. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  :root {
+    --motion-shift: 0;
+    --motion-blur: 0;
+    --press-scale: 1;
+    --dur-press: 1ms;
+    --dur-pop: 120ms;
+    --dur-panel: 120ms;
+    --dur-exit: 100ms;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  .page-preview,
+  .page-preview.visible,
+  .emoji-picker,
+  .emoji-picker.visible,
+  .delete-confirm-popover,
+  .delete-confirm-popover.visible,
+  .color-picker-popup,
+  .color-picker-popup.visible,
+  .font-dropdown-menu,
+  .font-dropdown-menu.visible {
+    transform: none;
+    filter: none;
+  }
+
+  details::details-content {
+    transition-property: opacity, content-visibility;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -3289,21 +3492,6 @@ body:has(#board) {
 
 .dialog-disclosure-summary::-webkit-details-marker {
   display: none;
-}
-
-.dialog-disclosure-summary::after {
-  content: '';
-  flex: 0 0 auto;
-  width: 7px;
-  height: 7px;
-  border-right: 1.5px solid var(--ui-text-muted);
-  border-bottom: 1.5px solid var(--ui-text-muted);
-  transform: rotate(45deg);
-  transition: transform 0.2s ease;
-}
-
-.dialog-disclosure[open] .dialog-disclosure-summary::after {
-  transform: rotate(225deg);
 }
 
 .dialog-disclosure-content {
@@ -3534,38 +3722,43 @@ body:has(#board) {
 }
 
 /* Workspace commands belong to Settings, never above the note. */
+/* A settings row is a surface, not a label: leading icon, name, current value
+   or shortcut, and the whole row is the target. */
 .settings-action {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
-  min-height: 36px;
-  padding: 7px 8px;
+  width: calc(100% + 16px);
+  margin: 0 -8px;
+  min-height: 40px;
+  padding: 10px 8px;
   border: 0;
-  border-radius: 9px;
+  border-radius: 10px;
   background: transparent;
   color: var(--ui-text);
-  font: 12px/1.4 system-ui, -apple-system, sans-serif;
+  font: 12.5px/1.4 system-ui, -apple-system, sans-serif;
   cursor: pointer;
   text-align: left;
+  transition: var(--transition-control);
 }
 
 .settings-action:hover {
   background: var(--ui-hover);
 }
 
-.settings-action svg {
+.settings-action-icon {
   flex: 0 0 16px;
   width: 16px;
   height: 16px;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.72;
+  color: var(--ui-text-muted);
+  transition: color var(--dur-hover) var(--ease-out);
 }
 
-.settings-action span {
+.settings-action:hover .settings-action-icon {
+  color: var(--ui-text);
+}
+
+.settings-action-label {
   flex: 1;
   min-width: 0;
 }
@@ -3576,11 +3769,59 @@ body:has(#board) {
   font-variant-numeric: tabular-nums;
 }
 
-.settings-action .settings-action-chevron {
-  flex-basis: 12px;
+.settings-action-chevron {
+  flex: 0 0 12px;
   width: 12px;
   height: 12px;
-  opacity: 0.5;
+  color: var(--ui-text-muted);
+  transition: transform var(--dur-hover) var(--ease-out);
+}
+
+.settings-action:hover .settings-action-chevron {
+  transform: translateX(2px);
+}
+
+/* Data buttons carry the same icon language as the rows above them. */
+.btn-icon {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  color: var(--ui-text-muted);
+}
+
+.data-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.data-action:hover .btn-icon {
+  color: var(--ui-text);
+}
+
+/* Command rows in the workspace panels. Rows with an icon read as a list;
+   search results keep the stacked title and snippet. */
+.row-icon {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--ui-text-muted);
+  transition: color var(--dur-hover) var(--ease-out);
+}
+
+.row-label {
+  min-width: 0;
+}
+
+.workspace-dialog #workspaceToolsContent button:has(.row-icon) {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.workspace-dialog #workspaceToolsContent button:hover .row-icon {
+  color: var(--ui-text);
 }
 
 .storage-state {

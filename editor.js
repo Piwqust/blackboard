@@ -26,8 +26,13 @@ import { createWorkspaceStore } from './src/core/workspace-store.js';
 import { acquireWorkspaceLock, createWorkspaceChannel } from './src/core/workspace-lock.js';
 import { createStatusAnnouncer } from './src/ui/app-status.js';
 import { registerPwaUpdates } from './src/ui/pwa-updates.js';
+import { hydrateIcons } from './src/ui/icons.js';
 
 const APP_VERSION = '2.3.3';
+
+// Static markup ships icon placeholders that already reserve their box, so
+// filling them in here cannot shift a row.
+hydrateIcons();
 
 // Links published from the local unpacked extension have to point somewhere a
 // recipient can actually open, so they use the public deployment rather than
@@ -606,35 +611,12 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Close color picker when settings panel hides (mouse leaves controls container)
-// But not if mouse is moving to the color picker popup
-document.querySelector('.controls-container')?.addEventListener('mouseleave', (e) => {
-  // Check if mouse is moving to the color picker popup
-  const relatedTarget = e.relatedTarget;
-  const isMovingToColorPicker = relatedTarget && (
-    relatedTarget.closest('.color-picker-popup') ||
-    relatedTarget.classList?.contains('color-picker-popup')
-  );
-  
-  if (!isMovingToColorPicker) {
-    if (colorPickerState.isOpen) {
-      closeColorPicker();
-    }
-    if (fontDropdownOpen) {
-      closeFontDropdown();
-    }
-  }
-});
-
-// Also close color picker when mouse leaves the popup itself (if not going back to controls)
-document.querySelector('.color-picker-popup')?.addEventListener('mouseleave', (e) => {
-  const relatedTarget = e.relatedTarget;
-  const isMovingToControls = relatedTarget && (relatedTarget.closest('.controls-container') || relatedTarget.closest('#drawColorBtn'));
-  
-  if (!isMovingToControls && !colorPickerState.isDragging) {
-    closeColorPicker();
-  }
-});
+// The picker and the font menu used to close when the pointer left them, a
+// leftover from when Settings itself opened on hover. It meant the picker
+// could vanish mid-adjustment — for example when choosing a custom colour
+// removes the "Match theme" button and the panel resizes out from under the
+// pointer. Both now close the way every other panel does: on an outside
+// click or Escape.
 
 // Font dropdown elements
 const fontDropdownTrigger = document.getElementById('fontDropdownTrigger');

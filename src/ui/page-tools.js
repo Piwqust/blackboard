@@ -1,5 +1,6 @@
 import { bindModalDialog } from './dialogs.js';
 import { pageText } from '../core/page-tools.js';
+import { createIcon } from './icons.js';
 
 export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSettings, publishPage, listSnapshots, recoverPage, retrySave, redoDrawing, restoreDrawings, closeSettings, openSettings }) {
   const searchButton = document.getElementById('findPagesBtn');
@@ -36,7 +37,7 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
   bindModalDialog(dialog, close);
   dialog.querySelector('#workspaceToolsClose').addEventListener('click', close);
   dialog.addEventListener('click', event => { if (event.target === dialog) close(); });
-  function open(title) {
+  function open(title, { instant = false } = {}) {
     if (!dialog.open) {
       launcher = document.activeElement;
       launchedFromSettings = Boolean(launcher?.closest('.controls-panel'));
@@ -46,15 +47,24 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
     content.replaceChildren();
     message.textContent = '';
     dialog.querySelector('h2').textContent = title;
+    // Keyboard-opened panels do not animate: the shortcut is used many times a
+    // day, and any entrance makes it feel slower than it is.
+    dialog.classList.toggle('is-instant', instant);
     if (!dialog.open) dialog.showModal();
   }
-  function button(label, fn, parent = content) {
+  function button(label, fn, parent = content, iconName = '') {
     const el = document.createElement('button');
-    el.type = 'button'; el.textContent = label;
+    el.type = 'button';
+    const icon = iconName ? createIcon(iconName, 'row-icon') : null;
+    if (icon) el.append(icon);
+    const text = document.createElement('span');
+    text.className = 'row-label';
+    text.textContent = label;
+    el.append(text);
     el.addEventListener('click', fn); parent.append(el); return el;
   }
-  function showPages() {
-    open('Find a page');
+  function showPages({ instant = false } = {}) {
+    open('Find a page', { instant });
     const input = document.createElement('input');
     input.type = 'search'; input.placeholder = 'Search names and text'; input.setAttribute('aria-label','Search pages');
     content.append(input);
@@ -85,14 +95,14 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
     open('Page actions');
     const workspace=getWorkspace();const page=workspace.pages.find(p=>p.id===workspace.currentPageId);
     if(!page)return;
-    button('Name, emoji and delete…',()=>{close({restoreFocus:false});pageSettings(page.id)}).disabled=!isWritable();
-    button('Share a copy…',()=>{close({restoreFocus:false});publishPage(page.id)});
-    button('Export text (.txt)',()=>downloadPage(false));
-    button('Export Markdown (.md)',()=>downloadPage(true));
-    button('Redo drawing',()=>{redoDrawing();message.textContent='Drawing redo applied if available.';}).disabled=!isWritable();
-    button('Restore cleared drawings',()=>{restoreDrawings();message.textContent='Last cleared drawings restored if available in this session.';}).disabled=!isWritable();
-    button('Recovery history…',()=>void showRecovery());
-    button('Keyboard help',showHelp);
+    button('Name, emoji and delete…',()=>{close({restoreFocus:false});pageSettings(page.id)},content,'pencil').disabled=!isWritable();
+    button('Share a copy…',()=>{close({restoreFocus:false});publishPage(page.id)},content,'link');
+    button('Export text (.txt)',()=>downloadPage(false),content,'download');
+    button('Export Markdown (.md)',()=>downloadPage(true),content,'markdown');
+    button('Redo drawing',()=>{redoDrawing();message.textContent='Drawing redo applied if available.';},content,'redo').disabled=!isWritable();
+    button('Restore cleared drawings',()=>{restoreDrawings();message.textContent='Last cleared drawings restored if available in this session.';},content,'brush').disabled=!isWritable();
+    button('Recovery history…',()=>void showRecovery(),content,'history');
+    button('Keyboard help',showHelp,content,'keyboard');
   }
   async function showRecovery() {
     open('Recovery history');
@@ -112,7 +122,7 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
             try {await recoverPage(page);message.textContent='Recovered as a new page. Existing pages were kept.';}
             catch(error){message.textContent=error.message;}
             finally{recover.disabled=!isWritable();}
-          },row);recover.disabled=!isWritable();details.append(row);
+          },row,'page');recover.disabled=!isWritable();details.append(row);
         }
       }
     } catch(error){message.textContent=error.message;}
@@ -122,7 +132,7 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
     const lines=[['Find pages','Ctrl / ⌘ K'],['New page','Alt Shift N'],['Indent / unindent','Tab / Shift Tab in the editor'],['Leave the editor or close a panel','Escape'],['Undo / redo text or drawing','Ctrl / ⌘ Z · Ctrl / ⌘ Shift Z'],['Brush / eraser','Alt Shift B / E']];
     const dl=document.createElement('dl');dl.className='workspace-shortcuts';for(const [label,key]of lines){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=key;dl.append(dt,dd)}content.append(dl);
   }
-  searchButton.addEventListener('click',showPages);
+  searchButton.addEventListener('click',()=>showPages());
   actionsButton.addEventListener('click',showActions);
   const status=document.getElementById('storageStatus');
   const retry=document.getElementById('retrySaveBtn');
@@ -141,7 +151,7 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
     try{await retrySave();}catch{status.textContent='Could not save changes';}
     finally{retry.disabled=false;updateStatus();}
   });
-  document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'&&!event.isComposing){event.preventDefault();showPages();}});
+  document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'&&!event.isComposing){event.preventDefault();showPages({instant:true});}});
   document.querySelector('#recoveryHistoryBtn')?.addEventListener('click',()=>void showRecovery());
   updateStatus();
   return {showRecovery,showHelp};
