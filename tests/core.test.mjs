@@ -330,3 +330,17 @@ test('queued writes capture data before callers mutate their objects', async () 
   await writing;
   assert.equal((await store.readWorkspace()).pages[0].content,'before');
 });
+
+test('canvas backing allocation stays bounded for long notes and high DPR', async () => {
+  const {canvasBackingSize}=await import('../src/core/canvas-budget.js');
+  for(const [width,height,dpr] of [[1440,900,2],[1440,100000,3],[1e9,1e9,3]]) {
+    const size=canvasBackingSize(width,height,dpr);
+    assert.ok(size.width<=8192 && size.height<=8192);
+    assert.ok(size.width*size.height<=8_000_000);
+  }
+});
+
+test('hostile board width is rejected before canvas allocation', async () => {
+  const note=createPublishedNote({id:'large',content:'text'}, {}, {boardWidth:1e9});
+  await assert.rejects(decodePublishedNote(await encodePublishedNote(note)), /too large to display safely/);
+});

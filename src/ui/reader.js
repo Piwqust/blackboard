@@ -1,3 +1,4 @@
+import { canvasBackingSize } from '../core/canvas-budget.js';
 import {
   convertPointToCanvasPixels,
   getBrushSizeInPixels,
@@ -179,12 +180,13 @@ function paintDrawings() {
   const height = Math.max(1, boardHeight - offsetTop);
   const dpr = window.devicePixelRatio || 1;
 
-  canvas.width = Math.max(1, Math.round(width * dpr));
-  canvas.height = Math.max(1, Math.round(height * dpr));
+  const backing = canvasBackingSize(width, height, dpr);
+  canvas.width = backing.width;
+  canvas.height = backing.height;
   canvas.style.top = `${offsetTop}px`;
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
-  context.setTransform(dpr, 0, 0, dpr, 0, 0);
+  context.setTransform(backing.scaleX, 0, 0, backing.scaleY, 0, 0);
   context.clearRect(0, 0, width, height);
 
   // The board itself is already scaled when it needs to be, so strokes are

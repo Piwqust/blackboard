@@ -1,7 +1,8 @@
+import { canvasBackingSize } from './src/core/canvas-budget.js';
 import { setupPageTools } from './src/ui/page-tools.js';
 import { mergeWorkspacePages, recoverPageAsNew } from './src/core/page-tools.js';
 import { bindModalDialog } from './src/ui/dialogs.js';
-import { describeBackup, makeBackupFilename, parseWorkspaceBackup, serializeWorkspaceBackup } from './src/core/backup.js';
+import { describeBackup, MAX_BACKUP_BYTES, makeBackupFilename, parseWorkspaceBackup, serializeWorkspaceBackup } from './src/core/backup.js';
 import { isExtensionContext, readLegacyChromeWorkspace } from './src/core/legacy-chrome.js';
 import { DEFAULT_WORKSPACE_SETTINGS, migrateFontFamily, normalizeSettings, normalizePage as normalizeWorkspacePage } from './src/core/schema.js';
 import { sanitizeStoredContent } from './src/core/sanitize-html.js';
@@ -1414,8 +1415,9 @@ function syncDrawingLayerSize({ forceRedraw = false } = {}) {
 
   const { width, height } = getBoardSize();
   const dpr = window.devicePixelRatio || 1;
-  const targetWidth = Math.max(1, Math.round(width * dpr));
-  const targetHeight = Math.max(1, Math.round(height * dpr));
+  const backing = canvasBackingSize(width, height, dpr);
+  const targetWidth = backing.width;
+  const targetHeight = backing.height;
   let resized = false;
 
   if (drawingLayer.width !== targetWidth || drawingLayer.height !== targetHeight) {
@@ -1423,7 +1425,7 @@ function syncDrawingLayerSize({ forceRedraw = false } = {}) {
     drawingLayer.height = targetHeight;
     drawingLayer.style.width = `${width}px`;
     drawingLayer.style.height = `${height}px`;
-    drawingContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawingContext.setTransform(backing.scaleX, 0, 0, backing.scaleY, 0, 0);
     resized = true;
   }
 
@@ -2270,6 +2272,7 @@ const debouncedSave = debounce(saveContent, 1000);
 
 // Show save indicator briefly
 function showSaveIndicator() {
+  if (workspaceStore.hasWriteError()) return;
   // A successful save clears any lingering error state.
   saveIndicator.classList.remove('error');
   saveIndicator.title = '';
@@ -2448,6 +2451,7 @@ async function updateStorageSummary() {
     // durable way for the user to retain control over a browser profile reset.
   }
 
+  try { const exported = localStorage.getItem('blackboard-text:last-export'); if (exported) message += ' Last backup: '+new Date(exported).toLocaleString()+'.'; } catch { /* Optional hint only. */ }
   storageSummary.textContent = message;
 }
 
@@ -2554,6 +2558,8 @@ function setWorkspaceWritableMode() {
     control.disabled = false;
     delete control.dataset.workspaceLocked;
   });
+  document.querySelectorAll('.emoji-option').forEach(button => { button.disabled = false; });
+  renderPageTabs();
   if (workspaceModeNotice) workspaceModeNotice.hidden = true;
 }
 
@@ -3386,8 +3392,11 @@ async function deletePage(pageId) {
   const pageIndex = pages.findIndex(p => p.id === pageId);
   if (pageIndex === -1) return;
 
-  await captureDestructiveSnapshot('Before deleting a page');
-  pages.splice(pageIndex, 1);
+  try { await captureDestructiveSnapshot('Before deleting a page'); }
+  catch(error) { handleStorageError(error, 'saving recovery snapshot'); return; }
+  const currentIndex = pages.findIndex(page => page.id === pageId);
+  if (currentIndex < 0 || pages.length <= 1) return;
+  pages.splice(currentIndex, 1);
   textHistories.delete(pageId);
   if (pageId === currentPageId) {
     // A pending snapshot would describe the deleted page's content.
@@ -3414,11 +3423,11 @@ function openEmojiPicker(pageId) {
   }
 
   if (emojiPickerClear) {
-    emojiPickerClear.disabled = !getPageById(pageId)?.emoji;
+    emojiPickerClear.disabled = !workspaceWritable || !getPageById(pageId)?.emoji;
   }
 
   if (emojiPickerDelete) {
-    emojiPickerDelete.disabled = pages.length <= 1;
+    emojiPickerDelete.disabled = !workspaceWritable || pages.length <= 1;
     emojiPickerDelete.setAttribute('aria-expanded', 'false');
   }
 
@@ -3461,11 +3470,11 @@ function updateEmojiPickerState({ focusSelection = false } = {}) {
   });
 
   if (emojiPickerClear) {
-    emojiPickerClear.disabled = !selectedEmoji;
+    emojiPickerClear.disabled = !workspaceWritable || !selectedEmoji;
   }
 
   if (emojiPickerDelete) {
-    emojiPickerDelete.disabled = pages.length <= 1;
+    emojiPickerDelete.disabled = !workspaceWritable || pages.length <= 1;
   }
 
   if (focusSelection) {
@@ -3849,6 +3858,8 @@ function downloadWorkspaceBackup() {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 0);
+    try { localStorage.setItem('blackboard-text:last-export', new Date().toISOString()); } catch { /* Optional hint only. */ }
+    void updateStorageSummary();
     statusAnnouncer.show('Backup downloaded. Keep it somewhere you control.', { kind: 'success' });
   } catch (error) {
     handleStorageError(error, 'exporting backup');
@@ -3975,6 +3986,7 @@ async function selectWorkspaceBackup(file) {
   if (!workspaceWritable || !file) return;
 
   try {
+    if (file.size > MAX_BACKUP_BYTES) throw new Error('This backup is larger than 50 MB.');
     const parsed = parseWorkspaceBackup(await file.text(), {
       defaults: DEFAULT_SETTINGS,
       sanitizeHtml: sanitizeStoredContent

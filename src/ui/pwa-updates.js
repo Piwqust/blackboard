@@ -25,20 +25,23 @@ export function registerPwaUpdates({ onUpdateReady, onControllerChange, onError 
       }
     });
   };
+  const watchInstallingWorker = worker => {
+    if (!worker) return;
+    const changed = () => {
+      if (worker.state === 'installed' && globalThis.navigator.serviceWorker.controller) {
+        announceWaitingWorker();
+      }
+    };
+    worker.addEventListener('statechange', changed);
+    changed();
+  };
 
   const ready = globalThis.navigator.serviceWorker.register('./pwa-sw.js', { scope: './' })
     .then(nextRegistration => {
       registration = nextRegistration;
       announceWaitingWorker();
-      registration.addEventListener('updatefound', () => {
-        const worker = registration.installing;
-        if (!worker) return;
-        worker.addEventListener('statechange', () => {
-          if (worker.state === 'installed' && globalThis.navigator.serviceWorker.controller) {
-            announceWaitingWorker();
-          }
-        });
-      });
+      registration.addEventListener('updatefound', () => watchInstallingWorker(registration.installing));
+      watchInstallingWorker(registration.installing);
       return registration;
     })
     .catch(error => {

@@ -237,6 +237,9 @@ export async function decodePublishedNote(token, { sanitizeHtml, defaults = DEFA
   // same normalize + sanitize boundary an imported backup does.
   const note = normalizePage(candidate.note, { fontSize: view.fontSize, sanitizeHtml });
   const boardWidth = Number(candidate.board?.width);
+  if (boardWidth > 16384 || note.drawings.some(stroke => stroke.points.some(point => Math.abs(point.x) > 1_000_000 || Math.abs(point.y) > 1_000_000))) {
+    throw new Error('This drawing is too large to display safely. Ask for a text-only copy.');
+  }
 
   return {
     publishedAt: typeof candidate.publishedAt === 'string' ? candidate.publishedAt : null,

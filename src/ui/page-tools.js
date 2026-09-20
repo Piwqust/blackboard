@@ -111,6 +111,7 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
   const indicator=document.querySelector('#saveIndicator');
   const updateStatus=()=>{status.textContent=!isWritable()?'Read-only copy':indicator.classList.contains('error')?'Save failed · retry':'Saved locally';};
   new MutationObserver(updateStatus).observe(indicator,{attributes:true});
+  new MutationObserver(updateStatus).observe(document.body,{attributes:true,attributeFilter:['class']});
   document.querySelector('#editor').addEventListener('input',()=>{status.textContent='Saving…';});
   status.addEventListener('click',async()=>{
     if(!isWritable())return;

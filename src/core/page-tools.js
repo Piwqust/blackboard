@@ -17,7 +17,7 @@ export function mergeWorkspacePages(current, incoming, { conflicts = 'copy' } = 
     workspace.pages.push(copy);
     added += 1;
   }
-  return { workspace, added, skipped };
+  return { workspace: normalizeWorkspace(workspace), added, skipped };
 }
 
 export function recoverPageAsNew(current, source) {
@@ -26,7 +26,7 @@ export function recoverPageAsNew(current, source) {
     title: (source.title || 'Untitled page') + ' (recovered)' });
   workspace.pages.push(page);
   workspace.currentPageId = page.id;
-  return workspace;
+  return normalizeWorkspace(workspace);
 }
 
 export function pageText(html, { markdown = false } = {}) {

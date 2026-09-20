@@ -26,6 +26,8 @@ jobs:
       - run: npm ci
       - run: node scripts/verify-release-version.mjs
       - run: npm run verify
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/pwa

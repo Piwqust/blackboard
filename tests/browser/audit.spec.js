@@ -253,3 +253,15 @@ test('readable mode preserves original drawings and offers zoom', async ({page})
   await page.locator('#readerBoardMode').click();
   await expect(page.locator('#readerZoom')).toBeVisible();
 });
+
+test('drawing undo redo and restore after clear preserve strokes', async ({page}) => {
+  await page.locator('#drawToggleBtn').click();
+  const rect=await page.locator('#drawingLayer').boundingBox();
+  await page.mouse.move(rect.x+60,rect.y+60);await page.mouse.down();await page.mouse.move(rect.x+160,rect.y+110,{steps:5});await page.mouse.up();
+  const count=()=>page.evaluate(async()=>{const ws=await (await import('./src/core/workspace-store.js')).createWorkspaceStore().readWorkspace();return ws.pages.find(p=>p.id===ws.currentPageId).drawings.length;});
+  await expect.poll(count).toBe(1);
+  await page.locator('#undoDrawingBtn').click();await expect.poll(count).toBe(0);
+  await page.keyboard.press('ControlOrMeta+Shift+z');await expect.poll(count).toBe(1);
+  await page.locator('#clearDrawingsBtn').click();await page.locator('#confirmClearDrawingsBtn').click();await expect.poll(count).toBe(0);
+  await page.locator('#pageActionsBtn').click();await page.getByRole('button',{name:'Restore cleared drawings',exact:true}).click();await expect.poll(count).toBe(1);
+});

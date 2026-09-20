@@ -30,7 +30,7 @@ export function parseWorkspaceBackup(text, options = {}) {
     throw new Error('The selected backup is not text.');
   }
 
-  if (text.length > MAX_BACKUP_BYTES) {
+  if (text.length > MAX_BACKUP_BYTES || new TextEncoder().encode(text).byteLength > MAX_BACKUP_BYTES) {
     throw new Error('This backup is larger than 50 MB and was not opened.');
   }
 

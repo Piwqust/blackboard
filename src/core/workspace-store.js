@@ -216,6 +216,7 @@ export function createWorkspaceStore({ dbName = 'blackboard-text', maxSnapshots 
       await replaceWorkspaceNow(snapshot.workspace);
       return copy(snapshot.workspace);
     }),
+    hasWriteError: () => Boolean(writeError),
     flush: async () => {
       await writeTail;
       if (writeError) throw writeError;
