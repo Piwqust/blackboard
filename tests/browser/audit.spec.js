@@ -219,3 +219,37 @@ test('built-in themes have readable labels and visible keyboard focus', async ({
     expect(await page.locator('#fontSize').evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('solid');
   }
 });
+
+test('page search, non-destructive merge and single-page recovery', async ({page}) => {
+  await page.locator('#editor').fill('Unique first note');
+  const id=await page.locator('.page-tab').getAttribute('data-page-id');
+  const payload={format:'BlackboardTextWorkspace',schemaVersion:1,workspace:{currentPageId:id,pages:[{id,title:'Incoming page',content:'Unique incoming note'}],settings:{}}};
+  await page.locator('#importWorkspaceInput').setInputFiles({name:'backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(payload))});
+  await page.locator('input[name="importMode"][value="add"]').check();
+  await page.locator('#confirmImportBtn').click();
+  await expect(page.locator('.page-tab')).toHaveCount(2);
+  await expect(page.locator('#editor')).toHaveText('Unique first note');
+  await page.locator('#findPagesBtn').click();
+  await page.getByRole('searchbox',{name:'Search pages'}).fill('incoming');
+  await page.locator('.workspace-results button').click();
+  await expect(page.locator('#editor')).toHaveText('Unique incoming note');
+  await page.locator('#pageActionsBtn').click();
+  await page.getByRole('button',{name:'Recovery history…',exact:true}).click();
+  await page.locator('#workspaceToolsContent summary').first().click();
+  await page.getByRole('button',{name:'Recover as new page'}).first().click();
+  await expect(page.locator('#workspaceToolsStatus')).toContainText('Recovered as a new page');
+  await expect(page.locator('.page-tab')).toHaveCount(3);
+});
+
+test('readable mode preserves original drawings and offers zoom', async ({page}) => {
+  await page.locator('#editor').fill('Readable copy');
+  await page.locator('#pageActionsBtn').click();
+  await page.getByRole('button',{name:'Share a copy…',exact:true}).click();
+  await expect(page.locator('#previewPublishLink')).toBeVisible();
+  await page.goto(await page.locator('#previewPublishLink').getAttribute('href'));
+  await page.locator('#readerTextMode').click();
+  await expect(page.locator('#readerContent')).toHaveCSS('font-size','20px');
+  await expect(page.locator('#readerDrawings')).toBeHidden();
+  await page.locator('#readerBoardMode').click();
+  await expect(page.locator('#readerZoom')).toBeVisible();
+});

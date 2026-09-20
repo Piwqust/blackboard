@@ -11,6 +11,12 @@
   <link rel="stylesheet" href="editor.css">
 </head>
 <body class="reader-body">
+  <nav id="readerViewControls" class="reader-view-controls" aria-label="Reading view" hidden>
+    <button id="readerBoardMode" type="button" aria-pressed="true">Original board</button>
+    <button id="readerTextMode" type="button" aria-pressed="false">Readable text</button>
+    <label id="readerZoomLabel">Zoom <select id="readerZoom"><option value="fit">Fit</option><option value="1">100%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+    <span id="readerModeHint">Original layout, including drawings.</span>
+  </nav>
   <div class="reader-viewport">
   <div id="readerBoard" class="reader-board">
     <div id="readerShell" class="reader-shell">

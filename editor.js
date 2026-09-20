@@ -1,3 +1,5 @@
+import { setupPageTools } from './src/ui/page-tools.js';
+import { mergeWorkspacePages, recoverPageAsNew } from './src/core/page-tools.js';
 import { bindModalDialog } from './src/ui/dialogs.js';
 import { describeBackup, makeBackupFilename, parseWorkspaceBackup, serializeWorkspaceBackup } from './src/core/backup.js';
 import { isExtensionContext, readLegacyChromeWorkspace } from './src/core/legacy-chrome.js';
@@ -1504,6 +1506,9 @@ function resetCurrentStrokeState() {
   }
 }
 
+const drawingRedo = new Map();
+const clearedDrawings = new Map();
+
 function beginStroke(event) {
   if (!workspaceWritable) return;
   if (!drawingState.enabled || event.button !== 0) return;
@@ -1526,6 +1531,7 @@ function beginStroke(event) {
     referenceFontSize
   };
 
+  drawingRedo.delete(page.id);
   page.drawings.push(stroke);
   drawingState.isDrawing = true;
   drawingState.currentStroke = stroke;
@@ -1611,13 +1617,29 @@ function undoLastStroke() {
     return false;
   }
 
-  page.drawings.pop();
+  const redo = drawingRedo.get(page.id) || [];
+  redo.push(page.drawings.pop());
+  drawingRedo.set(page.id, redo);
   redrawDrawings();
   touchPageEdited(page);
   saveContent();
   return true;
 }
 
+function redoLastStroke() {
+  if (!workspaceWritable) return;
+  const page = getCurrentPage();
+  const redo = drawingRedo.get(page?.id);
+  if (!page || !redo?.length) return;
+  page.drawings.push(redo.pop()); redrawDrawings(); touchPageEdited(page); void saveContent();
+}
+function restoreClearedDrawings() {
+  if (!workspaceWritable) return;
+  const page=getCurrentPage();const cleared=clearedDrawings.get(page?.id);
+  if(!page || !cleared) return;
+  page.drawings = [...cleared, ...page.drawings]; clearedDrawings.delete(page.id);
+  redrawDrawings(); touchPageEdited(page); void saveContent();
+}
 async function clearCurrentPageDrawings() {
   if (!workspaceWritable) return;
   const page = getCurrentPage();
@@ -1626,8 +1648,11 @@ async function clearCurrentPageDrawings() {
     return;
   }
 
-  await captureDestructiveSnapshot('Before clearing page drawings');
+  try { await captureDestructiveSnapshot('Before clearing page drawings'); }
+  catch(error) { handleStorageError(error, 'saving recovery snapshot'); return; }
+  clearedDrawings.set(page.id, structuredClone(page.drawings));
   page.drawings = [];
+  drawingRedo.delete(page.id);
   touchPageEdited(page);
   redrawDrawings();
   await safeLocalSet({ pages, currentPageId }, 'clearing page drawings');
@@ -2509,7 +2534,7 @@ function setWorkspaceReadOnlyMode(reason = 'Another Blackboard Text tab is editi
 
   const allowed = new Set([exportWorkspaceBtn, reloadForUpdateBtn, settingsToggleBtn, settingsCloseBtn]);
   document.querySelectorAll('button, input, select').forEach(control => {
-    if (allowed.has(control) || control.matches('.page-tab')) return;
+    if (allowed.has(control) || control.closest('.workspace-actions, #workspaceToolsDialog') || control.matches('.page-tab, #recoveryHistoryBtn')) return;
     if (!control.disabled) control.dataset.workspaceLocked = 'true';
     control.disabled = true;
   });
@@ -2749,6 +2774,8 @@ function redoTextEdit() {
 }
 
 function clearTextHistories() {
+  drawingRedo.clear();
+  clearedDrawings.clear();
   textHistories.clear();
   if (textSnapshotTimeout) {
     clearTimeout(textSnapshotTimeout);
@@ -3841,7 +3868,7 @@ function getPublishBaseUrl() {
 }
 
 function describePublishTier(tier, canDropDrawings) {
-  if (tier === 'ok') return 'Short enough for any chat app or email.';
+  if (tier === 'ok') return 'Usually fits in chat apps and email. Open the preview before sharing.';
   if (tier === 'long') return 'A long link — some chat apps shorten what they show, but pasting it whole still works.';
   return canDropDrawings
     ? 'A very long link. Some apps cut long links: turn off drawings, or send it somewhere that keeps the whole address.'
@@ -3878,6 +3905,9 @@ async function regeneratePublishLink() {
     if (requestId !== publishRequestId) return;
 
     publishLinkInput.value = url;
+    const preview = document.getElementById('previewPublishLink');
+    preview.href = url;
+    preview.hidden = false;
     const { kilobytes, tier } = describePublishedLink(url);
     if (publishSizeHint) {
       publishSizeHint.dataset.tier = tier;
@@ -3915,6 +3945,7 @@ function closePublishDialog({ restoreFocus = false } = {}) {
   publishPageId = null;
   publishRequestId += 1;
   if (publishLinkInput) publishLinkInput.value = '';
+  document.getElementById('previewPublishLink').hidden = true;
   if (restoreFocus) getPageTabButton(pageIdToFocus)?.focus();
 }
 
@@ -3949,6 +3980,10 @@ async function selectWorkspaceBackup(file) {
       sanitizeHtml: sanitizeStoredContent
     });
     pendingWorkspaceImport = parsed.workspace;
+    const conflicts = parsed.workspace.pages.filter(page => pages.some(existing => existing.id === page.id)).length;
+    document.getElementById('importConflictSummary').textContent = conflicts
+      ? conflicts + ' matching page IDs. Add mode keeps both copies by default.'
+      : 'No matching page IDs.';
     if (importConfirmText) {
       const exportedWhen = parsed.metadata.exportedAt
         ? ` It was exported ${new Date(parsed.metadata.exportedAt).toLocaleString('en-US')}.`
@@ -3977,9 +4012,15 @@ async function confirmWorkspaceImport() {
     // when import happens immediately after typing.
     await workspaceStore.saveWorkspace(getWorkspaceForPersistence({ captureEditor: true }));
     validateWorkspace(importCandidate);
-    await workspaceStore.replaceWorkspaceWithSnapshot(importCandidate, 'Before backup import');
+    const mode = document.querySelector('input[name="importMode"]:checked').value;
+    const candidate = mode === 'add'
+      ? mergeWorkspacePages(getWorkspaceForPersistence({captureEditor:true}), importCandidate, {
+          conflicts: document.getElementById('importConflictMode').value
+        }).workspace
+      : importCandidate;
+    await workspaceStore.replaceWorkspaceWithSnapshot(candidate, 'Before backup import');
 
-    applyWorkspaceToEditor(importCandidate);
+    applyWorkspaceToEditor(candidate);
     closeImportDialog({ restoreFocus: true });
     workspaceChannel.post('workspace-imported');
     statusAnnouncer.show('Backup imported. Your previous workspace is available as a local recovery snapshot.', { kind: 'success', duration: 7_000 });
@@ -4704,6 +4745,10 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
+  if (isRedoShortcut(e) && drawingState.enabled && shouldHandleDrawingShortcut(e)) {
+    e.preventDefault(); redoLastStroke(); return;
+  }
+
   if (isRedoShortcut(e) && !drawingState.enabled && isEditorHistoryTarget(e)) {
     e.preventDefault();
     redoTextEdit();
@@ -4777,6 +4822,35 @@ window.addEventListener('focus', () => {
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') void tryPromoteReadOnlyTab();
+});
+
+setupPageTools({
+  getWorkspace: () => getWorkspaceForPersistence({captureEditor:workspaceReady}),
+  isWritable: () => workspaceWritable && workspaceReady,
+  selectPage(id) {
+    if (!workspaceReady || id === currentPageId) return;
+    flushPendingTextSnapshot(); syncCurrentPageScrollPosition(); void saveContent(); loadPageContent(id);
+  },
+  pageSettings: openEmojiPicker,
+  publishPage: openPublishDialog,
+  exportBackup: downloadWorkspaceBackup,
+  redoDrawing: redoLastStroke,
+  restoreDrawings: restoreClearedDrawings,
+  listSnapshots: () => workspaceStore.listSnapshots(),
+  async recoverPage(page) {
+    if (!workspaceWritable || !workspaceReady) throw new Error('This tab is read-only.');
+    const current = getWorkspaceForPersistence({captureEditor:true});
+    await workspaceStore.saveWorkspace(current);
+    const recovered = recoverPageAsNew(current, page);
+    await workspaceStore.replaceWorkspaceWithSnapshot(recovered, 'Before recovering a page');
+    applyWorkspaceToEditor(recovered);
+  },
+  async retrySave() {
+    try {
+      await workspaceStore.saveWorkspace(getWorkspaceForPersistence({captureEditor:true}));
+      showSaveIndicator();
+    } catch(error) { handleStorageError(error); throw error; }
+  }
 });
 
 void bootstrapApp();

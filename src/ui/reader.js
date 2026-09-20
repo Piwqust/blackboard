@@ -24,6 +24,8 @@ const stateText = document.getElementById('readerStateText');
 const context = canvas?.getContext('2d') || null;
 let published = null;
 let resizeFrame = null;
+let readingMode = 'board';
+let zoom = 'fit';
 
 function hexToRgba(hex, alpha) {
   const normalized = normalizeHex(hex, '#000000');
@@ -36,6 +38,7 @@ function hexToRgba(hex, alpha) {
 
 function showState(title, text) {
   if (board) board.hidden = true;
+  document.getElementById('readerViewControls').hidden = true;
   if (footer) footer.hidden = true;
   if (statePanel) statePanel.hidden = false;
   if (stateTitle) stateTitle.textContent = title;
@@ -77,9 +80,16 @@ function applyBoardLayout() {
   if (!board || !published) return 1;
 
   const publishedWidth = published.board.width;
-  const hasDrawings = Array.isArray(published.note.drawings) && published.note.drawings.length > 0;
+  const hasDrawings = readingMode === 'board' && Array.isArray(published.note.drawings) && published.note.drawings.length > 0;
   const available = document.documentElement.clientWidth || window.innerWidth;
 
+  document.querySelector('.reader-viewport').classList.toggle('can-pan', hasDrawings && zoom !== 'fit');
+  if (hasDrawings && publishedWidth && zoom !== 'fit') {
+    const scale = Number(zoom);
+    board.style.maxWidth = 'none'; board.style.width = publishedWidth+'px';
+    board.style.transformOrigin = 'top left'; board.style.transform = 'scale('+scale+')';
+    return scale;
+  }
   if (!publishedWidth || !hasDrawings || available >= publishedWidth) {
     board.style.width = '';
     board.style.transform = '';
@@ -108,6 +118,7 @@ function compensateScaledHeight(boardHeight, scale) {
 // screen: it is part of where the strokes sit relative to the first line.
 function applyShellPadding() {
   if (!shell) return;
+  if (readingMode === 'text') { shell.style.padding = '32px 24px 100px'; return; }
   const publishedWidth = published?.board?.width || window.innerWidth;
   shell.style.padding = (published?.board?.paddingX ?? (publishedWidth <= 768 ? 24 : 48)) === 24
     ? '48px 24px 100px 24px'
@@ -144,6 +155,12 @@ function paintDrawings() {
   applyShellPadding();
   const boardScale = applyBoardLayout();
   const width = Math.round(board.clientWidth);
+  canvas.hidden = readingMode === 'text';
+  if (readingMode === 'text') {
+    canvas.width = 1; canvas.height = 1; canvas.style.height = '0px';
+    board.style.minHeight = '100vh'; board.style.marginBottom = '';
+    return;
+  }
   // A hidden or not-yet-laid-out page measures as zero; painting then would
   // bake a meaningless canvas size into the DOM.
   if (width < 1) return;
@@ -179,6 +196,7 @@ function renderNote() {
   if (!published) return;
 
   applyView(published.view);
+  document.getElementById('readerViewControls').hidden = false;
   content.innerHTML = published.note.content;
 
   const title = published.note.title.trim();
@@ -253,3 +271,18 @@ if (document.fonts?.ready) {
 
 void openNoteFromHash();
 
+
+function setReadingMode(mode) {
+  readingMode = mode;
+  document.body.classList.toggle('reader-text-mode', mode === 'text');
+  document.getElementById('readerBoardMode').setAttribute('aria-pressed', String(mode === 'board'));
+  document.getElementById('readerTextMode').setAttribute('aria-pressed', String(mode === 'text'));
+  document.getElementById('readerZoomLabel').hidden = mode === 'text';
+  document.getElementById('readerModeHint').textContent = mode === 'text'
+    ? 'Text reflows for reading. Drawings remain available in Original board.'
+    : 'Original layout, including drawings.';
+  paintDrawings();
+}
+document.getElementById('readerBoardMode').addEventListener('click', () => setReadingMode('board'));
+document.getElementById('readerTextMode').addEventListener('click', () => setReadingMode('text'));
+document.getElementById('readerZoom').addEventListener('change', event => { zoom = event.target.value; paintDrawings(); });

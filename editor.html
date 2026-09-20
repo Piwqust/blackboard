@@ -150,7 +150,7 @@
 
           <div class="emoji-picker-actions">
             <button class="emoji-picker-action" id="emojiPickerClear" type="button">Reset emoji</button>
-            <button class="emoji-picker-action" id="emojiPickerPublish" type="button" aria-controls="publishDialog" aria-haspopup="dialog">Publish page…</button>
+            <button class="emoji-picker-action" id="emojiPickerPublish" type="button" aria-controls="publishDialog" aria-haspopup="dialog">Share a copy…</button>
             <button class="emoji-picker-action emoji-picker-action-danger" id="emojiPickerDelete" type="button" aria-controls="deletePageConfirm" aria-expanded="false">Delete page…</button>
             <button class="emoji-picker-action" id="emojiPickerClose" type="button">Done</button>
           </div>
@@ -210,6 +210,22 @@
         </button>
       </div>
 
+      <div class="control-section data-section" aria-labelledby="dataSectionLabel">
+        <div class="section-label" id="dataSectionLabel">Your data</div>
+        <p class="data-copy" id="storageSummary">Stored only in this browser on this device.</p>
+        <div class="data-actions">
+          <button id="exportWorkspaceBtn" class="secondary-btn data-action" type="button">Export backup</button>
+          <button id="importWorkspaceBtn" class="secondary-btn data-action" type="button">Import backup</button>
+          <button id="restoreSnapshotBtn" class="secondary-btn data-action data-action-wide" type="button" disabled>Restore latest snapshot</button>
+          <button id="recoveryHistoryBtn" class="secondary-btn data-action data-action-wide" type="button">Browse recovery history</button>
+          <input id="importWorkspaceInput" type="file" accept="application/json,.json,.blackboard.json" hidden>
+        </div>
+        <p class="data-hint">Export creates a portable <code>.blackboard.json</code> file. Import replaces this workspace after a recovery snapshot is saved. <a href="privacy.html">Privacy</a></p>
+        <p class="data-hint" id="recoverySummary">Recovery snapshots appear here after an import or destructive change.</p>
+      </div>
+
+
+      <div class="section-label">Appearance</div>
       <!-- Theme Section -->
       <div class="control-section">
         <div class="section-label">Theme</div>
@@ -270,7 +286,7 @@
           </div>
 
           <div class="control-group">
-            <label for="letterSpacing">Tracking <span id="letterSpacingValue">0em</span></label>
+            <label for="letterSpacing">Letter spacing <span id="letterSpacingValue">0em</span></label>
             <input type="range" id="letterSpacing" min="-0.05" max="0.2" step="0.01" value="0">
           </div>
         </div>
@@ -304,19 +320,6 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <div class="control-section data-section" aria-labelledby="dataSectionLabel">
-        <div class="section-label" id="dataSectionLabel">Your data</div>
-        <p class="data-copy" id="storageSummary">Stored only in this browser on this device.</p>
-        <div class="data-actions">
-          <button id="exportWorkspaceBtn" class="secondary-btn data-action" type="button">Export backup</button>
-          <button id="importWorkspaceBtn" class="secondary-btn data-action" type="button">Import backup</button>
-          <button id="restoreSnapshotBtn" class="secondary-btn data-action data-action-wide" type="button" disabled>Restore latest snapshot</button>
-          <input id="importWorkspaceInput" type="file" accept="application/json,.json,.blackboard.json" hidden>
-        </div>
-        <p class="data-hint">Export creates a portable <code>.blackboard.json</code> file. Import replaces this workspace after a recovery snapshot is saved. <a href="privacy.html">Privacy</a></p>
-        <p class="data-hint" id="recoverySummary">Recovery snapshots appear here after an import or destructive change.</p>
       </div>
 
       <div class="controls-panel-footer">
@@ -397,11 +400,19 @@
   <dialog id="importConfirmDialog" class="backup-dialog" aria-labelledby="importConfirmTitle" aria-describedby="importConfirmText">
     <div class="backup-dialog-surface">
       <p class="backup-dialog-eyebrow">Import backup</p>
-      <h2 id="importConfirmTitle">Replace this workspace?</h2>
+      <h2 id="importConfirmTitle">Import backup</h2>
       <p id="importConfirmText">Your current notes will be saved as a local recovery snapshot first.</p>
+      <fieldset class="import-options">
+        <legend>How to import</legend>
+        <label><input type="radio" name="importMode" value="replace" checked> Replace workspace (save recovery snapshot)</label>
+        <label><input type="radio" name="importMode" value="add"> Add pages to this workspace</label>
+        <label for="importConflictMode">Matching page IDs in Add mode</label>
+        <select id="importConflictMode"><option value="copy">Keep both as separate pages</option><option value="skip">Skip matching IDs</option></select>
+        <p id="importConflictSummary"></p>
+      </fieldset>
       <div class="backup-dialog-actions">
         <button id="cancelImportBtn" class="delete-confirm-cancel" type="button">Cancel</button>
-        <button id="confirmImportBtn" class="delete-confirm-delete" type="button">Replace workspace</button>
+        <button id="confirmImportBtn" class="delete-confirm-delete" type="button">Import</button>
       </div>
     </div>
   </dialog>
@@ -421,8 +432,8 @@
   <dialog id="publishDialog" class="backup-dialog" aria-labelledby="publishDialogTitle" aria-describedby="publishDialogText">
     <div class="backup-dialog-surface">
       <p class="backup-dialog-eyebrow">Publish page</p>
-      <h2 id="publishDialogTitle">Share this page as a link</h2>
-      <p id="publishDialogText">The whole note travels inside the link, so nothing is uploaded and no account is involved. Anyone holding the link can read the note, and a link cannot be taken back once it is sent.</p>
+      <h2 id="publishDialogTitle">Share a copy of this page</h2>
+      <p id="publishDialogText">The link contains a copy of this page. Nothing is uploaded. Anyone with the link can read it. Later edits need a new link; a shared copy cannot be revoked.</p>
 
       <label class="publish-option" id="publishDrawingsOption">
         <input type="checkbox" id="publishIncludeDrawings" checked>
@@ -433,6 +444,7 @@
         <input type="text" id="publishLinkInput" class="publish-link-input" readonly spellcheck="false" aria-label="Published note link">
         <button id="copyPublishLinkBtn" class="secondary-btn" type="button">Copy link</button>
       </div>
+      <a id="previewPublishLink" target="_blank" rel="noopener" hidden>Preview this copy</a>
       <p class="publish-size" id="publishSizeHint" data-tier="ok">Building the link…</p>
 
       <div class="backup-dialog-actions">
