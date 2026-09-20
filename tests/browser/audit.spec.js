@@ -42,6 +42,7 @@ test('readonly tabs expose navigation and backup without writing', async ({page,
   await other.locator('#settingsCloseBtn').click();
   await other.locator('#pageActionsBtn').click();
   await other.getByRole('button',{name:'Share a copy…',exact:true}).click();
+  await other.locator('#shareModeFull').check();
   await expect(other.locator('#copyPublishLinkBtn')).toBeEnabled();
   await other.locator('#closePublishBtn').click();
   await expect(other.locator('#editor')).toHaveAttribute('contenteditable','false');
@@ -256,6 +257,7 @@ test('readable mode preserves original drawings and offers zoom', async ({page})
   await page.locator('#editor').fill('Readable copy');
   await page.locator('#pageActionsBtn').click();
   await page.getByRole('button',{name:'Share a copy…',exact:true}).click();
+  await page.locator('#shareModeFull').check();
   await expect(page.locator('#previewPublishLink')).toBeVisible();
   await page.goto(await page.locator('#previewPublishLink').getAttribute('href'));
   await page.locator('#readerTextMode').click();

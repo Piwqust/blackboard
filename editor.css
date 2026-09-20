@@ -3011,3 +3011,15 @@ body:has(#board) {
 .reader-text-mode .reader-shell { max-width: 75ch; margin: auto; }
 .reader-viewport.can-pan { overflow: auto; }
 @media print { .reader-view-controls {display:none;} }
+/* Share mode is explicit: opening the dialog never uploads a note. */
+#publishDialog .backup-dialog-surface { max-height: calc(100dvh - 64px); overflow: auto; }
+.share-modes { display: grid; gap: 9px; margin: 14px 0; padding: 10px; border: 1px solid var(--ui-border); font: 13px/1.5 system-ui, sans-serif; }
+.share-modes label { display: block; }
+#shortLinkPanel[hidden], #fullLinkPanel[hidden], #shortLinkResult[hidden], #previewShortLink[hidden], #copyShortLinkBtn[hidden] { display: none; }
+#shortLinkResult { width: 100%; margin: 10px 0; }
+#previewShortLink { margin-left: 8px; color: var(--text-color); font: 13px system-ui,sans-serif; }
+#sharedLinksDetails { margin-top: 16px; font: 13px/1.5 system-ui,sans-serif; }
+#sharedLinksDetails summary { cursor: pointer; }
+.shared-link-row { display: grid; gap: 8px; border-top: 1px solid var(--ui-border); padding: 12px 0; }
+.shared-link-row input { width: 100%; min-width: 0; color: var(--text-color); background: var(--bg-color); border: 1px solid var(--ui-border); padding: 8px; border-radius: 6px; font: 12px ui-monospace,monospace; }
+.shared-link-actions { display: flex; flex-wrap: wrap; gap: 6px; }

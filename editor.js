@@ -1,3 +1,4 @@
+import { setupShortLinks } from './src/ui/short-links.js';
 import { canvasBackingSize } from './src/core/canvas-budget.js';
 import { setupPageTools } from './src/ui/page-tools.js';
 import { mergeWorkspacePages, recoverPageAsNew } from './src/core/page-tools.js';
@@ -26,7 +27,7 @@ import { acquireWorkspaceLock, createWorkspaceChannel } from './src/core/workspa
 import { createStatusAnnouncer } from './src/ui/app-status.js';
 import { registerPwaUpdates } from './src/ui/pwa-updates.js';
 
-const APP_VERSION = '2.2.1';
+const APP_VERSION = '2.3.0';
 
 // Links published from the local unpacked extension have to point somewhere a
 // recipient can actually open, so they use the public deployment rather than
@@ -2539,7 +2540,7 @@ function setWorkspaceReadOnlyMode(reason = 'Another Blackboard Text tab is editi
   const allowed = new Set([exportWorkspaceBtn, reloadForUpdateBtn, settingsToggleBtn, settingsCloseBtn,
     copyPublishLinkBtn, closePublishBtn, publishIncludeDrawings]);
   document.querySelectorAll('button, input, select').forEach(control => {
-    if (allowed.has(control) || control.closest('.workspace-actions, #workspaceToolsDialog') || control.matches('.page-tab, #recoveryHistoryBtn')) return;
+    if (allowed.has(control) || control.closest('.workspace-actions, #workspaceToolsDialog, #publishDialog') || control.matches('.page-tab, #recoveryHistoryBtn')) return;
     if (!control.disabled) control.dataset.workspaceLocked = 'true';
     control.disabled = true;
   });
@@ -3870,8 +3871,8 @@ function downloadWorkspaceBackup() {
 }
 
 // --- Publishing a page -----------------------------------------------------
-// A published note is carried entirely inside the URL fragment: nothing is
-// uploaded, and the fragment is never sent to the server hosting the app.
+// Full links carry their payload in the fragment. Short links upload only an
+// explicitly selected immutable copy to the configured sharing service.
 let publishPageId = null;
 let publishRequestId = 0;
 
@@ -3936,6 +3937,21 @@ async function regeneratePublishLink() {
   }
 }
 
+const shortLinksUI = setupShortLinks({
+  dialog: publishDialog,
+  baseUrl: getPublishBaseUrl,
+  getSnapshot(encode) {
+    const page = getPageById(publishPageId);
+    if (!page) return null;
+    if (!encode) return {hasDrawings: page.drawings?.length > 0};
+    const note = createPublishedNote({...page, content: page.id === currentPageId ? sanitizeStoredContent(editor.innerHTML) : page.content}, getCurrentSettings(), {
+      appVersion: APP_VERSION, includeDrawings: Boolean(publishIncludeDrawings?.checked),
+      boardWidth: getBoardSize().width, paddingX: Number.parseFloat(getComputedStyle(editor).paddingLeft)
+    });
+    return encodePublishedNote(note).then(token => ({token, title:page.title, pageId:page.id}));
+  }
+});
+
 function openPublishDialog(pageId = editingPageId || currentPageId) {
   const page = getPageById(pageId);
   if (!page || !publishDialog) return;
@@ -3949,13 +3965,15 @@ function openPublishDialog(pageId = editingPageId || currentPageId) {
   // would just be two overlapping surfaces for the same page.
   closeEmojiPicker();
   publishDialog.showModal();
+  shortLinksUI.open();
   void regeneratePublishLink();
-  requestAnimationFrame(() => copyPublishLinkBtn?.focus());
+  requestAnimationFrame(() => document.getElementById(document.getElementById('shareModeShort').checked ? 'createShortLinkBtn' : 'copyPublishLinkBtn')?.focus());
 }
 
 function closePublishDialog({ restoreFocus = false } = {}) {
   const pageIdToFocus = publishPageId;
   if (publishDialog) publishDialog.close();
+  shortLinksUI.close();
   publishPageId = null;
   publishRequestId += 1;
   if (publishLinkInput) publishLinkInput.value = '';

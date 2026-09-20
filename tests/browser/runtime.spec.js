@@ -59,7 +59,7 @@ test('real waiting service worker updates only after saving', async ({browser},t
     await expect(page.locator('#editor')).toHaveAttribute('contenteditable','true');
     const workerPath=path.join(fixture,'pwa-sw.js');
     const worker=await readFile(workerPath,'utf8');
-    await writeFile(workerPath,worker.replace("const APP_VERSION = '2.2.1'", "const APP_VERSION = '2.2.1-test-update'"));
+    await writeFile(workerPath,worker.replace(/const APP_VERSION = '[^']+'/, "const APP_VERSION = 'test-update'"));
     // http.server uses second-resolution Last-Modified validation.
     const changed = new Date(Date.now()+2000);
     await utimes(workerPath, changed, changed);

@@ -12,15 +12,19 @@
     <a class="legal-back" href="editor.html">← Back to Blackboard Text</a>
     <p class="legal-eyebrow">Privacy</p>
     <h1>Your notes stay local.</h1>
-    <p>Blackboard Text has no account, analytics, telemetry, remote database, or note-sync service.</p>
+    <p>Your working notes stay in this browser. Blackboard Text has no user accounts, analytics or automatic note sync. Short links use an optional online store only for copies you explicitly share.</p>
 
     <h2>What is stored</h2>
     <p>Pages, drawings, settings, and recovery snapshots live in IndexedDB for the current browser profile and origin. The Edge extension may read legacy unpacked-extension storage only to copy it into this local workspace; it does not upload it.</p>
 
     <h2>What leaves the browser</h2>
-    <p>Only the app files needed to load and update the PWA are requested from this GitHub Pages site. Note content is not sent there. A downloaded <code>.blackboard.json</code> backup is created only when you choose Export and is controlled by you.</p>
+    <p>GitHub Pages serves the app files. It does not receive your note contents. Creating a short link sends a selected copy to the configured Cloudflare sharing service. A downloaded <code>.blackboard.json</code> backup is created only when you choose Export and is controlled by you.</p>
 
-    <h2>Published links</h2>
+    <h2>Short links</h2>
+    <p>Creating a short link uploads the selected copy to Cloudflare. Text, selected drawings and appearance are stored until you disable the link or the service owner removes it. Anyone with the link can read the copy. There is no public list of notes, but the service operator can access stored copies.</p>
+    <p>A separate management key stays in this browser. It lets you disable the link and is never included in the recipient link or workspace backup. Clearing browser data loses those controls. Disabling removes the stored note payload; a record of the disabled ID remains to prevent retries from bringing it back. Copies already saved by recipients cannot be recalled.</p>
+    <p>Cloudflare processes network information such as IP addresses for request handling and rate limits. The application does not store these in its note database. Short-link responses are not cached for offline reading. Full links remain available when you do not want to upload a copy.</p>
+    <h2>Full links</h2>
     <p>Publish page embeds a copy of the note in the link after the # character. That part is not sent to the hosting server. Anyone with the link can read the copy; later edits do not update it, and it cannot be revoked. Only share it with people who should read the note.</p>
     <p>The reader removes active markup and automatic external resources before displaying a note.</p>
 

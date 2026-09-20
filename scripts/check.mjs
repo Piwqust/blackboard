@@ -6,6 +6,7 @@ import path from 'node:path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const checkedFiles = [
   'editor.js',
+  'src/config.js',
   'service-worker.js',
   'pwa-sw.js',
   ...((await readdir(path.join(root, 'src', 'core'))).filter(file => file.endsWith('.js')).map(file => `src/core/${file}`)),

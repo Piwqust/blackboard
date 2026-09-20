@@ -1,3 +1,4 @@
+import { fetchShortLink, shortLinkId } from '../core/short-links.js';
 import { canvasBackingSize } from '../core/canvas-budget.js';
 import {
   convertPointToCanvasPixels,
@@ -221,27 +222,34 @@ function renderNote() {
   requestAnimationFrame(paintDrawings);
 }
 
+let noteRequest = 0;
+let noteController;
 async function openNoteFromHash() {
-  const token = readPublishedNoteToken(globalThis.location?.hash);
-
-  if (!token) {
-    showState(
-      'This link has no note in it',
-      'A published Blackboard note carries its text inside the link. Copy the whole link, including everything after the # sign.'
-    );
-    return;
-  }
-
+  const requestId = ++noteRequest;
+  noteController?.abort();
+  noteController = new AbortController();
   try {
-    published = await decodePublishedNote(token, {
-      // A note someone else wrote is untrusted input: strip scripting and any
-      // media that would call out to a third-party host when this page opens.
-      sanitizeHtml: value => sanitizeStoredContent(value, { allowRemoteMedia: false })
+    const id = shortLinkId();
+    let token = readPublishedNoteToken(globalThis.location?.hash);
+    if (id) {
+      published = null;
+      showState('Opening shared copy…', 'Loading this note from the short-link service.');
+      token = await fetchShortLink(id, noteController.signal);
+    }
+    if (!token) {
+      showState('This link has no note in it', 'Copy the whole link and open it again.');
+      return;
+    }
+    const note = await decodePublishedNote(token, {
+      sanitizeHtml: value => sanitizeStoredContent(value, {allowRemoteMedia:false})
     });
+    if (requestId !== noteRequest) return;
+    published = note;
     renderNote();
-  } catch (error) {
+  } catch(error) {
+    if (requestId !== noteRequest) return;
     published = null;
-    showState('This note could not be opened', error?.message || 'The link is not a published Blackboard note.');
+    showState('This note could not be opened', error.message || 'The link is unavailable.');
   }
 }
 

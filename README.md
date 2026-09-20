@@ -7,9 +7,9 @@
 **A quiet, local-first place to think.**
 
 Write, sketch, and keep your notes in the browser profile you control. No
-account, telemetry, cloud database, or note sync service.
+account, telemetry, or automatic note sync. Short links optionally store only a copy you explicitly share.
 
-![Version](https://img.shields.io/badge/version-2.2.1-3D47FF?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.3.0-3D47FF?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-offline--ready-3D47FF?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-5B4FA8?style=flat-square)
 
@@ -42,9 +42,9 @@ silent cloud sync.
 
 ## Publishing a note
 
-Choose **Page actions → Share a copy…**.
+Choose **Page actions → Share a copy…**. Short links upload the selected copy and can be disabled from Shared links in the same browser. Full links keep the copy inside the address without uploading it.
 
-The page — its text, its drawings, and the theme and typography it was written
+For a **full link**, the page — its text, its drawings, and the theme and typography it was written
 in — is compressed into the link itself, after the `#`. Browsers never send
 that part of an address to a server, so publishing uploads nothing: the note
 does not reach GitHub, and there is no account, database, or note ID anywhere.
@@ -178,3 +178,9 @@ Browser regressions: `npm run build`, `npx playwright install chromium`, then `n
 - The rendering bitmap is capped at 8 million pixels / 8192 per side. Very long notes trade drawing sharpness for bounded memory; note data is retained.
 
 The automated suite covers Chromium, an unpacked extension in an isolated Chromium profile, and real service-worker installation/offline/update. Installed Chrome and Edge layout checks are recorded in the audit verification folder. VoiceOver, physical touch/stylus devices, and PDF/PNG export remain separate checks.
+
+## Short links in 2.3.0
+
+The app remains on GitHub Pages. A separate Cloudflare Worker/D1 stores copies only when you press Create short link. Links use the project's static s/ route, with no Pages rewrites. Sharing controls list copies from this browser and let you disable them. The old full-link option is preserved.
+
+[Setup, testing, privacy and rollback](docs/short-links/README.md).

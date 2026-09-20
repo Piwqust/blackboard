@@ -26,8 +26,11 @@ jobs:
       - run: npm ci
       - run: node scripts/verify-release-version.mjs
       - run: npm run verify
+        env:
+          SHORT_LINKS_API_URL: ${{ vars.SHORT_LINKS_API_URL }}
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - run: npm run test:shares
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/pwa

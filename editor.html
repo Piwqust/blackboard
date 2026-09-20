@@ -433,13 +433,28 @@
     <div class="backup-dialog-surface">
       <p class="backup-dialog-eyebrow">Publish page</p>
       <h2 id="publishDialogTitle">Share a copy of this page</h2>
-      <p id="publishDialogText">The link contains a copy of this page. Nothing is uploaded. Anyone with the link can read it. Later edits need a new link; a shared copy cannot be revoked.</p>
+      <p id="publishDialogText">Choose how to share a copy. Anyone with the link can read it. Later edits to your page do not change the shared copy.</p>
 
+      <fieldset class="share-modes">
+        <legend>Link type</legend>
+        <label><input id="shareModeShort" name="shareMode" type="radio" value="short"> Short link · stores this copy online</label>
+        <label><input id="shareModeFull" name="shareMode" type="radio" value="full" checked> Full link · the copy is inside the address</label>
+      </fieldset>
+      <p id="shortLinkSetupHint">Short links are not connected yet. You can still share a full link.</p>
       <label class="publish-option" id="publishDrawingsOption">
         <input type="checkbox" id="publishIncludeDrawings" checked>
         <span>Include this page's drawings</span>
       </label>
 
+      <div id="shortLinkPanel" hidden>
+        <button id="createShortLinkBtn" class="secondary-btn" type="button">Create short link</button>
+        <p id="shortLinkStatus" role="status"></p>
+        <input id="shortLinkResult" class="publish-link-input" aria-label="Created short link" readonly hidden>
+        <button id="copyShortLinkBtn" class="delete-confirm-cancel" type="button" hidden>Copy short link</button>
+        <a id="previewShortLink" target="_blank" rel="noopener" hidden>Open short link</a>
+      </div>
+      <div id="fullLinkPanel">
+      <p>The full link uploads nothing. It cannot be disabled once shared.</p>
       <div class="publish-link-row">
         <input type="text" id="publishLinkInput" class="publish-link-input" readonly spellcheck="false" aria-label="Published note link">
         <button id="copyPublishLinkBtn" class="secondary-btn" type="button">Copy link</button>
@@ -447,6 +462,12 @@
       <a id="previewPublishLink" target="_blank" rel="noopener" hidden>Preview this copy</a>
       <p class="publish-size" id="publishSizeHint" data-tier="ok">Building the link…</p>
 
+      </div>
+      <details id="sharedLinksDetails">
+        <summary>Shared links from this browser</summary>
+        <p>Keep this browser's site data to manage your links. Workspace backups do not include management keys. Disabling a link stops future opening; recipients may already have saved a copy.</p>
+        <div id="sharedLinksList"></div>
+      </details>
       <div class="backup-dialog-actions">
         <button id="closePublishBtn" class="delete-confirm-cancel" type="button">Done</button>
       </div>

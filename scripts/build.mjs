@@ -6,6 +6,14 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const distRoot = path.join(root, 'dist');
 const packageJson = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
 const version = packageJson.version;
+const sharingApi = (process.env.SHORT_LINKS_API_URL || '').trim();
+if (sharingApi) {
+  const url = new URL(sharingApi);
+  const local = ['127.0.0.1','localhost','[::1]'].includes(url.hostname);
+  if ((url.protocol !== 'https:' && !(local && url.protocol === 'http:')) || url.username || url.password || url.search || url.hash) {
+    throw new Error('SHORT_LINKS_API_URL must be an HTTPS service address without credentials, query or fragment.');
+  }
+}
 
 const staticFiles = [
   'index.html',
@@ -13,6 +21,7 @@ const staticFiles = [
   'editor.css',
   'editor.js',
   'read.html',
+  's/index.html',
   'privacy.html',
   'service-worker.js',
   'site.webmanifest',
@@ -48,6 +57,7 @@ async function copyRuntime(destination, { includePwaWorker }) {
   await mkdir(destination, { recursive: true });
   await Promise.all(staticFiles.map(file => copyFile(file, destination)));
   await cp(path.join(root, 'src'), path.join(destination, 'src'), { recursive: true });
+  await writeFile(path.join(destination, 'src/config.js'), 'export const SHORT_LINKS_API = '+JSON.stringify(sharingApi)+';\n');
   await cp(path.join(root, 'icons'), path.join(destination, 'icons'), { recursive: true, filter: source => !source.endsWith('generate-icons.html') });
   await copyFile('fonts/InterVariable.woff2', destination);
   await copyFile('fonts/InterTight-Variable.ttf', destination);
@@ -77,7 +87,12 @@ await copyRuntime(pwaDestination, { includePwaWorker: true });
 await copyRuntime(edgeDestination, { includePwaWorker: false });
 
 const edgeManifest = await readFile(path.join(root, 'manifests', 'edge.manifest.json'), 'utf8');
-await writeFile(path.join(edgeDestination, 'manifest.json'), edgeManifest.replaceAll('__VERSION__', version));
+const generatedManifest = JSON.parse(edgeManifest.replaceAll('__VERSION__', version));
+if (sharingApi) {
+  const origin = new URL(sharingApi).origin;
+  generatedManifest.content_security_policy.extension_pages = generatedManifest.content_security_policy.extension_pages.replace("connect-src 'self'", "connect-src 'self' "+origin);
+}
+await writeFile(path.join(edgeDestination, 'manifest.json'), JSON.stringify(generatedManifest,null,2)+'\n');
 
 console.log(`Built Blackboard Text ${version}`);
 console.log(`  PWA:  ${path.relative(root, pwaDestination)}`);
