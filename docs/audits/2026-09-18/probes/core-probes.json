@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-09-18T08:31:16.549Z",
+  "node": "v26.7.0",
+  "scope": "in-memory diagnostic probes, not application test suite",
+  "checks": 7,
+  "failures": 6,
+  "results": [
+    {
+      "id": "IMPORT-SHAPE",
+      "invariant": "Malformed page records must be rejected before replacement",
+      "expected": "reject",
+      "actual": "accepted 3 blank pages",
+      "pass": false
+    },
+    {
+      "id": "IMPORT-ID",
+      "invariant": "Accepted IDs need safe lookup in current UI",
+      "expected": "normalize or escape at lookup",
+      "actual": "audit-\"-quote-id",
+      "pass": false
+    },
+    {
+      "id": "LEGACY-WIDTH",
+      "invariant": "Direct migration preserves an old 4px stroke at 40px font size",
+      "expected": 4,
+      "actual": 56,
+      "pass": false
+    },
+    {
+      "id": "FLUSH-ERROR",
+      "invariant": "An update save barrier must expose a failed preceding write",
+      "expected": {
+        "rejectedWrite": true,
+        "rejectedFlush": true
+      },
+      "actual": {
+        "rejectedWrite": true,
+        "rejectedFlush": false
+      },
+      "pass": false
+    },
+    {
+      "id": "FALLBACK-LEASE",
+      "invariant": "Resuming an expired writer must not overwrite a new writer lease",
+      "expected": false,
+      "actual": {
+        "firstAcquired": true,
+        "secondAcquired": true,
+        "oldWriterOverwroteNewLease": true
+      },
+      "pass": false
+    },
+    {
+      "id": "ROOT-MANIFEST",
+      "invariant": "Root unpacked-extension version matches package version",
+      "expected": "2.2.0",
+      "actual": "2.1.0",
+      "pass": false
+    },
+    {
+      "id": "DUPLICATE-IDS",
+      "invariant": "Duplicate IDs are repaired without losing sibling pages",
+      "expected": 2,
+      "actual": 2,
+      "pass": true
+    }
+  ]
+}

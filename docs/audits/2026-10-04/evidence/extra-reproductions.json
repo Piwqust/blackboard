@@ -1,0 +1,32 @@
+{
+  "fontResize": {
+    "before": {
+      "fontSize": 40,
+      "text": {
+        "x": 48,
+        "y": 55,
+        "height": 49
+      },
+      "strokeStart": {
+        "x": 48,
+        "y": 115
+      }
+    },
+    "after": {
+      "fontSize": 80,
+      "text": {
+        "x": 48,
+        "y": 63,
+        "height": 97
+      },
+      "strokeStart": {
+        "x": 96,
+        "y": 230
+      }
+    }
+  },
+  "printState": {
+    "canvasDisplay": "block",
+    "canvasVisibility": "visible"
+  }
+}

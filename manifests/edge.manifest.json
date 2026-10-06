@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Blackboard Text",
+  "version": "__VERSION__",
+  "description": "A quiet, local-first writing space with portable backups",
+  "icons": {
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": ["storage"],
+  "action": {
+    "default_icon": {
+      "48": "icons/icon-48.png"
+    },
+    "default_title": "Open Blackboard Text"
+  },
+  "options_ui": {
+    "page": "editor.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'"
+  }
+}

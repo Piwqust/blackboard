@@ -1,0 +1,492 @@
+{
+  "buttons": {
+    "closePublishBtn": {
+      "blockedCount": 42,
+      "blockedSamples": [
+        {
+          "hit": "pageTabsList",
+          "x": 327,
+          "y": 544.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 331,
+          "y": 544.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 335,
+          "y": 544.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 339,
+          "y": 544.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 343,
+          "y": 544.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 347,
+          "y": 544.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 327,
+          "y": 548.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 331,
+          "y": 548.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 335,
+          "y": 548.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 339,
+          "y": 548.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 343,
+          "y": 548.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 347,
+          "y": 548.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 327,
+          "y": 552.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 331,
+          "y": 552.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 335,
+          "y": 552.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 339,
+          "y": 552.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 343,
+          "y": 552.5625
+        },
+        {
+          "hit": "Open page: Questions for the library.",
+          "x": 347,
+          "y": 552.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 327,
+          "y": 556.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 331,
+          "y": 556.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 335,
+          "y": 556.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 339,
+          "y": 556.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 343,
+          "y": 556.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 347,
+          "y": 556.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 327,
+          "y": 560.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 331,
+          "y": 560.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 335,
+          "y": 560.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 339,
+          "y": 560.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 343,
+          "y": 560.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 347,
+          "y": 560.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 327,
+          "y": 564.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 331,
+          "y": 564.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 335,
+          "y": 564.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 339,
+          "y": 564.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 343,
+          "y": 564.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 347,
+          "y": 564.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 327,
+          "y": 568.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 331,
+          "y": 568.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 335,
+          "y": 568.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 339,
+          "y": 568.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 343,
+          "y": 568.5625
+        },
+        {
+          "hit": "Open page: Archive: first sketches.",
+          "x": 347,
+          "y": 568.5625
+        }
+      ],
+      "rect": {
+        "bottom": 572.5625,
+        "height": 30,
+        "left": 41,
+        "right": 349,
+        "top": 542.5625,
+        "width": 308,
+        "x": 41,
+        "y": 542.5625
+      },
+      "sampled": 539
+    },
+    "copyPublishLinkBtn": {
+      "blockedCount": 48,
+      "blockedSamples": [
+        {
+          "hit": "pageTabsList",
+          "x": 326.359375,
+          "y": 445.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 330.359375,
+          "y": 445.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 334.359375,
+          "y": 445.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 338.359375,
+          "y": 445.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 342.359375,
+          "y": 445.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 346.359375,
+          "y": 445.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 326.359375,
+          "y": 449.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 330.359375,
+          "y": 449.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 334.359375,
+          "y": 449.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 338.359375,
+          "y": 449.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 342.359375,
+          "y": 449.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 346.359375,
+          "y": 449.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 326.359375,
+          "y": 453.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 330.359375,
+          "y": 453.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 334.359375,
+          "y": 453.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 338.359375,
+          "y": 453.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 342.359375,
+          "y": 453.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 346.359375,
+          "y": 453.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 326.359375,
+          "y": 457.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 330.359375,
+          "y": 457.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 334.359375,
+          "y": 457.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 338.359375,
+          "y": 457.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 342.359375,
+          "y": 457.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 346.359375,
+          "y": 457.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 326.359375,
+          "y": 461.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 330.359375,
+          "y": 461.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 334.359375,
+          "y": 461.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 338.359375,
+          "y": 461.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 342.359375,
+          "y": 461.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 346.359375,
+          "y": 461.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 326.359375,
+          "y": 465.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 330.359375,
+          "y": 465.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 334.359375,
+          "y": 465.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 338.359375,
+          "y": 465.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 342.359375,
+          "y": 465.5625
+        },
+        {
+          "hit": "Open page: October schedule.",
+          "x": 346.359375,
+          "y": 465.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 326.359375,
+          "y": 469.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 330.359375,
+          "y": 469.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 334.359375,
+          "y": 469.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 338.359375,
+          "y": 469.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 342.359375,
+          "y": 469.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 346.359375,
+          "y": 469.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 326.359375,
+          "y": 473.5625
+        },
+        {
+          "hit": "pageTabsList",
+          "x": 330.359375,
+          "y": 473.5625
+        },
+        {
+          "hit": "Open page: Poster copy.",
+          "x": 334.359375,
+          "y": 473.5625
+        },
+        {
+          "hit": "Open page: Poster copy.",
+          "x": 338.359375,
+          "y": 473.5625
+        },
+        {
+          "hit": "Open page: Poster copy.",
+          "x": 342.359375,
+          "y": 473.5625
+        },
+        {
+          "hit": "Open page: Poster copy.",
+          "x": 346.359375,
+          "y": 473.5625
+        }
+      ],
+      "rect": {
+        "bottom": 477.5625,
+        "height": 34,
+        "left": 276.359375,
+        "right": 349,
+        "top": 443.5625,
+        "width": 72.640625,
+        "x": 276.359375,
+        "y": 443.5625
+      },
+      "sampled": 144
+    }
+  },
+  "modalZ": "30",
+  "railZ": "2500",
+  "viewport": {
+    "height": 844,
+    "width": 390
+  }
+}

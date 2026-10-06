@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "summary": {
+    "node_count": 492,
+    "unverified_node_count": 0,
+    "raw_edge_count": 1077,
+    "non_object_edges": 0,
+    "missing_endpoint_edges": 0,
+    "dangling_endpoint_edges": 22,
+    "self_loop_edges": 0,
+    "valid_candidate_edges": 1055,
+    "exact_duplicate_edges": 0,
+    "directed_unique_endpoint_pairs": 1039,
+    "directed_same_endpoint_collapsed_edges": 16,
+    "undirected_unique_endpoint_pairs": 1037,
+    "undirected_same_endpoint_collapsed_edges": 18,
+    "same_endpoint_group_count": 16,
+    "relation_variant_groups": 16,
+    "source_file_variant_groups": 0,
+    "source_location_variant_groups": 0,
+    "context_variant_groups": 0,
+    "post_build_graph_type": "DiGraph",
+    "post_build_node_count": 492,
+    "post_build_edge_count": 1039,
+    "post_build_error": "",
+    "input_path": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/graph/graphify-out/graph.json",
+    "effective_directed": true
+  },
+  "examples": [
+    {
+      "source": "editor",
+      "target": "editor_closecolorpicker",
+      "edge_count": 2,
+      "relations": [
+        "contains",
+        "indirect_call"
+      ],
+      "source_files": [
+        "editor.js"
+      ],
+      "source_locations": [
+        "L435",
+        "L562"
+      ],
+      "contexts": [
+        "",
+        "argument"
+      ]
+    },
+    {
+      "source": "editor",
+      "target": "editor_beginstroke",
+      "edge_count": 2,
+      "relations": [
+        "contains",
+        "indirect_call"
+      ],
+      "source_files": [
+        "editor.js"
+      ],
+      "source_locations": [
+        "L1564",
+        "L4400"
+      ],
+      "contexts": [
+        "",
+        "argument"
+      ]
+    }
+  ],
+  "producer_suppression": {
+    "path": "/Users/dameer/.local/share/uv/tools/graphifyy/lib/python3.13/site-packages/graphify/extract.py",
+    "total_sites": 10,
+    "sites": [
+      {
+        "line": 1099,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids = {n[\"id\"] for n in nodes}"
+      },
+      {
+        "line": 1253,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids = {n[\"id\"] for n in nodes}"
+      },
+      {
+        "line": 1255,
+        "name": "seen_doc_refs",
+        "tuple_arity": 0,
+        "sample": "seen_doc_refs: set[str] = set()"
+      },
+      {
+        "line": 1600,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids: set[str] = {n[\"id\"] for n in nodes}"
+      },
+      {
+        "line": 2069,
+        "name": "seen_keys",
+        "tuple_arity": 0,
+        "sample": "seen_keys: set[tuple] = set()"
+      },
+      {
+        "line": 3107,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids: set[str] = set()"
+      },
+      {
+        "line": 3215,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids: set[str] = set()"
+      },
+      {
+        "line": 3294,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids: set[str] = set()"
+      },
+      {
+        "line": 3809,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids: set[str] = set()"
+      },
+      {
+        "line": 3810,
+        "name": "seen_edges",
+        "tuple_arity": 4,
+        "sample": "seen_edges: set[tuple[str, str, str, str | None]] = set()"
+      }
+    ],
+    "error": ""
+  },
+  "notes": [
+    "Diagnostics are read-only.",
+    "A normal graph.json is already post-build and cannot recover raw producer edges.",
+    "Producer suppression sites are heuristic source-code evidence."
+  ]
+}

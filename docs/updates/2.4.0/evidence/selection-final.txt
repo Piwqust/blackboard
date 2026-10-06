@@ -1,0 +1,13 @@
+
+Running 4 tests using 1 worker
+
+(node:47603) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [pwa] › tests/browser/improvements.spec.js:139:1 › marker, pressure pen and moved stroke keep metadata through undo and a published copy (489ms)
+  ✓  2 [pwa] › tests/browser/improvements.spec.js:210:1 › word attachment follows inserted text and can be selected and detached (6.0s)
+(node:47631) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [edge-extension] › tests/browser/improvements.spec.js:139:1 › marker, pressure pen and moved stroke keep metadata through undo and a published copy (485ms)
+  ✓  4 [edge-extension] › tests/browser/improvements.spec.js:210:1 › word attachment follows inserted text and can be selected and detached (6.0s)
+
+  4 passed (13.7s)

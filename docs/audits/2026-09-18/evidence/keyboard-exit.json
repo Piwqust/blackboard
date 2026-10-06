@@ -1,0 +1,17 @@
+[
+  {
+    "key": "Shift+Tab",
+    "active": "editor",
+    "contentLength": 7
+  },
+  {
+    "key": "Escape",
+    "active": "editor",
+    "contentLength": 7
+  },
+  {
+    "key": "Shift+Tab",
+    "active": "editor",
+    "contentLength": 6
+  }
+]

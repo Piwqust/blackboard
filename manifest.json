@@ -1,23 +1,29 @@
 {
   "manifest_version": 3,
   "name": "Blackboard Text",
-  "version": "1.6.0.1",
-  "description": "Minimalist note-taking with customizable typography",
+  "version": "2.4.1",
+  "description": "A quiet, local-first writing space with portable backups",
   "icons": {
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "action": {
     "default_icon": {
       "48": "icons/icon-48.png"
     },
     "default_title": "Open Blackboard Text"
   },
+  "options_ui": {
+    "page": "editor.html",
+    "open_in_tab": true
+  },
   "background": {
     "service_worker": "service-worker.js"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'"
   }
 }

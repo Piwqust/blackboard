@@ -1,0 +1,64 @@
+[
+  {
+    "channel": "chrome",
+    "version": "153.0.8010.53",
+    "errors": [],
+    "viewports": [
+      {
+        "width": 1440,
+        "editorWidth": 1344,
+        "overflow": false,
+        "canvasScale": 2
+      },
+      {
+        "width": 768,
+        "editorWidth": 768,
+        "overflow": false,
+        "canvasScale": 2
+      },
+      {
+        "width": 390,
+        "editorWidth": 390,
+        "overflow": false,
+        "canvasScale": 2
+      },
+      {
+        "width": 320,
+        "editorWidth": 320,
+        "overflow": false,
+        "canvasScale": 2
+      }
+    ]
+  },
+  {
+    "channel": "msedge",
+    "version": "154.0.4258.53",
+    "errors": [],
+    "viewports": [
+      {
+        "width": 1440,
+        "editorWidth": 1344,
+        "overflow": false,
+        "canvasScale": 2
+      },
+      {
+        "width": 768,
+        "editorWidth": 768,
+        "overflow": false,
+        "canvasScale": 2
+      },
+      {
+        "width": 390,
+        "editorWidth": 390,
+        "overflow": false,
+        "canvasScale": 2
+      },
+      {
+        "width": 320,
+        "editorWidth": 320,
+        "overflow": false,
+        "canvasScale": 2
+      }
+    ]
+  }
+]

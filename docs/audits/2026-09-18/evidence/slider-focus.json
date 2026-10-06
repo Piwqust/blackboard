@@ -1,0 +1,13 @@
+{
+  "control": "#fontSize",
+  "focusedCapture": "size-slider-keyboard-focus.png",
+  "comparisonCapture": "width-slider-keyboard-focus.png",
+  "pixelBox": [
+    983,
+    347,
+    1116,
+    374
+  ],
+  "differentPixels": 0,
+  "pixelCount": 3591
+}

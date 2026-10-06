@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#F2F0F8">
+  <title>Privacy · Blackboard Text</title>
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body class="legal-page-body">
+  <main class="legal-page" id="main-content">
+    <a class="legal-back" href="editor.html">← Back to Blackboard Text</a>
+    <p class="legal-eyebrow">Privacy</p>
+    <h1>Your notes stay local.</h1>
+    <p>Your working notes stay in this browser. Blackboard Text has no user accounts, analytics or automatic note sync. Short links use an optional online store only for copies you explicitly share.</p>
+
+    <h2>What is stored</h2>
+    <p>Pages, drawings, settings, and recovery snapshots live in IndexedDB for the current browser profile and origin. The Edge extension may read legacy unpacked-extension storage only to copy it into this local workspace; it does not upload it.</p>
+
+    <h2>What leaves the browser</h2>
+    <p>GitHub Pages serves the app files. It does not receive your note contents. Creating a short link sends a selected copy to the configured Cloudflare sharing service. A downloaded <code>.blackboard.json</code> backup is created only when you choose Export and is controlled by you.</p>
+
+    <h2>Short links</h2>
+    <p>Creating a short link uploads the selected copy to Cloudflare. Text, selected drawings and appearance are stored until you disable the link or the service owner removes it. Anyone with the link can read the copy. There is no public list of notes, but the service operator can access stored copies.</p>
+    <p>A separate management key stays in this browser. It lets you disable the link and is never included in the recipient link or workspace backup. Clearing browser data loses those controls. Disabling removes the stored note payload; a record of the disabled ID remains to prevent retries from bringing it back. Copies already saved by recipients cannot be recalled.</p>
+    <p>Cloudflare processes network information such as IP addresses for request handling and rate limits. The application does not store these in its note database. Short-link responses are not cached for offline reading. Full links remain available when you do not want to upload a copy.</p>
+    <h2>Full links</h2>
+    <p>Publish page embeds a copy of the note in the link after the # character. That part is not sent to the hosting server. Anyone with the link can read the copy; later edits do not update it, and it cannot be revoked. Only share it with people who should read the note.</p>
+    <p>The reader removes active markup and automatic external resources before displaying a note.</p>
+
+    <h2>Keeping a copy</h2>
+    <p>Page history is local and bounded to 25 versions per page, 100 total and 10 MB. It is separate from downloaded workspace backups. New versions are captured at most once every 30 seconds when a saved page changes.</p>
+    <p>Link management backup exports a separate encrypted file containing link controls and metadata, without note payloads. Keep this file and its passphrase private. Restoring it restores local controls without publishing anything.</p>
+    <p>Clearing site data, uninstalling an extension, or deleting a browser profile can remove local data. Export a backup before doing any of those things.</p>
+    <h2>Licenses</h2>
+    <p><a href="LICENSE">Application license</a> · <a href="fonts/Inter-OFL.txt">Inter font license</a></p>
+  </main>
+</body>
+</html>

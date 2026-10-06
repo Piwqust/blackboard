@@ -1,0 +1,164 @@
+v22.23.2
+
+> blackboard-text@2.2.1 verify
+> npm run lint && npm run test && npm run build && node scripts/verify-dist.mjs
+
+
+> blackboard-text@2.2.1 lint
+> eslint . && node scripts/check.mjs
+
+Syntax and JSON checks passed for 18 JavaScript files.
+
+> blackboard-text@2.2.1 test
+> node --test tests/core.test.mjs
+
+TAP version 13
+# Subtest: migrates a legacy Chrome note without deleting its drawing data
+ok 1 - migrates a legacy Chrome note without deleting its drawing data
+  ---
+  duration_ms: 1.00125
+  type: 'test'
+  ...
+# Subtest: uses the blackboard palette for new workspaces without changing a saved font choice
+ok 2 - uses the blackboard palette for new workspaces without changing a saved font choice
+  ---
+  duration_ms: 0.133
+  type: 'test'
+  ...
+# Subtest: creates a portable versioned backup and restores the same pages
+ok 3 - creates a portable versioned backup and restores the same pages
+  ---
+  duration_ms: 0.225375
+  type: 'test'
+  ...
+# Subtest: sanitizes imported HTML through the caller-provided boundary
+ok 4 - sanitizes imported HTML through the caller-provided boundary
+  ---
+  duration_ms: 0.806625
+  type: 'test'
+  ...
+# Subtest: rejects malformed and unsupported backups before workspace replacement
+ok 5 - rejects malformed and unsupported backups before workspace replacement
+  ---
+  duration_ms: 0.220417
+  type: 'test'
+  ...
+# Subtest: carries page created/edited timestamps through a backup round trip
+ok 6 - carries page created/edited timestamps through a backup round trip
+  ---
+  duration_ms: 0.180041
+  type: 'test'
+  ...
+# Subtest: leaves page timestamps null when they are missing or unparsable
+ok 7 - leaves page timestamps null when they are missing or unparsable
+  ---
+  duration_ms: 0.059625
+  type: 'test'
+  ...
+# Subtest: normalizes duplicate page ids so an imported backup cannot overwrite a sibling page
+ok 8 - normalizes duplicate page ids so an imported backup cannot overwrite a sibling page
+  ---
+  duration_ms: 0.641417
+  type: 'test'
+  ...
+# Subtest: keeps a recovery snapshot before a workspace replacement and restores it
+ok 9 - keeps a recovery snapshot before a workspace replacement and restores it
+  ---
+  duration_ms: 6.299416
+  type: 'test'
+  ...
+# Subtest: publishes a page into a link and reads the same note back
+ok 10 - publishes a page into a link and reads the same note back
+  ---
+  duration_ms: 3.676917
+  type: 'test'
+  ...
+# Subtest: keeps published stroke geometry within a pixel of the original
+ok 11 - keeps published stroke geometry within a pixel of the original
+  ---
+  duration_ms: 0.992666
+  type: 'test'
+  ...
+# Subtest: leaves drawings out of the link when they were not included
+ok 12 - leaves drawings out of the link when they were not included
+  ---
+  duration_ms: 1.226417
+  type: 'test'
+  ...
+# Subtest: sanitizes a published note through the caller-provided boundary
+ok 13 - sanitizes a published note through the caller-provided boundary
+  ---
+  duration_ms: 1.446333
+  type: 'test'
+  ...
+# Subtest: refuses links that are not published Blackboard notes
+ok 14 - refuses links that are not published Blackboard notes
+  ---
+  duration_ms: 0.947333
+  type: 'test'
+  ...
+# Subtest: refuses a published note that would expand past the size ceiling
+ok 15 - refuses a published note that would expand past the size ceiling
+  ---
+  duration_ms: 13.613291
+  type: 'test'
+  ...
+# Subtest: builds a reader URL beside the app and reads its token back
+ok 16 - builds a reader URL beside the app and reads its token back
+  ---
+  duration_ms: 0.765875
+  type: 'test'
+  ...
+# Subtest: grades link length so the dialog can warn before a chat app truncates it
+ok 17 - grades link length so the dialog can warn before a chat app truncates it
+  ---
+  duration_ms: 0.06125
+  type: 'test'
+  ...
+# Subtest: rejects damaged pages instead of silently importing empty notes
+ok 18 - rejects damaged pages instead of silently importing empty notes
+  ---
+  duration_ms: 0.081916
+  type: 'test'
+  ...
+# Subtest: legacy pixel strokes remain four pixels at the saved font size
+ok 19 - legacy pixel strokes remain four pixels at the saved font size
+  ---
+  duration_ms: 0.128708
+  type: 'test'
+  ...
+# Subtest: queued writes capture data before callers mutate their objects
+ok 20 - queued writes capture data before callers mutate their objects
+  ---
+  duration_ms: 0.841083
+  type: 'test'
+  ...
+# Subtest: canvas backing allocation stays bounded for long notes and high DPR
+ok 21 - canvas backing allocation stays bounded for long notes and high DPR
+  ---
+  duration_ms: 0.343209
+  type: 'test'
+  ...
+# Subtest: hostile board width is rejected before canvas allocation
+ok 22 - hostile board width is rejected before canvas allocation
+  ---
+  duration_ms: 0.646542
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 82.830166
+
+> blackboard-text@2.2.1 build
+> node scripts/build.mjs
+
+Built Blackboard Text 2.2.1
+  PWA:  dist/pwa
+  Edge: dist/edge-extension
+Generated PWA and Edge extension artifacts are structurally valid (35 shell entries).

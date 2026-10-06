@@ -1,0 +1,426 @@
+import { fetchShortLink, shortLinkId } from "../core/short-links.js";
+import { canvasBackingSize } from "../core/canvas-budget.js";
+import { renderStroke, strokeBounds } from "../core/drawing-renderer.js";
+import { anchorBox } from "./text-anchors.js";
+import { setupLocalization } from "./localization.js";
+import {
+  decodePublishedNote,
+  readPublishedNoteToken,
+} from "../core/publish.js";
+import { sanitizeStoredContent } from "../core/sanitize-html.js";
+import { normalizeHex } from "../core/schema.js";
+
+const board = document.getElementById("readerBoard");
+const shell = document.getElementById("readerShell");
+const content = document.getElementById("readerContent");
+const canvas = document.getElementById("readerDrawings");
+const header = document.getElementById("readerHeader");
+const emojiElement = document.getElementById("readerEmoji");
+const titleElement = document.getElementById("readerTitle");
+const metaElement = document.getElementById("readerMeta");
+const footer = document.getElementById("readerFooter");
+const statePanel = document.getElementById("readerState");
+const stateTitle = document.getElementById("readerStateTitle");
+const stateText = document.getElementById("readerStateText");
+
+const context = canvas?.getContext("2d") || null;
+let published = null;
+let resizeFrame = null;
+let readingMode = "board";
+let zoom = "fit";
+
+function hexToRgba(hex, alpha) {
+  const normalized = normalizeHex(hex, "#000000");
+  const value = Number.parseInt(normalized.slice(1), 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function showState(title, text) {
+  if (board) board.hidden = true;
+  document.getElementById("readerViewControls").hidden = true;
+  if (footer) footer.hidden = true;
+  if (statePanel) statePanel.hidden = false;
+  if (stateTitle) stateTitle.textContent = title;
+  if (stateText) stateText.textContent = text;
+  document.getElementById("readerDrawingDescription").hidden = true;
+}
+
+function applyView(view) {
+  const root = document.documentElement;
+  root.style.setProperty("--font-family", view.fontFamily);
+  root.style.setProperty("--font-size", `${view.fontSize}px`);
+  root.style.setProperty("--line-height", view.lineHeight);
+  root.style.setProperty("--letter-spacing", `${view.letterSpacing}em`);
+  root.style.setProperty("--max-width", `${view.maxWidth}px`);
+  root.style.setProperty("--text-color", view.textColor);
+  root.style.setProperty("--bg-color", view.backgroundColor);
+  root.style.setProperty("--selection-color", view.selectionColor);
+  root.style.setProperty("--ui-text-muted", view.textColor);
+  root.style.setProperty("--ui-border", hexToRgba(view.textColor, 0.12));
+  document.body.style.backgroundColor = view.backgroundColor;
+
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.setAttribute("content", view.backgroundColor);
+}
+
+function formatPublishedDate(value) {
+  if (!value) return "";
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return "";
+  return new Date(parsed).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+// Drawings were placed against the text as it was laid out on the publisher's
+// screen. Letting a phone reflow that text would slide the words out from under
+// the strokes, so a note that has drawings is instead kept at its published
+// width and the whole board — text and canvas together — is scaled to fit.
+// A note without drawings has no such tie and simply reflows, which reads far
+// better on a small screen.
+function applyBoardLayout() {
+  if (!board || !published) return 1;
+
+  const publishedWidth = published.board.width;
+  const hasDrawings =
+    readingMode === "board" &&
+    Array.isArray(published.note.drawings) &&
+    published.note.drawings.length > 0;
+  const available = document.documentElement.clientWidth || window.innerWidth;
+
+  document
+    .querySelector(".reader-viewport")
+    .classList.toggle("can-pan", hasDrawings && zoom !== "fit");
+  if (hasDrawings && publishedWidth && zoom !== "fit") {
+    const scale = Number(zoom);
+    board.style.maxWidth = "none";
+    board.style.width = publishedWidth + "px";
+    board.style.transformOrigin = "top left";
+    board.style.transform = "scale(" + scale + ")";
+    return scale;
+  }
+  if (!publishedWidth || !hasDrawings || available >= publishedWidth) {
+    board.style.width = "";
+    board.style.transform = "";
+    board.style.marginBottom = "";
+    board.style.maxWidth = publishedWidth ? `${publishedWidth}px` : "";
+    return 1;
+  }
+
+  const scale = available / publishedWidth;
+  board.style.maxWidth = "none";
+  board.style.width = `${publishedWidth}px`;
+  board.style.transformOrigin = "top left";
+  board.style.transform = `scale(${scale})`;
+  return scale;
+}
+
+// A transform doesn't change layout size, so the board still reserves its full
+// unscaled height. Pull that difference back so the page scrolls to the bottom
+// of what is actually drawn.
+function compensateScaledHeight(boardHeight, scale) {
+  if (!board) return;
+  board.style.marginBottom =
+    scale < 1 ? `${-Math.round(boardHeight * (1 - scale))}px` : "";
+}
+
+// Padding follows the width the note was published at, not the viewer's
+// screen: it is part of where the strokes sit relative to the first line.
+function applyShellPadding() {
+  if (!shell) return;
+  if (readingMode === "text") {
+    shell.style.padding = "32px 24px 100px";
+    return;
+  }
+  const publishedWidth = published?.board?.width || window.innerWidth;
+  shell.style.padding =
+    (published?.board?.paddingX ?? (publishedWidth <= 768 ? 24 : 48)) === 24
+      ? "48px 24px 100px 24px"
+      : "48px 48px 120px 48px";
+}
+
+// In the editor the note's first line sits one padding-height below the top of
+// the board, and strokes are stored against that same origin. The reader adds
+// a title row above the text, so the canvas is pushed down by exactly that row
+// to put the drawings back where they were relative to the words.
+function getCanvasOffsetTop(boardScale = 1) {
+  if (!board || !content || header?.hidden) return 0;
+  const boardTop = board.getBoundingClientRect().top;
+  const contentTop = content.getBoundingClientRect().top;
+  const shellPaddingTop =
+    Number.parseFloat(getComputedStyle(content.parentElement).paddingTop) || 0;
+  return Math.max(
+    0,
+    Math.round((contentTop - boardTop) / boardScale - shellPaddingTop),
+  );
+}
+// A drawing can reach further down the page than the text does, so the board
+// has to grow to hold it — otherwise the canvas would clip the stroke.
+function drawingOptions(stroke, boardScale, offsetTop) {
+  const style = getComputedStyle(shell),
+    options = {
+      fontSize: published.view.fontSize,
+      lineHeight: published.view.lineHeight,
+      paddingX: parseFloat(style.paddingLeft),
+      paddingY: parseFloat(style.paddingTop),
+    };
+  if (stroke.anchor) {
+    const box = anchorBox(content, board, stroke.anchor);
+    if (box)
+      options.anchorBox = {
+        x: box.x / boardScale,
+        y: box.y / boardScale - offsetTop,
+        width: box.width / boardScale,
+        height: box.height / boardScale,
+      };
+  }
+  return options;
+}
+
+function paintDrawings() {
+  if (!context || !canvas || !board || !published) return;
+
+  applyShellPadding();
+  const boardScale = applyBoardLayout();
+  const width = Math.round(board.clientWidth);
+  canvas.hidden = readingMode === "text";
+  if (readingMode === "text") {
+    canvas.width = 1;
+    canvas.height = 1;
+    canvas.style.height = "0px";
+    board.style.minHeight = "100vh";
+    board.style.marginBottom = "";
+    return;
+  }
+  // A hidden or not-yet-laid-out page measures as zero; painting then would
+  // bake a meaningless canvas size into the DOM.
+  if (width < 1) return;
+
+  const strokes = Array.isArray(published.note.drawings)
+    ? published.note.drawings
+    : [];
+  const offsetTop = getCanvasOffsetTop(boardScale);
+  const drawnHeight = strokes.reduce(
+    (height, stroke) =>
+      Math.max(
+        height,
+        offsetTop +
+          (strokeBounds(stroke, drawingOptions(stroke, boardScale, offsetTop))
+            ?.bottom || 0) +
+          48,
+      ),
+    0,
+  );
+  // Measured from the flow content and the strokes, never from the board's own
+  // scroll height: the canvas is a child of the board, so reading scrollHeight
+  // would let the canvas grow itself on every repaint.
+  const viewportHeight = Math.ceil(
+    (document.documentElement.clientHeight || window.innerHeight) / boardScale,
+  );
+  const boardHeight = Math.ceil(
+    Math.max(
+      viewportHeight,
+      shell.getBoundingClientRect().height / boardScale,
+      drawnHeight,
+    ),
+  );
+  board.style.minHeight = `${boardHeight}px`;
+  compensateScaledHeight(boardHeight, boardScale);
+
+  const visibleTop = Math.min(
+    Math.max(0, boardHeight - offsetTop - 1),
+    Math.max(
+      0,
+      Math.floor(-board.getBoundingClientRect().top / boardScale - offsetTop) -
+        64,
+    ),
+  );
+  const height = Math.max(
+    1,
+    Math.min(boardHeight - offsetTop - visibleTop, viewportHeight + 128),
+  );
+  const dpr = window.devicePixelRatio || 1;
+
+  const backing = canvasBackingSize(
+    width,
+    height,
+    dpr * Math.max(1, boardScale),
+  );
+  canvas.width = backing.width;
+  canvas.height = backing.height;
+  canvas.style.top = `${offsetTop + visibleTop}px`;
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  context.setTransform(backing.scaleX, 0, 0, backing.scaleY, 0, 0);
+  context.clearRect(0, 0, width, height);
+
+  // The board itself is already scaled when it needs to be, so strokes are
+  // always painted at the size they were drawn.
+  context.translate(0, -visibleTop);
+  strokes.forEach((stroke) => {
+    const options = drawingOptions(stroke, boardScale, offsetTop),
+      bounds = strokeBounds(stroke, options);
+    if (
+      bounds &&
+      bounds.bottom >= visibleTop &&
+      bounds.top <= visibleTop + height
+    )
+      renderStroke(context, stroke, options);
+  });
+}
+
+function renderNote() {
+  if (!published) return;
+
+  applyView(published.view);
+  document.getElementById("readerViewControls").hidden = false;
+  content.innerHTML = published.note.content;
+  const description = published.note.drawingDescription;
+  document.getElementById("readerDrawingDescription").hidden = !description;
+  document.getElementById("readerDrawingDescriptionText").textContent =
+    description;
+  canvas.setAttribute("aria-hidden", String(!description));
+  if (description) {
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", description);
+  } else {
+    canvas.removeAttribute("role");
+    canvas.removeAttribute("aria-label");
+  }
+
+  const title = published.note.title.trim();
+  const publishedOn = formatPublishedDate(published.publishedAt);
+  document.title = title
+    ? `${title} — Blackboard Text`
+    : "Published note — Blackboard Text";
+
+  // Set every time, not just when there is a title: opening a second note
+  // through a hash change must not inherit the first one's header.
+  header.hidden = !title && !published.note.emoji;
+  emojiElement.textContent = published.note.emoji || "";
+  titleElement.textContent = title;
+  titleElement.hidden = title === "";
+
+  metaElement.textContent = publishedOn
+    ? `Published ${publishedOn}`
+    : "Published note";
+  if (footer) footer.hidden = false;
+  if (statePanel) statePanel.hidden = true;
+  if (board) board.hidden = false;
+
+  // The board must be laid out before the canvas can match its height.
+  requestAnimationFrame(paintDrawings);
+}
+
+let noteRequest = 0;
+let noteController;
+async function openNoteFromHash() {
+  const requestId = ++noteRequest;
+  noteController?.abort();
+  noteController = new AbortController();
+  try {
+    const id = shortLinkId();
+    let token = readPublishedNoteToken(globalThis.location?.hash);
+    if (id) {
+      published = null;
+      showState(
+        "Opening shared copy…",
+        "Loading this note from the short-link service.",
+      );
+      token = await fetchShortLink(id, noteController.signal);
+    }
+    if (!token) {
+      showState(
+        "This link has no note in it",
+        "Copy the whole link and open it again.",
+      );
+      return;
+    }
+    const note = await decodePublishedNote(token, {
+      sanitizeHtml: (value) =>
+        sanitizeStoredContent(value, { allowRemoteMedia: false }),
+    });
+    if (requestId !== noteRequest) return;
+    published = note;
+    renderNote();
+  } catch (error) {
+    if (requestId !== noteRequest) return;
+    published = null;
+    showState(
+      "This note could not be opened",
+      error.message || "The link is unavailable.",
+    );
+  }
+}
+
+window.addEventListener("resize", () => {
+  if (resizeFrame) cancelAnimationFrame(resizeFrame);
+  resizeFrame = requestAnimationFrame(() => {
+    resizeFrame = null;
+    paintDrawings();
+  });
+});
+function scheduleScrollPaint() {
+  if (resizeFrame) return;
+  resizeFrame = requestAnimationFrame(() => {
+    resizeFrame = null;
+    paintDrawings();
+  });
+}
+window.addEventListener("scroll", scheduleScrollPaint, { passive: true });
+document.body.addEventListener("scroll", scheduleScrollPaint, {
+  passive: true,
+});
+
+window.addEventListener("hashchange", () => {
+  void openNoteFromHash();
+});
+
+// A page opened in a background tab measures as zero-width, so the first paint
+// is skipped; repaint once it is actually on screen (this also covers a
+// back-navigation restoring the page from the cache).
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) paintDrawings();
+});
+window.addEventListener("pageshow", () => paintDrawings());
+
+if (document.fonts?.ready) {
+  // Text reflows once the bundled font finishes loading, which changes how far
+  // down the board the drawings need to reach.
+  document.fonts.ready.then(() => paintDrawings()).catch(() => undefined);
+}
+
+setupLocalization();
+void openNoteFromHash();
+
+function setReadingMode(mode) {
+  readingMode = mode;
+  document.body.classList.toggle("reader-text-mode", mode === "text");
+  document
+    .getElementById("readerBoardMode")
+    .setAttribute("aria-pressed", String(mode === "board"));
+  document
+    .getElementById("readerTextMode")
+    .setAttribute("aria-pressed", String(mode === "text"));
+  document.getElementById("readerZoomLabel").hidden = mode === "text";
+  document.getElementById("readerModeHint").textContent =
+    mode === "text"
+      ? "Text reflows for reading. Drawings remain available in Original board."
+      : "Original layout, including drawings.";
+  paintDrawings();
+}
+document
+  .getElementById("readerBoardMode")
+  .addEventListener("click", () => setReadingMode("board"));
+document
+  .getElementById("readerTextMode")
+  .addEventListener("click", () => setReadingMode("text"));
+document.getElementById("readerZoom").addEventListener("change", (event) => {
+  zoom = event.target.value;
+  paintDrawings();
+});

@@ -1,0 +1,96 @@
+
+> blackboard-text@2.4.1 test:browser
+> playwright test
+
+
+Running 82 tests using 1 worker
+
+(node:51286) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [pwa] › tests/browser/audit.spec.js:13:1 › exact colors, theme reset and accessible palette (1.0s)
+  ✓   2 [pwa] › tests/browser/audit.spec.js:30:1 › readonly tabs expose navigation and backup without writing (2.7s)
+  ✓   3 [pwa] › tests/browser/audit.spec.js:53:1 › modal dialog isolates background and restores focus (683ms)
+  ✓   4 [pwa] › tests/browser/audit.spec.js:70:1 › scroll position survives page switching and reload (2.5s)
+  ✓   5 [pwa] › tests/browser/audit.spec.js:85:1 › real DOM sanitizer preserves text and blocks active markup and requests (157ms)
+  ✓   6 [pwa] › tests/browser/audit.spec.js:94:1 › unavailable Web Locks fails closed (147ms)
+  ✓   7 [pwa] › tests/browser/audit.spec.js:103:1 › write failure is visible and current text remains exportable (5.7s)
+  ✓   8 [pwa] › tests/browser/audit.spec.js:124:1 › the icon rail stays beside a full-height writing area; the palette is an overlay (2.1s)
+  ✓   9 [pwa] › tests/browser/audit.spec.js:174:1 › reader drawing alignment and horizontal containment at all target widths (202ms)
+  ✓  10 [pwa] › tests/browser/audit.spec.js:194:1 › update waits for a durable save and allows retry after failure (447ms)
+  ✓  11 [pwa] › tests/browser/audit.spec.js:208:1 › quoted IDs import safely and do not inherit the previous Undo history (530ms)
+  ✓  12 [pwa] › tests/browser/audit.spec.js:222:1 › keyboard exit retains Tab indentation and ignores composing Escape (173ms)
+  ✓  13 [pwa] › tests/browser/audit.spec.js:233:1 › loading failure cannot write an empty workspace (1.5s)
+  ✓  14 [pwa] › tests/browser/audit.spec.js:249:1 › built-in themes have readable labels and visible keyboard focus (3.8s)
+  ✓  15 [pwa] › tests/browser/audit.spec.js:275:1 › page search, non-destructive merge and single-page recovery (1.3s)
+  ✓  16 [pwa] › tests/browser/audit.spec.js:297:1 › readable mode preserves original drawings and offers zoom (358ms)
+  ✓  17 [pwa] › tests/browser/audit.spec.js:311:1 › drawing undo redo and restore after clear preserve strokes (1.2s)
+  ✓  18 [pwa] › tests/browser/audit.spec.js:324:1 › workspace tools only appear in settings; heading fits without clipping (782ms)
+  ✓  19 [pwa] › tests/browser/improvements.spec.js:50:1 › brush records coalesced input and the release point; a second pointer cannot steal it (304ms)
+  ✓  20 [pwa] › tests/browser/improvements.spec.js:85:1 › scrolling during a stroke uses current board coordinates (677ms)
+  ✓  21 [pwa] › tests/browser/improvements.spec.js:101:1 › long-page strokes survive shortened text and reload without downsampling the whole board (3.8s)
+  ✓  22 [pwa] › tests/browser/improvements.spec.js:139:1 › marker, pressure pen and moved stroke keep metadata through undo and a published copy (461ms)
+  ✓  23 [pwa] › tests/browser/improvements.spec.js:210:1 › word attachment follows inserted text and can be selected and detached (6.0s)
+  ✓  24 [pwa] › tests/browser/improvements.spec.js:262:1 › successful autosave after a transient failure clears the status (4.1s)
+  ✓  25 [pwa] › tests/browser/improvements.spec.js:286:1 › pinning, match-centred search and durable page history preserve current notes (4.6s)
+  ✓  26 [pwa] › tests/browser/improvements.spec.js:332:1 › PNG and PDF exports contain the page and drawings (634ms)
+  ✓  27 [pwa] › tests/browser/improvements.spec.js:371:1 › Russian interface never translates note text and switches back cleanly (243ms)
+  ✓  28 [pwa] › tests/browser/improvements.spec.js:386:1 › compact tools stay beside page navigation and inside the viewport (652ms)
+  ✓  29 [pwa] › tests/browser/improvements.spec.js:447:1 › one whole-stroke eraser gesture undoes as one action (505ms)
+  ✓  30 [pwa] › tests/browser/improvements.spec.js:475:1 › painting tools retain separate sizes after reload (1.4s)
+  ✓  31 [pwa] › tests/browser/improvements.spec.js:503:1 › opening controls does not claim an unsaved note is saved (2.1s)
+  ✓  32 [pwa] › tests/browser/improvements.spec.js:517:1 › eraser export preserves the exact text layer (236ms)
+  ✓  33 [pwa] › tests/browser/improvements.spec.js:567:1 › Russian reader preserves author titles and drawing descriptions (207ms)
+  ✓  34 [pwa] › tests/browser/improvements.spec.js:604:1 › export keeps the same text wrapping as the chosen writing width (160ms)
+  ✓  35 [pwa] › tests/browser/improvements.spec.js:632:1 › opening tools and their settings never reflows text, drawings or scroll (3.5s)
+  ✓  36 [pwa] › tests/browser/runtime.spec.js:6:1 › real PWA first install and offline reload retain notes (1.5s)
+  -  37 [pwa] › tests/browser/runtime.spec.js:25:1 › real extension migrates Chrome storage and keeps source data
+  ✓  38 [pwa] › tests/browser/runtime.spec.js:47:1 › real waiting service worker updates only after saving (1.4s)
+  -  39 [pwa] › tests/browser/short-links.spec.js:16:1 › create, open under a Pages subpath, keep immutable copy and disable
+  -  40 [pwa] › tests/browser/short-links.spec.js:76:1 › lost response retries the same link, without uploading a second copy
+  -  41 [pwa] › tests/browser/short-links.spec.js:131:1 › encrypted keys restore management in another isolated browser profile
+(node:51501) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  42 [edge-extension] › tests/browser/audit.spec.js:13:1 › exact colors, theme reset and accessible palette (854ms)
+  ✓  43 [edge-extension] › tests/browser/audit.spec.js:30:1 › readonly tabs expose navigation and backup without writing (2.7s)
+  ✓  44 [edge-extension] › tests/browser/audit.spec.js:53:1 › modal dialog isolates background and restores focus (440ms)
+  ✓  45 [edge-extension] › tests/browser/audit.spec.js:70:1 › scroll position survives page switching and reload (2.4s)
+  ✓  46 [edge-extension] › tests/browser/audit.spec.js:85:1 › real DOM sanitizer preserves text and blocks active markup and requests (151ms)
+  ✓  47 [edge-extension] › tests/browser/audit.spec.js:94:1 › unavailable Web Locks fails closed (146ms)
+  ✓  48 [edge-extension] › tests/browser/audit.spec.js:103:1 › write failure is visible and current text remains exportable (5.7s)
+  ✓  49 [edge-extension] › tests/browser/audit.spec.js:124:1 › the icon rail stays beside a full-height writing area; the palette is an overlay (2.1s)
+  ✓  50 [edge-extension] › tests/browser/audit.spec.js:174:1 › reader drawing alignment and horizontal containment at all target widths (199ms)
+  ✓  51 [edge-extension] › tests/browser/audit.spec.js:194:1 › update waits for a durable save and allows retry after failure (444ms)
+  ✓  52 [edge-extension] › tests/browser/audit.spec.js:208:1 › quoted IDs import safely and do not inherit the previous Undo history (531ms)
+  ✓  53 [edge-extension] › tests/browser/audit.spec.js:222:1 › keyboard exit retains Tab indentation and ignores composing Escape (178ms)
+  ✓  54 [edge-extension] › tests/browser/audit.spec.js:233:1 › loading failure cannot write an empty workspace (1.5s)
+  ✓  55 [edge-extension] › tests/browser/audit.spec.js:249:1 › built-in themes have readable labels and visible keyboard focus (3.7s)
+  ✓  56 [edge-extension] › tests/browser/audit.spec.js:275:1 › page search, non-destructive merge and single-page recovery (1.3s)
+  ✓  57 [edge-extension] › tests/browser/audit.spec.js:297:1 › readable mode preserves original drawings and offers zoom (362ms)
+  ✓  58 [edge-extension] › tests/browser/audit.spec.js:311:1 › drawing undo redo and restore after clear preserve strokes (1.2s)
+  ✓  59 [edge-extension] › tests/browser/audit.spec.js:324:1 › workspace tools only appear in settings; heading fits without clipping (782ms)
+  ✓  60 [edge-extension] › tests/browser/improvements.spec.js:50:1 › brush records coalesced input and the release point; a second pointer cannot steal it (309ms)
+  ✓  61 [edge-extension] › tests/browser/improvements.spec.js:85:1 › scrolling during a stroke uses current board coordinates (640ms)
+  ✓  62 [edge-extension] › tests/browser/improvements.spec.js:101:1 › long-page strokes survive shortened text and reload without downsampling the whole board (3.8s)
+  ✓  63 [edge-extension] › tests/browser/improvements.spec.js:139:1 › marker, pressure pen and moved stroke keep metadata through undo and a published copy (470ms)
+  ✓  64 [edge-extension] › tests/browser/improvements.spec.js:210:1 › word attachment follows inserted text and can be selected and detached (6.0s)
+  ✓  65 [edge-extension] › tests/browser/improvements.spec.js:262:1 › successful autosave after a transient failure clears the status (4.1s)
+  ✓  66 [edge-extension] › tests/browser/improvements.spec.js:286:1 › pinning, match-centred search and durable page history preserve current notes (4.6s)
+  ✓  67 [edge-extension] › tests/browser/improvements.spec.js:332:1 › PNG and PDF exports contain the page and drawings (714ms)
+  ✓  68 [edge-extension] › tests/browser/improvements.spec.js:371:1 › Russian interface never translates note text and switches back cleanly (224ms)
+  ✓  69 [edge-extension] › tests/browser/improvements.spec.js:386:1 › compact tools stay beside page navigation and inside the viewport (652ms)
+  ✓  70 [edge-extension] › tests/browser/improvements.spec.js:447:1 › one whole-stroke eraser gesture undoes as one action (505ms)
+  ✓  71 [edge-extension] › tests/browser/improvements.spec.js:475:1 › painting tools retain separate sizes after reload (1.4s)
+  ✓  72 [edge-extension] › tests/browser/improvements.spec.js:503:1 › opening controls does not claim an unsaved note is saved (2.1s)
+  ✓  73 [edge-extension] › tests/browser/improvements.spec.js:517:1 › eraser export preserves the exact text layer (240ms)
+  ✓  74 [edge-extension] › tests/browser/improvements.spec.js:567:1 › Russian reader preserves author titles and drawing descriptions (210ms)
+  ✓  75 [edge-extension] › tests/browser/improvements.spec.js:604:1 › export keeps the same text wrapping as the chosen writing width (160ms)
+  ✓  76 [edge-extension] › tests/browser/improvements.spec.js:632:1 › opening tools and their settings never reflows text, drawings or scroll (3.5s)
+  -  77 [edge-extension] › tests/browser/runtime.spec.js:6:1 › real PWA first install and offline reload retain notes
+  ✓  78 [edge-extension] › tests/browser/runtime.spec.js:25:1 › real extension migrates Chrome storage and keeps source data (1.2s)
+  -  79 [edge-extension] › tests/browser/runtime.spec.js:47:1 › real waiting service worker updates only after saving
+  -  80 [edge-extension] › tests/browser/short-links.spec.js:16:1 › create, open under a Pages subpath, keep immutable copy and disable
+  -  81 [edge-extension] › tests/browser/short-links.spec.js:76:1 › lost response retries the same link, without uploading a second copy
+  -  82 [edge-extension] › tests/browser/short-links.spec.js:131:1 › encrypted keys restore management in another isolated browser profile
+
+  9 skipped
+  73 passed (1.9m)

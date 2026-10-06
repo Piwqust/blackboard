@@ -1,0 +1,50 @@
+
+> blackboard-text@2.4.0 test:shares
+> node scripts/test-short-links.mjs
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+
+ ⛅️ wrangler 4.147.0
+────────────────────
+Resource location: local 
+
+Use --remote if you want to access the remote instance.
+
+Migrations to be applied:
+┌─────────────────┐
+│ name            │
+├─────────────────┤
+│ 0001_shares.sql │
+└─────────────────┘
+? About to apply 1 migration(s)
+Your database may not be available to serve requests during the migration, continue?
+🤖 Using fallback value in non-interactive context: yes
+🌀 Executing on local database blackboard-text-shares (65decf93-dc97-482d-85c9-c5f8fd4113af) from .tmp/short-links-test-y3tXvP/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 4 commands executed successfully.
+┌─────────────────┬────────┐
+│ name            │ status │
+├─────────────────┼────────┤
+│ 0001_shares.sql │ ✅     │
+└─────────────────┴────────┘
+API checks passed: CORS, ownership, immutable/idempotent upload, no-store, revoke/tombstone, size limits.
+
+Running 6 tests using 1 worker
+
+(node:47272) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/6] [pwa] › tests/browser/short-links.spec.js:16:1 › create, open under a Pages subpath, keep immutable copy and disable
+[2/6] [pwa] › tests/browser/short-links.spec.js:76:1 › lost response retries the same link, without uploading a second copy
+[3/6] [pwa] › tests/browser/short-links.spec.js:131:1 › encrypted keys restore management in another isolated browser profile
+(node:47296) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[4/6] [edge-extension] › tests/browser/short-links.spec.js:16:1 › create, open under a Pages subpath, keep immutable copy and disable
+[5/6] [edge-extension] › tests/browser/short-links.spec.js:76:1 › lost response retries the same link, without uploading a second copy
+[6/6] [edge-extension] › tests/browser/short-links.spec.js:131:1 › encrypted keys restore management in another isolated browser profile
+  6 passed (11.3s)

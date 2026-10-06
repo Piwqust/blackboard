@@ -1,0 +1,39 @@
+{
+  "url": "https://piwqust.github.io/blackboard/editor.html",
+  "checkedAt": "2026-09-20T09:05:41.130Z",
+  "checks": [
+    "No workspace header; drawing toolbar collapsed",
+    "Search lives in Settings; Escape restores the settings control",
+    "Keyboard search works with Settings closed"
+  ],
+  "layouts": [
+    {
+      "width": 1440,
+      "bodyTop": 0,
+      "firstCharacterTop": 55,
+      "scrollWidth": 1344,
+      "clientWidth": 1344
+    },
+    {
+      "width": 1280,
+      "bodyTop": 0,
+      "firstCharacterTop": 55,
+      "scrollWidth": 1184,
+      "clientWidth": 1184
+    },
+    {
+      "width": 390,
+      "bodyTop": 0,
+      "firstCharacterTop": 55,
+      "scrollWidth": 310,
+      "clientWidth": 310
+    },
+    {
+      "width": 320,
+      "bodyTop": 0,
+      "firstCharacterTop": 55,
+      "scrollWidth": 240,
+      "clientWidth": 240
+    }
+  ]
+}

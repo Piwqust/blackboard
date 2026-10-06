@@ -1,0 +1,207 @@
+{
+  "rawCount": 18,
+  "results": [
+    {
+      "index": 1,
+      "rule": "low-contrast",
+      "file": "editor.html",
+      "snippet": ":hover state 1.6:1 (need 4.5:1) \u2014 text #8c4a4a on #453e3f",
+      "status": "unconfirmed_candidate",
+      "reason": "CLI gives line 0 and no element selector. Last-page Delete is disabled and exempt. Claimed hover combination was not tied to a reachable enabled state; do not promote to confirmed defect.",
+      "evidence": [
+        "dynamic-danger-colors.json",
+        "page-settings-verified.metrics.json"
+      ]
+    },
+    {
+      "index": 2,
+      "rule": "undersized-ui-text",
+      "file": "editor.html",
+      "snippet": "10px functional text \"Import backup\" (below 11px floor)",
+      "status": "non_normative_advisory",
+      "reason": "10px dialog eyebrow size is measurable, but WCAG has no minimum font size. Not counted as an objective defect in this assessment."
+    },
+    {
+      "index": 3,
+      "rule": "undersized-ui-text",
+      "file": "editor.html",
+      "snippet": "10px functional text \"Recovery snapshot\" (below 11px floor)",
+      "status": "non_normative_advisory",
+      "reason": "10px dialog eyebrow size is measurable, but WCAG has no minimum font size. Not counted as an objective defect in this assessment."
+    },
+    {
+      "index": 4,
+      "rule": "undersized-ui-text",
+      "file": "editor.html",
+      "snippet": "10px functional text \"Publish page\" (below 11px floor)",
+      "status": "non_normative_advisory",
+      "reason": "10px dialog eyebrow size is measurable, but WCAG has no minimum font size. Not counted as an objective defect in this assessment."
+    },
+    {
+      "index": 5,
+      "rule": "low-contrast",
+      "file": "read.html",
+      "snippet": "1.4:1 (need 4.5:1) \u2014 text #dddad2 on #ffffff",
+      "status": "false_positive",
+      "reason": "Static scan assumes #FFFFFF. Live background is #0B0B0D; main text is 14.078:1, muted reader text 5.496:1.",
+      "evidence": [
+        "reader-error-390x844.metrics.json",
+        "privacy-1280x720.metrics.json"
+      ]
+    },
+    {
+      "index": 6,
+      "rule": "low-contrast",
+      "file": "read.html",
+      "snippet": "1.4:1 (need 4.5:1) \u2014 text #dddad2 on #ffffff",
+      "status": "false_positive",
+      "reason": "Static scan assumes #FFFFFF. Live background is #0B0B0D; main text is 14.078:1, muted reader text 5.496:1.",
+      "evidence": [
+        "reader-error-390x844.metrics.json",
+        "privacy-1280x720.metrics.json"
+      ]
+    },
+    {
+      "index": 7,
+      "rule": "low-contrast",
+      "file": "read.html",
+      "snippet": "1.4:1 (need 4.5:1) \u2014 text #dddad2 on #ffffff",
+      "status": "false_positive",
+      "reason": "Static scan assumes #FFFFFF. Live background is #0B0B0D; main text is 14.078:1, muted reader text 5.496:1.",
+      "evidence": [
+        "reader-error-390x844.metrics.json",
+        "privacy-1280x720.metrics.json"
+      ]
+    },
+    {
+      "index": 8,
+      "rule": "overused-font",
+      "file": "read.html",
+      "snippet": "Primary font: inter",
+      "status": "aesthetic_advisory_excluded",
+      "reason": "Overused-font and kicker rules are style preferences. Product skill explicitly permits Inter/system fonts. No objective failure follows."
+    },
+    {
+      "index": 9,
+      "rule": "kicker-above-heading",
+      "file": "read.html",
+      "snippet": "kicker \"Blackboard Text\" above h1 \"Opening note\u2026\"",
+      "status": "aesthetic_advisory_excluded",
+      "reason": "Overused-font and kicker rules are style preferences. Product skill explicitly permits Inter/system fonts. No objective failure follows."
+    },
+    {
+      "index": 10,
+      "rule": "low-contrast",
+      "file": "privacy.html",
+      "snippet": "1.4:1 (need 4.5:1) \u2014 text #dddad2 on #ffffff",
+      "status": "false_positive",
+      "reason": "Static scan assumes #FFFFFF. Live background is #0B0B0D; main text is 14.078:1, muted reader text 5.496:1.",
+      "evidence": [
+        "reader-error-390x844.metrics.json",
+        "privacy-1280x720.metrics.json"
+      ]
+    },
+    {
+      "index": 11,
+      "rule": "low-contrast",
+      "file": "privacy.html",
+      "snippet": "1.4:1 (need 4.5:1) \u2014 text #dddad2 on #ffffff",
+      "status": "false_positive",
+      "reason": "Static scan assumes #FFFFFF. Live background is #0B0B0D; main text is 14.078:1, muted reader text 5.496:1.",
+      "evidence": [
+        "reader-error-390x844.metrics.json",
+        "privacy-1280x720.metrics.json"
+      ]
+    },
+    {
+      "index": 12,
+      "rule": "low-contrast",
+      "file": "privacy.html",
+      "snippet": "1.4:1 (need 4.5:1) \u2014 text #dddad2 on #ffffff",
+      "status": "false_positive",
+      "reason": "Static scan assumes #FFFFFF. Live background is #0B0B0D; main text is 14.078:1, muted reader text 5.496:1.",
+      "evidence": [
+        "reader-error-390x844.metrics.json",
+        "privacy-1280x720.metrics.json"
+      ]
+    },
+    {
+      "index": 13,
+      "rule": "low-contrast",
+      "file": "privacy.html",
+      "snippet": "1.4:1 (need 4.5:1) \u2014 text #dddad2 on #ffffff",
+      "status": "false_positive",
+      "reason": "Static scan assumes #FFFFFF. Live background is #0B0B0D; main text is 14.078:1, muted reader text 5.496:1.",
+      "evidence": [
+        "reader-error-390x844.metrics.json",
+        "privacy-1280x720.metrics.json"
+      ]
+    },
+    {
+      "index": 14,
+      "rule": "low-contrast",
+      "file": "privacy.html",
+      "snippet": "1.4:1 (need 4.5:1) \u2014 text #dddad2 on #ffffff",
+      "status": "false_positive",
+      "reason": "Static scan assumes #FFFFFF. Live background is #0B0B0D; main text is 14.078:1, muted reader text 5.496:1.",
+      "evidence": [
+        "reader-error-390x844.metrics.json",
+        "privacy-1280x720.metrics.json"
+      ]
+    },
+    {
+      "index": 15,
+      "rule": "low-contrast",
+      "file": "privacy.html",
+      "snippet": "1.4:1 (need 4.5:1) \u2014 text #dddad2 on #ffffff",
+      "status": "false_positive",
+      "reason": "Static scan assumes #FFFFFF. Live background is #0B0B0D; main text is 14.078:1, muted reader text 5.496:1.",
+      "evidence": [
+        "reader-error-390x844.metrics.json",
+        "privacy-1280x720.metrics.json"
+      ]
+    },
+    {
+      "index": 16,
+      "rule": "low-contrast",
+      "file": "privacy.html",
+      "snippet": "1.4:1 (need 4.5:1) \u2014 text #dddad2 on #ffffff",
+      "status": "false_positive",
+      "reason": "Static scan assumes #FFFFFF. Live background is #0B0B0D; main text is 14.078:1, muted reader text 5.496:1.",
+      "evidence": [
+        "reader-error-390x844.metrics.json",
+        "privacy-1280x720.metrics.json"
+      ]
+    },
+    {
+      "index": 17,
+      "rule": "low-contrast",
+      "file": "privacy.html",
+      "snippet": "1.4:1 (need 4.5:1) \u2014 text #dddad2 on #ffffff",
+      "status": "false_positive",
+      "reason": "Static scan assumes #FFFFFF. Live background is #0B0B0D; main text is 14.078:1, muted reader text 5.496:1.",
+      "evidence": [
+        "reader-error-390x844.metrics.json",
+        "privacy-1280x720.metrics.json"
+      ]
+    },
+    {
+      "index": 18,
+      "rule": "low-contrast",
+      "file": "privacy.html",
+      "snippet": "1.4:1 (need 4.5:1) \u2014 text #dddad2 on #ffffff",
+      "status": "false_positive",
+      "reason": "Static scan assumes #FFFFFF. Live background is #0B0B0D; main text is 14.078:1, muted reader text 5.496:1.",
+      "evidence": [
+        "reader-error-390x844.metrics.json",
+        "privacy-1280x720.metrics.json"
+      ]
+    }
+  ],
+  "counts": {
+    "unconfirmed_candidate": 1,
+    "non_normative_advisory": 3,
+    "false_positive": 12,
+    "aesthetic_advisory_excluded": 2
+  }
+}

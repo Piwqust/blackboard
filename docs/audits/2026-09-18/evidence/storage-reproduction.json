@@ -1,0 +1,57 @@
+{
+  "evidenceType": "Transcribed observed browser tool results",
+  "autosave": {
+    "injection": "IDBDatabase.prototype.transaction throws QuotaExceededError only for readwrite",
+    "before": "AUDIT SAVED baseline",
+    "domAfterTyping": "AUDIT SAVED baselineAUDIT UNSAVED new text after quota failure",
+    "savedAfterTyping": "AUDIT SAVED baseline",
+    "consoleError": "Error saving content: Local audit quota failure",
+    "statusHidden": true,
+    "statusText": "",
+    "indicatorClass": "save-indicator",
+    "indicatorTitle": "",
+    "afterReload": "AUDIT SAVED baseline"
+  },
+  "importUndo": {
+    "id": "425ac546-ba1a-4cd0-a74a-c5787f020788",
+    "imported": "RESTORED BACKUP CONTENT",
+    "action": "Cmd+Z without new edit after importing same page ID",
+    "domAfter": "AUDIT SAVED baseline",
+    "savedAfter": "AUDIT SAVED baseline",
+    "recoverySnapshot": " EDITED AFTER BACKUPAUDIT SAVED baseline"
+  },
+  "quoteId": {
+    "acceptedId": "audit-\"-quote-id",
+    "renderError": "querySelector SyntaxError",
+    "afterImport": {
+      "dom": "AUDIT SAVED baseline",
+      "saved": "Imported page with a valid JSON string ID",
+      "dialogOpen": true
+    },
+    "afterReload": {
+      "dom": "",
+      "saved": "Imported page with a valid JSON string ID"
+    },
+    "afterPagehide": {
+      "dom": "",
+      "saved": ""
+    },
+    "lifecycleRepro": "Synthetic PageTransitionEvent(pagehide) then awaited store read"
+  },
+  "update": {
+    "scope": "Disposable build and worker fixture only",
+    "previousWorker": "2.2.0",
+    "nextWorker": "2.2.0-audit-update",
+    "savedBaseline": "UPDATE saved baseline",
+    "latestChange": " UNSAVED UPDATE CHANGE",
+    "injection": "readwrite -> QuotaExceededError",
+    "action": "Click actual Reload button",
+    "observed": {
+      "windowMarkerCleared": true,
+      "cache": "blackboard-text-shell-2.2.0-audit-update",
+      "dom": "UPDATE saved baseline",
+      "saved": "UPDATE saved baseline",
+      "updateNoticeVisible": false
+    }
+  }
+}

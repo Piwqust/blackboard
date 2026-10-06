@@ -1,0 +1,30 @@
+{
+  "servers": [
+    {
+      "port": 4178,
+      "pid": "86690",
+      "stopped": true
+    },
+    {
+      "port": 4179,
+      "pid": "88089",
+      "stopped": true
+    },
+    {
+      "port": 4180,
+      "alreadyStopped": true
+    },
+    {
+      "port": 4181,
+      "pid": "93317",
+      "stopped": true
+    }
+  ],
+  "closedBrowserSessions": [
+    "bb-audit-main-0918",
+    "bb-audit-extension-0918",
+    "bb-audit-design-0918",
+    "bb-audit-detector-0918"
+  ],
+  "sourceDataAffected": false
+}

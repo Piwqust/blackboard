@@ -1,0 +1,35 @@
+{
+  "evidenceType": "Transcribed observed UI actions plus persisted settings",
+  "brush": {
+    "starting": {
+      "text": "#DDDAD2",
+      "brush": "#DDDAD2",
+      "mode": "theme"
+    },
+    "afterOpen": {
+      "text": "#DDDAD2",
+      "brush": "#DEDBD3",
+      "mode": "custom",
+      "matchButtonHidden": false
+    },
+    "afterMatchTheme": {
+      "text": "#DDDAD2",
+      "brush": "#DEDBD3",
+      "mode": "custom",
+      "matchButtonHidden": true
+    },
+    "afterSelectPaper": {
+      "text": "#1A1A1A",
+      "brush": "#DEDBD3",
+      "mode": "custom",
+      "theme": "paper"
+    }
+  },
+  "reset": {
+    "action": "Reset to defaults, clicked visible button after scrolling Settings",
+    "uiActive": "lavender",
+    "savedTheme": "blackboard",
+    "background": "rgb(11, 11, 13)",
+    "text": "rgb(221, 218, 210)"
+  }
+}

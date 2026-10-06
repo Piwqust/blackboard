@@ -1,0 +1,13 @@
+
+Running 4 tests using 1 worker
+
+(node:81333) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [pwa] › tests/browser/improvements.spec.js:386:1 › compact tools stay beside page navigation and inside the viewport (798ms)
+  ✓  2 [pwa] › tests/browser/improvements.spec.js:633:1 › opening tools and their settings never reflows text, drawings or scroll (3.5s)
+(node:81378) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [edge-extension] › tests/browser/improvements.spec.js:386:1 › compact tools stay beside page navigation and inside the viewport (679ms)
+  ✓  4 [edge-extension] › tests/browser/improvements.spec.js:633:1 › opening tools and their settings never reflows text, drawings or scroll (3.5s)
+
+  4 passed (9.2s)

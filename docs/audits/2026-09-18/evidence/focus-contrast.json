@@ -1,0 +1,17 @@
+{
+  "focusSelector": "#addPageBtn",
+  "sampleRingRGB": [
+    45,
+    45,
+    45
+  ],
+  "sampleBackgroundRGB": [
+    11,
+    11,
+    13
+  ],
+  "ratio": 1.4278585508446713,
+  "requiredNontext": 3,
+  "screenshot": "add-page-keyboard-focus.png",
+  "sampleRow": 83
+}

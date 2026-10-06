@@ -1,4 +1,5 @@
-// Open editor page when extension icon is clicked
+// Chrome/Edge focus an existing options page when possible. This prevents the
+// old last-write-wins failure caused by opening a fresh editor tab every time.
 chrome.action.onClicked.addListener(() => {
-  chrome.tabs.create({ url: 'editor.html' });
+  chrome.runtime.openOptionsPage();
 });

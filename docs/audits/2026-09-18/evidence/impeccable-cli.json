@@ -1,0 +1,182 @@
+[
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/editor.html",
+    "line": 0,
+    "snippet": ":hover state 1.6:1 (need 4.5:1) — text #8c4a4a on #453e3f"
+  },
+  {
+    "antipattern": "undersized-ui-text",
+    "name": "Undersized functional text",
+    "description": "Interactive and content-bearing UI text (links, buttons, nav items, labels, table cells, meta rows, timecodes) below 11px is a legibility failure, not a style choice. WCAG sets no absolute pixel floor, but functional text under 11px is a defensible quality bar: it fails on high-DPI and small viewports and it degrades tap and read targets. The 11px floor holds even inside a footer; only non-interactive legal smallprint gets the softer 10px floor. Being ON the DESIGN.md size ramp does not exempt a value here: adding 8px to the ramp launders the token but not the legibility problem, and that is exactly the escape hatch this rule closes. Exempts sup/sub, visually-hidden (sr-only) text, and code/terminal contexts. Decorative letterspaced micro-labels are still functional and stay in scope.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/editor.html",
+    "line": 0,
+    "snippet": "10px functional text \"Import backup\" (below 11px floor)"
+  },
+  {
+    "antipattern": "undersized-ui-text",
+    "name": "Undersized functional text",
+    "description": "Interactive and content-bearing UI text (links, buttons, nav items, labels, table cells, meta rows, timecodes) below 11px is a legibility failure, not a style choice. WCAG sets no absolute pixel floor, but functional text under 11px is a defensible quality bar: it fails on high-DPI and small viewports and it degrades tap and read targets. The 11px floor holds even inside a footer; only non-interactive legal smallprint gets the softer 10px floor. Being ON the DESIGN.md size ramp does not exempt a value here: adding 8px to the ramp launders the token but not the legibility problem, and that is exactly the escape hatch this rule closes. Exempts sup/sub, visually-hidden (sr-only) text, and code/terminal contexts. Decorative letterspaced micro-labels are still functional and stay in scope.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/editor.html",
+    "line": 0,
+    "snippet": "10px functional text \"Recovery snapshot\" (below 11px floor)"
+  },
+  {
+    "antipattern": "undersized-ui-text",
+    "name": "Undersized functional text",
+    "description": "Interactive and content-bearing UI text (links, buttons, nav items, labels, table cells, meta rows, timecodes) below 11px is a legibility failure, not a style choice. WCAG sets no absolute pixel floor, but functional text under 11px is a defensible quality bar: it fails on high-DPI and small viewports and it degrades tap and read targets. The 11px floor holds even inside a footer; only non-interactive legal smallprint gets the softer 10px floor. Being ON the DESIGN.md size ramp does not exempt a value here: adding 8px to the ramp launders the token but not the legibility problem, and that is exactly the escape hatch this rule closes. Exempts sup/sub, visually-hidden (sr-only) text, and code/terminal contexts. Decorative letterspaced micro-labels are still functional and stay in scope.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/editor.html",
+    "line": 0,
+    "snippet": "10px functional text \"Publish page\" (below 11px floor)"
+  },
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/read.html",
+    "line": 0,
+    "snippet": "1.4:1 (need 4.5:1) — text #dddad2 on #ffffff"
+  },
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/read.html",
+    "line": 0,
+    "snippet": "1.4:1 (need 4.5:1) — text #dddad2 on #ffffff"
+  },
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/read.html",
+    "line": 0,
+    "snippet": "1.4:1 (need 4.5:1) — text #dddad2 on #ffffff"
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/read.html",
+    "line": 0,
+    "snippet": "Primary font: inter"
+  },
+  {
+    "antipattern": "kicker-above-heading",
+    "name": "Kicker / eyebrow label above heading",
+    "description": "A tiny tracked uppercase or small-caps label sitting as its own block directly above a heading is banned outright, repeated or not. Generated kickers never earn their place: the heading carries its own weight. Delete the label and let the heading speak; if the words matter, work them into the heading or the body.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/read.html",
+    "line": 0,
+    "snippet": "kicker \"Blackboard Text\" above h1 \"Opening note…\""
+  },
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/privacy.html",
+    "line": 0,
+    "snippet": "1.4:1 (need 4.5:1) — text #dddad2 on #ffffff"
+  },
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/privacy.html",
+    "line": 0,
+    "snippet": "1.4:1 (need 4.5:1) — text #dddad2 on #ffffff"
+  },
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/privacy.html",
+    "line": 0,
+    "snippet": "1.4:1 (need 4.5:1) — text #dddad2 on #ffffff"
+  },
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/privacy.html",
+    "line": 0,
+    "snippet": "1.4:1 (need 4.5:1) — text #dddad2 on #ffffff"
+  },
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/privacy.html",
+    "line": 0,
+    "snippet": "1.4:1 (need 4.5:1) — text #dddad2 on #ffffff"
+  },
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/privacy.html",
+    "line": 0,
+    "snippet": "1.4:1 (need 4.5:1) — text #dddad2 on #ffffff"
+  },
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/privacy.html",
+    "line": 0,
+    "snippet": "1.4:1 (need 4.5:1) — text #dddad2 on #ffffff"
+  },
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/privacy.html",
+    "line": 0,
+    "snippet": "1.4:1 (need 4.5:1) — text #dddad2 on #ffffff"
+  },
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "/Users/dameer/Desktop/code/blackboard-text/.tmp/audit-2026-09-18/workspace/privacy.html",
+    "line": 0,
+    "snippet": "1.4:1 (need 4.5:1) — text #dddad2 on #ffffff"
+  }
+]

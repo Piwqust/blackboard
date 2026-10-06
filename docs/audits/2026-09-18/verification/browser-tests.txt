@@ -1,0 +1,57 @@
+
+> blackboard-text@2.2.1 test:browser
+> playwright test --reporter=line
+
+
+Running 40 tests using 1 worker
+
+(node:99537) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/40] [pwa] › tests/browser/audit.spec.js:12:1 › exact colors, theme reset and accessible palette
+[2/40] [pwa] › tests/browser/audit.spec.js:28:1 › readonly tabs expose navigation and backup without writing
+[3/40] [pwa] › tests/browser/audit.spec.js:50:1 › modal dialog isolates background and restores focus
+[4/40] [pwa] › tests/browser/audit.spec.js:67:1 › scroll position survives page switching and reload
+[5/40] [pwa] › tests/browser/audit.spec.js:82:1 › real DOM sanitizer preserves text and blocks active markup and requests
+[6/40] [pwa] › tests/browser/audit.spec.js:91:1 › unavailable Web Locks fails closed
+[7/40] [pwa] › tests/browser/audit.spec.js:100:1 › write failure is visible and current text remains exportable
+[8/40] [pwa] › tests/browser/audit.spec.js:118:1 › fixed tools stay outside the scrolling writing area
+[9/40] [pwa] › tests/browser/audit.spec.js:133:1 › reader drawing alignment and horizontal containment at all target widths
+[10/40] [pwa] › tests/browser/audit.spec.js:153:1 › update waits for a durable save and allows retry after failure
+[11/40] [pwa] › tests/browser/audit.spec.js:167:1 › quoted IDs import safely and do not inherit the previous Undo history
+[12/40] [pwa] › tests/browser/audit.spec.js:181:1 › keyboard exit retains Tab indentation and ignores composing Escape
+[13/40] [pwa] › tests/browser/audit.spec.js:192:1 › loading failure cannot write an empty workspace
+[14/40] [pwa] › tests/browser/audit.spec.js:208:1 › built-in themes have readable labels and visible keyboard focus
+[15/40] [pwa] › tests/browser/audit.spec.js:234:1 › page search, non-destructive merge and single-page recovery
+[16/40] [pwa] › tests/browser/audit.spec.js:255:1 › readable mode preserves original drawings and offers zoom
+[17/40] [pwa] › tests/browser/audit.spec.js:268:1 › drawing undo redo and restore after clear preserve strokes
+[18/40] [pwa] › tests/browser/runtime.spec.js:6:1 › real PWA first install and offline reload retain notes
+[19/40] [pwa] › tests/browser/runtime.spec.js:25:1 › real extension migrates Chrome storage and keeps source data
+[20/40] [pwa] › tests/browser/runtime.spec.js:47:1 › real waiting service worker updates only after saving
+(node:99637) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[21/40] [edge-extension] › tests/browser/audit.spec.js:12:1 › exact colors, theme reset and accessible palette
+[22/40] [edge-extension] › tests/browser/audit.spec.js:28:1 › readonly tabs expose navigation and backup without writing
+[23/40] [edge-extension] › tests/browser/audit.spec.js:50:1 › modal dialog isolates background and restores focus
+[24/40] [edge-extension] › tests/browser/audit.spec.js:67:1 › scroll position survives page switching and reload
+[25/40] [edge-extension] › tests/browser/audit.spec.js:82:1 › real DOM sanitizer preserves text and blocks active markup and requests
+[26/40] [edge-extension] › tests/browser/audit.spec.js:91:1 › unavailable Web Locks fails closed
+[27/40] [edge-extension] › tests/browser/audit.spec.js:100:1 › write failure is visible and current text remains exportable
+[28/40] [edge-extension] › tests/browser/audit.spec.js:118:1 › fixed tools stay outside the scrolling writing area
+[29/40] [edge-extension] › tests/browser/audit.spec.js:133:1 › reader drawing alignment and horizontal containment at all target widths
+[30/40] [edge-extension] › tests/browser/audit.spec.js:153:1 › update waits for a durable save and allows retry after failure
+[31/40] [edge-extension] › tests/browser/audit.spec.js:167:1 › quoted IDs import safely and do not inherit the previous Undo history
+[32/40] [edge-extension] › tests/browser/audit.spec.js:181:1 › keyboard exit retains Tab indentation and ignores composing Escape
+[33/40] [edge-extension] › tests/browser/audit.spec.js:192:1 › loading failure cannot write an empty workspace
+[34/40] [edge-extension] › tests/browser/audit.spec.js:208:1 › built-in themes have readable labels and visible keyboard focus
+[35/40] [edge-extension] › tests/browser/audit.spec.js:234:1 › page search, non-destructive merge and single-page recovery
+[36/40] [edge-extension] › tests/browser/audit.spec.js:255:1 › readable mode preserves original drawings and offers zoom
+[37/40] [edge-extension] › tests/browser/audit.spec.js:268:1 › drawing undo redo and restore after clear preserve strokes
+[38/40] [edge-extension] › tests/browser/runtime.spec.js:6:1 › real PWA first install and offline reload retain notes
+[39/40] [edge-extension] › tests/browser/runtime.spec.js:25:1 › real extension migrates Chrome storage and keeps source data
+[40/40] [edge-extension] › tests/browser/runtime.spec.js:47:1 › real waiting service worker updates only after saving
+  3 skipped
+  37 passed (43.3s)

@@ -1,0 +1,103 @@
+{
+  "date": "2026-10-06",
+  "version": "2.4.0",
+  "node": "22.23.3",
+  "unit": {
+    "passed": 38,
+    "failed": 0
+  },
+  "browser": {
+    "passed": 71,
+    "skipped": 9,
+    "failed": 0
+  },
+  "shortLinks": {
+    "passed": 6,
+    "failed": 0,
+    "apiPassed": true
+  },
+  "selectionFinal": {
+    "passed": 4,
+    "failed": 0
+  },
+  "installedBrowsers": [
+    {
+      "channel": "chrome",
+      "version": "153.0.8010.53",
+      "errors": [],
+      "viewports": [
+        {
+          "width": 1440,
+          "editorWidth": 1344,
+          "overflow": false,
+          "canvasScale": 2
+        },
+        {
+          "width": 768,
+          "editorWidth": 768,
+          "overflow": false,
+          "canvasScale": 2
+        },
+        {
+          "width": 390,
+          "editorWidth": 390,
+          "overflow": false,
+          "canvasScale": 2
+        },
+        {
+          "width": 320,
+          "editorWidth": 320,
+          "overflow": false,
+          "canvasScale": 2
+        }
+      ]
+    },
+    {
+      "channel": "msedge",
+      "version": "154.0.4258.53",
+      "errors": [],
+      "viewports": [
+        {
+          "width": 1440,
+          "editorWidth": 1344,
+          "overflow": false,
+          "canvasScale": 2
+        },
+        {
+          "width": 768,
+          "editorWidth": 768,
+          "overflow": false,
+          "canvasScale": 2
+        },
+        {
+          "width": 390,
+          "editorWidth": 390,
+          "overflow": false,
+          "canvasScale": 2
+        },
+        {
+          "width": 320,
+          "editorWidth": 320,
+          "overflow": false,
+          "canvasScale": 2
+        }
+      ]
+    }
+  ],
+  "npmAudit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "launchVideo": {
+    "lint": true,
+    "typecheck": true,
+    "fullRender": false
+  },
+  "published": false,
+  "physicalPen": false,
+  "voiceOver": false
+}

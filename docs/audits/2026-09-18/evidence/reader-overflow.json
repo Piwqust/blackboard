@@ -1,0 +1,30 @@
+{
+  "before": {
+    "boardBox": {
+      "right": 390,
+      "width": 390,
+      "x": 0
+    },
+    "bodyClientWidth": 390,
+    "bodyScrollLeft": 0,
+    "bodyScrollWidth": 1440,
+    "documentScrollLeft": 0,
+    "transform": "matrix(0.270833, 0, 0, 0.270833, 0, 0)",
+    "viewport": 390,
+    "windowScrollX": 0
+  },
+  "after": {
+    "boardBox": {
+      "right": 190,
+      "width": 390,
+      "x": -200
+    },
+    "bodyClientWidth": 390,
+    "bodyScrollLeft": 200,
+    "bodyScrollWidth": 1440,
+    "documentScrollLeft": 0,
+    "transform": "matrix(0.270833, 0, 0, 0.270833, 0, 0)",
+    "viewport": 390,
+    "windowScrollX": 0
+  }
+}

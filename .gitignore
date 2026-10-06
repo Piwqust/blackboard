@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build / scratch
+.tmp/
+dist/
+node_modules/
+*.log
+
+.playwright-cli/
+test-results/
+playwright-report/
+
+**/.wrangler/
+**/.dev.vars*
+backend/short-links/worker-configuration.d.ts

@@ -4,109 +4,228 @@
 
 # Blackboard Text
 
-**A quiet, beautiful place to think.**
+**A quiet, local-first place to think.**
 
-A minimalist note-taking Chrome extension — elegant typography, multi-page
-tabs, themeable colors, and a freehand drawing layer that sits right on top
-of your words.
+Write, sketch, and keep your notes in the browser profile you control. No
+account, telemetry, or automatic note sync. Short links optionally store only a copy you explicitly share.
 
-![Version](https://img.shields.io/badge/version-1.6.0-5B4FA8?style=flat-square)
-![Manifest](https://img.shields.io/badge/manifest-v3-5B4FA8?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.4.1-3D47FF?style=flat-square)
+![PWA](https://img.shields.io/badge/PWA-offline--ready-3D47FF?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-5B4FA8?style=flat-square)
 
 </div>
 
 ![Blackboard Text — default Lavender theme](./screenshots/01-hero-lavender.png)
 
----
+## What ships in v2
 
-## ✦ Features
+### New in 2.4.0
 
-- **Distraction-free canvas** — generous default whitespace, autosave, word + character counter tucked in the corner.
-- **Typography that means it** — 3 bundled weights of BoardGrotesque Sans plus Inter / Inter Tight and system serifs/sans, with adjustable size (12–128 px), line height, letter spacing, and content width up to 2400 px.
-- **8 curated themes** + an *Advanced* drawer for fully custom text, background, and selection colors via a real HSV picker.
-- **Pages with personality** — each tab is an emoji, drag-and-drop reorderable, with a scrollable rail and soft fade edges.
-- **Drawing layer** — brush + eraser, fine stroke control, undo, per-page strokes that stay anchored to text when the window resizes.
-- **Local & private** — `chrome.storage` only. No accounts, no network, no telemetry.
+The 2.4.1 interface correction keeps drawing tools beside page navigation, with a small overflow menu. Opening tools never changes text padding, wrapping or scroll position. [Details and screenshots](docs/updates/2.4.1/README.md).
 
----
+- Drawing tools open beside page navigation without changing the writing layout. Text, brush, eraser, undo/redo and more tools have explicit states; mobile navigation uses a page list instead of reserving a gutter across the entire note.
+- New strokes use a shared smooth renderer in the editor, published reader and image/PDF exports. Old strokes keep their original path style; **More tools → Smooth existing** is reversible with drawing Undo.
+- Marker, pressure pen, Shift for straight lines, Alt for a temporary eraser, selection/moving, colour/size editing, and an optional whole-stroke eraser. Brush and eraser settings are remembered independently.
+- **More tools → Attach new strokes to words** attaches a new annotation near a word. Insertions before the word move the annotation; replacing or deleting the word detaches the annotation as a free stroke rather than deleting it. Moving a selected annotation also detaches it. Text Undo restores attachments changed by that text edit.
+- Long notes render only a viewport-sized bitmap. Logical stroke coordinates survive shortened text and reload; drawing resolution no longer decreases with total page length.
+- **Settings → Page actions → Export PNG/PDF** includes text and drawings. Tall pages use a multipage PDF; a single PNG is bounded to 8 million logical pixels and 8192 px per side. PDF is an image of the board, with bundled fonts rendered into it, rather than editable/selectable PDF text.
+- **Settings → Page actions → Page history** offers up to 25 versions per page, 100 total and 10 MB locally. Versions are captured at most once per 30 seconds when a saved page changes. Recovering creates a new page. Portable workspace backups contain current pages, not the history database.
+- Pin pages, search snippets near the matching text, add a drawing description for shared copies, and switch interface language between English and Russian in Settings. User text and page names are never translated.
+- **Settings → Your data → Link management backup** exports/imports separate encrypted link controls. Keep its passphrase private. This file contains no note payloads and is not included in an ordinary workspace backup.
 
-## ✦ Themes
+New exports and published notes use schema version 2. This release still reads version-1 backups and links. Earlier apps reject version-2 backups/links rather than silently discarding new drawing properties. The local IndexedDB upgrade preserves existing pages and recovery snapshots.
 
-![Eight themes — Lavender, Midnight, Sepia, Forest, Ocean, Rosé, Charcoal, Paper](./screenshots/02-midnight.png)
+Publishing requires updating the short-link Worker together with the PWA because the Worker validates the published schema. No new server database migration is needed. See [implementation and verification](docs/updates/2.4.0/README.md).
 
-| Lavender | Midnight | Sepia | Forest |
-|:---:|:---:|:---:|:---:|
-| `#5B4FA8` on `#F2F0F8` | `#E4DFD0` on `#10172A` | `#4A2E1F` on `#F6EAD3` | `#1F4D2B` on `#EDF3E5` |
-| Ocean | Rosé | Charcoal | Paper |
-| `#0F4C5C` on `#E0EEF2` | `#7A3B4D` on `#FCEDEF` | `#DDDAD2` on `#1F1F23` | `#1A1A1A` on `#FAFAF7` |
+- **Publish a page as a link.** One page becomes a read-only link that anyone can open — the note travels inside the link itself, so nothing is uploaded and no account appears.
+- A desktop PWA for Chrome and Edge, designed for GitHub Pages and offline use after the first visit.
+- A local browser-extension build for personal use. The action focuses the existing editor page instead of opening competing writer tabs.
+- IndexedDB storage: pages are individual records rather than one giant `chrome.storage` object.
+- A single-writer lock. If the same workspace is opened in another tab, the new tab is clearly read-only, so it cannot overwrite the first tab's notes.
+- Portable `.blackboard.json` export/import, with validation and a recovery snapshot before every import.
+- Recovery snapshots before import, deleting a page, clearing drawings, and restoring a snapshot. The seven most recent are kept locally.
+- Existing writing tools: emoji-labelled pages, optional page names, page reordering, custom typography, themes, drawing, undo/redo, and word count.
+- New workspaces open with the dark **Blackboard** palette: `#0B0B0D` background, `#DDDAD2` text, and `#3D47FF` highlight. Existing saved themes are left unchanged.
 
-<table>
-<tr>
-<td><img src="./screenshots/03-sepia.png" alt="Sepia theme" /></td>
-<td><img src="./screenshots/04-forest.png" alt="Forest theme" /></td>
-</tr>
-</table>
+## Where to use it
 
----
+| Surface | Intended use | Updates |
+| --- | --- | --- |
+| PWA on GitHub Pages | Main app for Chrome and Edge desktop, and the address published links point at | A small **Reload** prompt appears when a new deployed version is ready. |
+| Unpacked browser extension | Personal local copy and one-time migration/export path for older local data | Reload it manually after pulling a new version. |
 
-## ✦ Pages & drawing
+The PWA and local extension intentionally keep separate local browser storage.
+Move notes between them through an exported backup; this avoids accounts and
+silent cloud sync.
 
-One page per emoji, switch in a click, sketch right on top.
+## Publishing a note
 
-<table>
-<tr>
-<td width="50%"><img src="./screenshots/05-pages.png" alt="Scrollable emoji page tabs" /></td>
-<td width="50%"><img src="./screenshots/07-drawing.png" alt="Brush strokes over text" /></td>
-</tr>
-</table>
+Open **Settings (gear) → Page actions → Share a copy…**. Short links upload the selected copy and can be disabled from Shared links in the same browser. Full links keep the copy inside the address without uploading it.
 
----
+For a **full link**, the page — its text, its drawings, and the theme and typography it was written
+in — is compressed into the link itself, after the `#`. Browsers never send
+that part of an address to a server, so publishing uploads nothing: the note
+does not reach GitHub, and there is no account, database, or note ID anywhere.
+The link opens in `read.html`, which renders the note read-only and works
+offline like the rest of the app.
 
-## ✦ Settings
+Two things follow from the note living inside the link:
 
-Themes, fonts, sizing, and the *Advanced* color drawer — all in one popover.
+- Anyone who has the link can read the page.
+- A published link cannot be revoked. There is no server-side copy to delete,
+  so treat sending one as final.
 
-![Settings panel](./screenshots/06-settings.png)
+The dialog shows how long the link is. Under about 4 KB is comfortable
+anywhere; past that, some chat apps shorten the address they display, and
+turning off **Include this page's drawings** is usually the biggest saving.
 
-| Setting | Default |
-|---|---|
-| Font | **BoardGrotesque Sans** · 40 px · line-height 1.6 |
-| Width | **1600 px** |
-| Theme | **Lavender** |
+A published note keeps the width it was published at. On a narrower screen a
+note *with drawings* is scaled down as a whole, so the strokes stay where they
+were drawn relative to the words; a note without drawings simply reflows.
 
----
+## Backups and recovery
 
-## ✦ Shortcuts
+Open **Settings → Your data**:
 
-| Shortcut | Action |
-|---|---|
-| `Ctrl` / `Cmd` + `N` | New page |
-| `Ctrl` / `Cmd` + `Z` | Undo last brush stroke |
-| `Alt` + `Shift` + `B` / `E` | Toggle brush / eraser |
-| `Tab` / `Shift` + `Tab` | Indent / outdent |
-| `Esc` | Close any popover |
+1. **Export backup** downloads a `blackboard-text_*.blackboard.json` file.
+2. **Import backup** validates the file, tells you how many pages it contains,
+   and only replaces the current workspace after a local recovery snapshot is
+   saved.
+3. **Restore latest snapshot** lets you undo a destructive import, page delete,
+   drawing clear, or earlier restore. Restoring itself first snapshots the
+   workspace it replaces.
 
----
+Browser storage can be removed by clearing site data, uninstalling an
+extension, or deleting a browser profile. Export a backup before doing any of
+those things. See [Privacy](./docs/privacy.md) for the exact data boundary.
 
-## ✦ Install locally
+## Migrating an existing unpacked Chrome extension
+
+The old extension data is never deleted automatically.
+
+1. In the original unpacked extension folder, update the project files to v2
+   and press **Reload** on `chrome://extensions` so the extension keeps its
+   existing extension identity and can still read its old `chrome.storage`.
+2. Open Blackboard Text. It copies the legacy workspace into IndexedDB and
+   leaves the old Chrome storage records in place.
+3. Open **Settings → Your data → Export backup**.
+4. Open the PWA or your local extension, then import that backup there.
+
+Do not expect a newly loaded, different unpacked extension to see the old
+extension's storage: browser extension storage is isolated by extension ID.
+
+## Development
+
+Requires Node 22.13 or later.
 
 ```bash
-git clone https://github.com/Piwqust/blackboard-text.git
-# chrome://extensions → Developer mode → Load unpacked → select the folder
+npm ci
+npm run verify
 ```
 
-The extension opens `editor.html` in a new tab — that's the whole UI.
+`npm run verify` runs syntax/JSON checks, core migration and backup tests,
+builds both targets, and checks the generated artifacts.
 
----
+```text
+dist/pwa/             GitHub Pages artifact
+dist/edge-extension/  Load this directory as your local unpacked extension
+```
 
-## ✦ Tech notes
+`dist/` is generated and intentionally not committed.
 
-- Manifest V3, service-worker action handler.
-- Strict CSP (`script-src 'self'`), zero dependencies, no build step.
-- `storage` permission only — no host permissions, no network.
-- Drawing coordinates stored in *text-scaled pixels* so strokes don't drift when font size or content width changes.
+## Shipping a change to the live PWA
 
-PRs welcome — keep it small, keep it quiet.
+GitHub Pages is the main product, so every feature has to reach it. The build
+handles most of that for you:
 
-<div align="center"><sub><strong>Blackboard Text · v1.6.0</strong> · Made for people who like a blank page.</sub></div>
+- A new page or module is picked up by `scripts/build.mjs`, and the offline
+  shell list inside `pwa-sw.js` is **generated from the files that were
+  actually copied** — there is no hand-maintained cache list to forget.
+- `scripts/verify-dist.mjs` fails the release if any deployed `.html`, `.css`,
+  or `.js` file is missing from that shell, or if a build placeholder survived.
+- `scripts/check.mjs` fails if `APP_VERSION` in `editor.js` and the version in
+  `package.json` drift apart.
+
+Add a brand-new top-level page to the `staticFiles` list in
+`scripts/build.mjs`; everything under `src/` is copied and checked already.
+
+1. In the repository's GitHub settings, enable **Pages** and choose **GitHub
+   Actions** as the deployment source.
+2. Change the version in `package.json` and `APP_VERSION` in `editor.js`, then
+   create a matching tag such as `v2.2.1`.
+3. Push the tag. The release workflow verifies the project, builds the PWA,
+   and deploys it to GitHub Pages.
+4. Visit `https://<account>.github.io/<repository>/` once while
+   online. After that, the app shell works offline. Later deployments appear
+   as an explicit Reload prompt rather than interrupting unsaved writing.
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+| --- | --- |
+| `Alt` + `Shift` + `N` | New page |
+| `Ctrl` / `Cmd` + `Z` | Undo text, or the last brush stroke in drawing mode |
+| `Ctrl` / `Cmd` + `Shift` + `Z` or `Ctrl` + `Y` | Redo text |
+| `Alt` + `Shift` + `B` / `E` | Toggle brush / eraser |
+| `Tab` / `Shift` + `Tab` | Indent / outdent |
+| `↑` `↓` on page tabs | Move focus between tabs (`Alt` + arrow reorders) |
+| `Esc` | Close a picker, the publish dialog, or a confirmation |
+
+## Licensing
+
+The application code is available under the [MIT License](./LICENSE). Inter
+and Inter Tight are bundled under the SIL Open Font License 1.1; see
+[`fonts/Inter-OFL.txt`](./fonts/Inter-OFL.txt). Board Grotesk is a proprietary
+project-owner asset supplied with permission; it is not covered by the MIT or
+Inter font licenses.
+
+### Safe editing support
+
+Editing requires Web Locks (Chrome/Edge on HTTPS or localhost). Other contexts open read-only; page navigation and backup export remain available. A localStorage lease is not used because it cannot guarantee a single writer.
+
+Browser regressions: `npm run build`, `npx playwright install chromium`, then `npm run test:browser`. These tests run the generated PWA and extension UI over HTTP; extension APIs and a real installed PWA update require separate checks.
+
+## Changes in 2.2.1
+
+- Search names and note text with **Settings → Find a page** or **Ctrl/⌘ K**.
+- **Page actions** provides sharing, TXT/Markdown export, recovery, drawing redo and keyboard help.
+- Import either replaces the workspace or adds pages. Matching IDs can be kept as separate copies or skipped.
+- **Settings → Your data → Recovery snapshots → Browse recovery history** previews the seven local snapshots and recovers individual pages as new pages.
+- Published links retain the original board and offer **Readable text** plus board zoom. Drawings remain in the original view.
+- Local-save status, retry and backup are available in **Settings → Your data**.
+- The rendering bitmap is capped at 8 million pixels / 8192 per side. Very long notes trade drawing sharpness for bounded memory; note data is retained.
+
+The automated suite covers Chromium, an unpacked extension in an isolated Chromium profile, and real service-worker installation/offline/update. Installed Chrome and Edge layout checks are recorded in the audit verification folder. VoiceOver, physical touch/stylus devices, and PDF/PNG export remain separate checks.
+
+## Short links in 2.3.0
+
+The app remains on GitHub Pages. A separate Cloudflare Worker/D1 stores copies only when you press Create short link. Links use the project's static s/ route, with no Pages rewrites. Sharing controls list copies from this browser and let you disable them. The old full-link option is preserved.
+
+[Setup, testing, privacy and rollback](docs/short-links/README.md).
+
+## Interface cleanup in 2.3.1
+
+Workspace commands have moved into Settings. The editor has no top workspace toolbar or reserved header gap. Drawing tools start collapsed and open vertically inside the right gutter. Hidden Settings controls are inert; search remains available with Ctrl/⌘ K. Short links and all existing data actions are preserved.
+
+## Interface pass in 2.3.3
+
+The right gutter is one column of equally sized chips: show drawing tools, the
+page tabs, and add a page. The brush palette is horizontal again and opens to
+the left of its chip as an overlay, so it no longer stretches down the gutter.
+
+Settings keeps its title and Reset in place while the middle scrolls, and runs
+Pages → Theme → Layout → Colours → Your data. Backup keeps two buttons, with
+snapshots behind a Recovery snapshots disclosure.
+
+Every modal is centred, scrolls inside one surface, and shares the same
+heading, option rows, select, disclosure and buttons. Import shows the
+matching-ID rule only in Add mode. Delete and Clear confirmations are opaque,
+so they can no longer be read through onto the emoji grid behind them.
+
+A second pass added the finish: one stroked icon set for rows and commands,
+press feedback on every control, panels that grow out of the control they
+belong to, modals that scale in through `@starting-style`, and disclosures
+that animate their own height. Ctrl/⌘ K opens search with no animation at all.
+On phones the brush palette docks to the bottom of the screen with 44 px
+targets instead of hanging over the note. Reduced motion drops travel and blur
+but keeps the fades.

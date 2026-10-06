@@ -1,0 +1,7 @@
+{
+  "comparedTrackedFiles": 61,
+  "changedTrackedFiles": [],
+  "gitStatus": "## codex/pwa-edge-foundation...blackboard-text/codex/pwa-edge-foundation\n?? .claude/\n?? docs/audits/\n",
+  "auditOnly": true,
+  "note": "Added docs/audits/2026-09-18 and scratch .tmp files. Existing untracked .claude retained."
+}

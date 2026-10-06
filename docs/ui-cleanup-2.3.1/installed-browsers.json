@@ -1,0 +1,82 @@
+[
+  {
+    "channel": "chrome",
+    "version": "153.0.8010.36",
+    "dpr": 2,
+    "pages": 12,
+    "layouts": [
+      {
+        "width": 1440,
+        "bodyTop": 0,
+        "bodyRight": 1344,
+        "toolsLeft": 1361,
+        "railLeft": 1360,
+        "workspaceBarPresent": false
+      },
+      {
+        "width": 1280,
+        "bodyTop": 0,
+        "bodyRight": 1184,
+        "toolsLeft": 1201,
+        "railLeft": 1200,
+        "workspaceBarPresent": false
+      },
+      {
+        "width": 390,
+        "bodyTop": 0,
+        "bodyRight": 310,
+        "toolsLeft": 322,
+        "railLeft": 322,
+        "workspaceBarPresent": false
+      },
+      {
+        "width": 320,
+        "bodyTop": 0,
+        "bodyRight": 240,
+        "toolsLeft": 254.3125,
+        "railLeft": 254.3125,
+        "workspaceBarPresent": false
+      }
+    ]
+  },
+  {
+    "channel": "msedge",
+    "version": "153.0.4234.48",
+    "dpr": 2,
+    "pages": 12,
+    "layouts": [
+      {
+        "width": 1440,
+        "bodyTop": 0,
+        "bodyRight": 1344,
+        "toolsLeft": 1361,
+        "railLeft": 1360,
+        "workspaceBarPresent": false
+      },
+      {
+        "width": 1280,
+        "bodyTop": 0,
+        "bodyRight": 1184,
+        "toolsLeft": 1201,
+        "railLeft": 1200,
+        "workspaceBarPresent": false
+      },
+      {
+        "width": 390,
+        "bodyTop": 0,
+        "bodyRight": 310,
+        "toolsLeft": 322,
+        "railLeft": 322,
+        "workspaceBarPresent": false
+      },
+      {
+        "width": 320,
+        "bodyTop": 0,
+        "bodyRight": 240,
+        "toolsLeft": 254.3125,
+        "railLeft": 254.3125,
+        "workspaceBarPresent": false
+      }
+    ]
+  }
+]
