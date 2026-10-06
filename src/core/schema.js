@@ -1,5 +1,5 @@
 export const WORKSPACE_FORMAT = 'BlackboardTextWorkspace';
-export const WORKSPACE_SCHEMA_VERSION = 1;
+export const WORKSPACE_SCHEMA_VERSION = 2;
 export const MAX_PAGE_TITLE_LENGTH = 80;
 export const MAX_BACKUP_PAGES = 10_000;
 
@@ -77,7 +77,13 @@ export function normalizeSettings(input = {}, defaults = DEFAULT_WORKSPACE_SETTI
     selectionColor: normalizeHex(source.selectionColor, selectionFallback),
     currentTheme: typeof source.currentTheme === 'string' && source.currentTheme.trim()
       ? source.currentTheme.trim().slice(0, 40)
-      : baseline.currentTheme
+      : baseline.currentTheme,
+    drawTools:Object.fromEntries(['brush','eraser','marker','pen'].filter(tool=>source.drawTools?.[tool]&&typeof source.drawTools[tool]==='object').map(tool=>[tool,{size:finiteNumber(source.drawTools[tool].size,baseline.drawSize,0.08,1.4),color:normalizeHex(source.drawTools[tool].color,textColor),mode:source.drawTools[tool].mode==='theme'?'theme':'custom'}])),
+    drawLastTool:['brush','eraser','marker','pen'].includes(source.drawLastTool)?source.drawLastTool:'brush',
+    drawFollowText:source.drawFollowText===true,
+    drawEraseWhole:source.drawEraseWhole===true,
+    // Older workspaces chose the pressure pen as a separate tool.
+    drawPressure:source.drawPressure===true||source.drawLastTool==='pen'
   };
 }
 
@@ -86,7 +92,7 @@ function normalizePoint(point) {
   const x = Number(point.x);
   const y = Number(point.y);
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-  return { x, y };
+  return { x, y, ...(Number.isFinite(Number(point.pressure)) ? {pressure:finiteNumber(point.pressure,0.5,0,1)} : {}) };
 }
 
 export function normalizeStroke(stroke = {}, fallbackFontSize = DEFAULT_WORKSPACE_SETTINGS.fontSize) {
@@ -105,12 +111,19 @@ export function normalizeStroke(stroke = {}, fallbackFontSize = DEFAULT_WORKSPAC
 
   return {
     id: typeof source.id === 'string' && source.id ? source.id : createWorkspaceId(),
-    tool: source.tool === 'eraser' ? 'eraser' : 'brush',
+    tool: ['eraser','marker','pen'].includes(source.tool) ? source.tool : 'brush',
     color: normalizeHex(source.color, DEFAULT_WORKSPACE_SETTINGS.drawColor),
     width: normalizedWidth,
     points: normalizedPoints,
     coordinateSpace: 'text-scaled-px',
-    referenceFontSize
+    referenceFontSize,
+    ...(source.renderer === 'smooth-v1' ? {renderer:'smooth-v1'} : {}),
+    ...(Number.isFinite(source.referencePaddingX) ? {referencePaddingX:finiteNumber(source.referencePaddingX,48,0,1000)} : {}),
+    ...(Number.isFinite(source.referencePaddingY) ? {referencePaddingY:finiteNumber(source.referencePaddingY,48,0,1000)} : {}),
+    ...(Number.isFinite(source.referenceLineHeight) ? {referenceLineHeight:finiteNumber(source.referenceLineHeight,1.6,1,3)} : {}),
+    ...(source.tool === 'marker' ? {opacity:finiteNumber(source.opacity,0.25,0.05,0.8)} : {}),
+    ...(source.anchor && Number.isInteger(source.anchor.start) && Number.isInteger(source.anchor.end) && source.anchor.start>=0 && source.anchor.end>source.anchor.start && source.anchor.box && ['x','y','width','height'].every(key=>Number.isFinite(source.anchor.box[key])&&Math.abs(source.anchor.box[key])<=1_000_000)
+      ? {anchor:{start:source.anchor.start,end:source.anchor.end,text:String(source.anchor.text||'').slice(0,1000),box:{x:source.anchor.box.x,y:source.anchor.box.y,width:Math.max(1,source.anchor.box.width),height:Math.max(1,source.anchor.box.height)}}} : {})
   };
 }
 
@@ -136,6 +149,8 @@ export function normalizePage(page = {}, {
     id: typeof source.id === 'string' && source.id ? source.id : createWorkspaceId(),
     emoji: typeof source.emoji === 'string' ? source.emoji.slice(0, 16) : '📝',
     title: title.slice(0, MAX_PAGE_TITLE_LENGTH),
+    pinned: source.pinned === true,
+    drawingDescription: typeof source.drawingDescription === 'string' ? source.drawingDescription.slice(0,2000) : '',
     content: typeof sanitizedContent === 'string' ? sanitizedContent : '',
     drawings: Array.isArray(source.drawings)
       ? source.drawings.map(stroke => normalizeStroke(stroke, fontSize))

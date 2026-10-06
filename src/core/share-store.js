@@ -24,5 +24,16 @@ export function createShareStore() {
   return {
     put(record) {return transact('readwrite', store => store.put(structuredClone(record)));},
     async list() {return (await transact('readonly', store => store.getAll())).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));}
+    ,async merge(records) {
+      const db=await open();return new Promise((resolve,reject)=>{
+        const transaction=db.transaction('links','readwrite'),store=transaction.objectStore('links'),request=store.getAll();
+        let conflict=false;
+        request.onsuccess=()=>{const existing=new Map(request.result.map(record=>[record.id,record]));
+          if(records.some(record=>existing.has(record.id)&&existing.get(record.id).managementKey!==record.managementKey)){conflict=true;transaction.abort();return;}
+          for(const record of records)store.put({...record,...(existing.get(record.id)||{})});
+        };
+        transaction.oncomplete=()=>resolve();transaction.onabort=()=>reject(new Error(conflict?'An existing link has a different management key. Nothing was imported.':'Link-key import failed.'));transaction.onerror=()=>reject(transaction.error);
+      });
+    }
   };
 }

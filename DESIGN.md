@@ -1,0 +1,7 @@
+# Blackboard Text design
+
+The existing app is the visual reference, including the screenshots under docs/audits/2026-10-04/evidence. Keep the current theme tokens, Inter Tight note typography, stroked icons, settings surface, quiet borders and press feedback.
+
+The note always starts at its existing 48px vertical inset. Opening or closing drawing tools never changes note layout or scroll position. The drawing toolbar opens beside the page rail on desktop and directly above page navigation on phones. It holds only the four tools (pen, marker, eraser, select) followed by undo and More. Tapping a tool picks it; tapping the active tool opens its ink panel: one row of six size dots, one row of colours (theme ink, four chalk colours, custom) plus recent custom colours, and that tool's own switch (pressure for the pen, whole strokes for the eraser, delete for a selection). The last line of the pen and marker icons previews each tool's current colour and thickness. More holds redo, smoothing, follow text and clearing the page. Only one panel is open at a time; drawing on the board, Escape or any outside tap closes it, and hiding the toolbar returns to text. No large settings card or explanatory paragraph floats over the note.
+
+Use at least 44px touch targets for drawing controls. Keep the palette inside the viewport and prevent transitions between responsive layouts from travelling offscreen. Respect prefers-reduced-motion. Preserve all existing themes and the scrollbar behaviour.

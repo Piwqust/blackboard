@@ -1,13 +1,13 @@
 {
   "name": "blackboard-text",
-  "version": "2.3.3",
+  "version": "2.4.1",
   "private": true,
   "type": "module",
   "description": "Local-first PWA and personal browser extension for quiet note taking.",
   "scripts": {
     "build": "node scripts/build.mjs",
     "lint": "eslint . && node scripts/check.mjs",
-    "test": "node --test tests/core.test.mjs tests/short-links.test.mjs",
+    "test": "node --test tests/core.test.mjs tests/short-links.test.mjs tests/improvements.test.mjs",
     "verify": "npm run lint && npm run test && npm run build && node scripts/verify-dist.mjs",
     "test:browser": "playwright test",
     "shares:dev": "wrangler dev --config backend/short-links/wrangler.jsonc",

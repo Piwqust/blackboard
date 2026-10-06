@@ -61,7 +61,10 @@ export default {
     const respond = (status, body) => reply(request, env, status, body);
     const path = new URL(request.url).pathname;
     if (request.headers.has('Origin') && !corsOrigin(request, env)) return respond(403, {error: 'Origin not allowed.'});
-    if (path === '/health' && request.method === 'GET') return respond(200, {service: 'blackboard-short-links', version: 1});
+    if (path === '/health' && request.method === 'GET') {
+      try{const budget=await env.DB.prepare('SELECT bytes, records FROM share_budget WHERE singleton = 1').first();return respond(200,{service:'blackboard-short-links',version:1,bytesRemaining:Math.max(0,100000000-(budget?.bytes||0)),recordsRemaining:Math.max(0,10000-(budget?.records||0))});}
+      catch{return respond(503,{service:'blackboard-short-links',version:1,status:'unavailable'});}
+    }
     const match = /^\/v1\/notes\/([^/]+)$/.exec(path);
     if (!match || !ID.test(match[1])) return respond(404, {error: 'Link not found.'});
     if (request.method === 'OPTIONS') return respond(204);
@@ -106,7 +109,10 @@ export default {
         env.DB.prepare('UPDATE share_budget SET bytes = bytes + ?, records = records + 1 WHERE singleton = 1 AND changes() = 1').bind(body.token.length)
       ]);
       const row = await env.DB.prepare('SELECT created_at, revoked_at, payload_hash FROM shares WHERE id = ? AND owner_hash = ?').bind(id, ownerHash).first();
-      if (!row) return respond(409, {error: 'This link ID is already in use.'});
+      if (!row) {
+        const collision=await env.DB.prepare('SELECT id FROM shares WHERE id = ?').bind(id).first();
+        return collision?respond(409,{error:'This link ID is already in use.'}):respond(507,{error:'The sharing service has reached its storage limit. Use the full link or export this page.'});
+      }
       if (row.revoked_at) return respond(410, {error: 'This link was disabled and cannot be recreated.'});
       if (row.payload_hash !== payloadHash) return respond(409, {error: 'A published copy cannot be changed. Create a new link.'});
       return respond(200, {id, createdAt: row.created_at});

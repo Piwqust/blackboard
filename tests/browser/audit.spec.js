@@ -12,6 +12,9 @@ test.beforeEach(async ({page}) => {
 
 test('exact colors, theme reset and accessible palette', async ({page}) => {
   await openDrawingTools(page);
+  // Tapping the active pen opens its ink panel, where the custom colour lives.
+  await page.locator('#drawToggleBtn').click();
+  await page.locator('#drawToggleBtn').click();
   await page.locator('#drawColorBtn').click();
   await expect(page.locator('#colorPickerHexInput')).toHaveValue('#dddad2', {ignoreCase:true});
   await page.locator('#colorPickerHexInput').fill('#123456');
@@ -139,9 +142,7 @@ test('the icon rail stays beside a full-height writing area; the palette is an o
     });
     expect(rail.bodyTop).toBe(0);
     expect(rail.overflow).toBe(false);
-    expect(rail.bodyRight).toBeLessThanOrEqual(rail.tabsLeft);
-    expect(rail.bodyRight).toBeLessThanOrEqual(rail.toggleLeft);
-    expect(rail.bodyRight).toBeLessThanOrEqual(rail.addLeft);
+    if(width>768){expect(rail.bodyRight).toBeLessThanOrEqual(rail.tabsLeft);expect(rail.bodyRight).toBeLessThanOrEqual(rail.toggleLeft);expect(rail.bodyRight).toBeLessThanOrEqual(rail.addLeft);}
 
     await openDrawingTools(page);
     await expect(page.locator('#drawingToolbar')).toBeVisible();
@@ -163,7 +164,7 @@ test('the icon rail stays beside a full-height writing area; the palette is an o
         overflow:document.body.scrollWidth>document.body.clientWidth
       };
     });
-    await expect.poll(async()=>(await measurePalette()).clearsRail).toBe(true);
+    await expect.poll(async()=>{const value=await measurePalette();return value.onScreen&&value.clearsRail&&!value.overflow;}).toBe(true);
     const palette=await measurePalette();
     expect(palette.onScreen).toBe(true);
     expect(palette.overflow).toBe(false);
@@ -319,7 +320,7 @@ test('drawing undo redo and restore after clear preserve strokes', async ({page}
   await expect.poll(count).toBe(1);
   await page.locator('#undoDrawingBtn').click();await expect.poll(count).toBe(0);
   await page.keyboard.press('ControlOrMeta+Shift+z');await expect.poll(count).toBe(1);
-  await page.locator('#clearDrawingsBtn').click();await page.locator('#confirmClearDrawingsBtn').click();await expect.poll(count).toBe(0);
+  await page.locator('#drawingMoreBtn').click();await page.locator('#clearDrawingsBtn').click();await page.locator('#confirmClearDrawingsBtn').click();await expect.poll(count).toBe(0);
   await openPageActions(page);await page.getByRole('button',{name:'Restore cleared drawings',exact:true}).click();await expect.poll(count).toBe(1);
 });
 

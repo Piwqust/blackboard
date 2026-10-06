@@ -22,73 +22,41 @@
     <!-- The toolbar floats out of this wrapper's flow, so hiding it never
          shifts the arrow or the page rail — it just dissolves in place. -->
     <div class="rail-tools">
+    <!-- Tools only. Tapping the active tool opens its ink (size, colour and
+         the tool's own options); everything rarely needed sits behind "More".
+         The pen and marker icons end in an ink line that shows each tool's
+         current colour and thickness. -->
     <div id="drawingToolbar" class="drawing-toolbar" role="toolbar" aria-label="Drawing tools">
-      <div class="drawing-toolbar-group drawing-toolbar-group-tools" role="group" aria-label="Brush and eraser">
-        <button id="drawToggleBtn" class="drawing-tool-button drawing-toggle-button" type="button" aria-pressed="false" title="Brush tool (Alt+Shift+B)">
-          <svg class="drawing-tool-icon drawing-tool-icon-light" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M6.14425 19.9399C5.40992 19.9736 4.75077 19.4898 4.56381 18.7786C4.07716 16.9264 4.45299 14.9528 5.58724 13.41L11.5023 5.36036C12.5932 3.8763 14.6815 3.55732 16.1656 4.64724C17.6496 5.73909 17.9686 7.82642 16.8777 9.31049L10.9626 17.3601C9.8284 18.903 8.05715 19.8512 6.14425 19.9399Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M13.459 20H19.6448" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <svg class="drawing-tool-icon drawing-tool-icon-bulk" viewBox="0 0 25 24" fill="none" aria-hidden="true">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M16.291 4.27181C14.806 3.18181 12.718 3.50081 11.627 4.98481L5.712 13.0348C4.578 14.5778 4.202 16.5508 4.689 18.4038C4.876 19.1148 5.535 19.5988 6.269 19.5648C8.182 19.4758 9.953 18.5278 11.088 16.9848L17.003 8.93481C18.094 7.45081 17.775 5.36381 16.291 4.27181Z" fill="currentColor"/>
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M19.7695 18.875H13.5835C13.1695 18.875 12.8335 19.211 12.8335 19.625C12.8335 20.039 13.1695 20.375 13.5835 20.375H19.7695C20.1835 20.375 20.5195 20.039 20.5195 19.625C20.5195 19.211 20.1835 18.875 19.7695 18.875Z" fill="currentColor"/>
-          </svg>
-        </button>
-
-        <button id="eraseToggleBtn" class="drawing-tool-button drawing-toggle-button" type="button" aria-pressed="false" title="Eraser tool (Alt+Shift+E)">
-          <svg class="drawing-tool-icon drawing-tool-icon-light" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M3 20.084H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M10.7758 19.9725L19.3272 11.421C20.2554 10.4928 20.2554 8.98764 19.3272 8.05942L15.8809 4.61218C14.9527 3.68396 13.4475 3.68396 12.5193 4.61218L3.75089 13.3806C2.7497 14.3818 2.7497 16.0057 3.75089 17.0069L6.77684 20.0328" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8.06836 9.0625L14.8763 15.8714" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <svg class="drawing-tool-icon drawing-tool-icon-bulk" viewBox="0 0 25 24" fill="none" aria-hidden="true">
-            <path d="M12.62 19.21H21.5C21.91 19.21 22.25 19.54 22.25 19.96C22.25 20.37 21.91 20.71 21.5 20.71H3.5C3.09 20.71 2.75 20.37 2.75 19.96C2.75 19.54 3.09 19.21 3.5 19.21H5.87H12.62Z" fill="currentColor"/>
-            <path opacity="0.4" d="M14.9879 16.8423L12.62 19.2102H5.87L3.9 17.2302C2.7 16.0402 2.7 14.1002 3.9 12.9002L7.47787 9.33173C7.59507 9.21484 7.7848 9.21496 7.90185 9.33201L14.9879 16.418C15.105 16.5352 15.105 16.7251 14.9879 16.8423Z" fill="currentColor"/>
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M20.1799 11.65C21.2999 10.53 21.2999 8.70004 20.1799 7.58004L16.7299 4.13004C15.6099 3.01004 13.7899 3.01004 12.6699 4.13004L8.96189 7.83805C8.84479 7.95515 8.84473 8.14499 8.96175 8.26217L16.0478 15.3576C16.1649 15.4749 16.355 15.475 16.4722 15.3578L20.1799 11.65Z" fill="currentColor"/>
-          </svg>
-        </button>
+      <div class="drawing-toolbar-group drawing-toolbar-group-tools" role="group" aria-label="Tools">
+        <button id="drawToggleBtn" class="drawing-tool-button" type="button" data-tool="pen" aria-pressed="false" aria-controls="drawInkPanel" aria-label="Pen" title="Pen (B)"><span data-icon="brush"></span></button>
+        <button id="markerToggleBtn" class="drawing-tool-button" type="button" data-tool="marker" aria-pressed="false" aria-controls="drawInkPanel" aria-label="Marker" title="Marker"><span data-icon="marker"></span></button>
+        <button id="eraseToggleBtn" class="drawing-tool-button" type="button" data-tool="eraser" aria-pressed="false" aria-controls="drawInkPanel" aria-label="Eraser" title="Eraser (E)"><span data-icon="eraser"></span></button>
+        <button id="selectToggleBtn" class="drawing-tool-button" type="button" data-tool="select" aria-pressed="false" aria-controls="drawInkPanel" aria-label="Select strokes" title="Select strokes"><span data-icon="lasso"></span></button>
       </div>
-
-      <div class="drawing-toolbar-group" role="group" aria-label="Brush size">
-        <button id="drawSizeToggleBtn" class="drawing-tool-button drawing-size-toggle" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="drawSizePopover" title="Brush size">
-          <svg viewBox="0 0 25 24" fill="none" aria-hidden="true">
-            <path d="M11.0312 17.2578H14.9278" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M3.98047 10.7305H7.877" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M18.084 10.3066H21.9805" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M12.9805 20.6017V17.2578" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M5.92773 20.6007V10.7305" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M20.0312 20.6011V10.3066" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M5.92773 6.6616V3.39844" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M20.0312 6.2374V3.39844" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M12.9785 13.1879V3.39844" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span id="drawSizeToggleStroke" class="drawing-size-toggle-stroke" aria-hidden="true"></span>
-        </button>
-      </div>
-
-      <div class="drawing-toolbar-group">
-        <button id="drawColorBtn" class="drawing-tool-button drawing-color-button" type="button" title="Brush color">
-          <span id="drawColorPreview" class="drawing-color-preview"></span>
-        </button>
-      </div>
-
       <div class="drawing-toolbar-group drawing-toolbar-group-actions">
-        <button id="undoDrawingBtn" class="drawing-tool-button" type="button" title="Undo last stroke (Ctrl/Cmd+Z)">
-          <svg viewBox="0 0 24 25" fill="none" aria-hidden="true">
-            <path d="M7.05318 11.6893C5.86071 10.4969 5.19247 9.82781 4 8.63534C5.19247 7.44381 5.86071 6.7745 7.05318 5.58203" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M4 8.63672H14.8574C17.6969 8.63672 20 10.9398 20 13.7793C20 16.6198 17.6969 18.9228 14.8574 18.9228H6.41976" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-
-        <button id="clearDrawingsBtn" class="drawing-tool-button drawing-tool-button-danger" type="button" title="Clear page drawings" aria-haspopup="dialog" aria-expanded="false" aria-controls="clearDrawingsConfirm">
-          <svg viewBox="0 0 25 24" fill="none" aria-hidden="true">
-            <path d="M15.2124 3.87898L16.0306 5.66377H18.67C19.4815 5.66377 20.1394 6.32166 20.1394 7.1332V8.2214C20.1394 8.77625 19.6896 9.22605 19.1348 9.22605H5.36501C4.81015 9.22605 4.36035 8.77625 4.36035 8.2214V7.1332C4.36035 6.32166 5.01823 5.66377 5.82978 5.66377H8.4692L9.2874 3.87898C9.53294 3.34338 10.0681 3 10.6573 3H13.8425C14.4317 3 14.9668 3.34338 15.2124 3.87898Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M18.6004 9.30078V17.9865C18.6004 19.6511 17.2677 21.0005 15.6238 21.0005H8.87696C7.23305 21.0005 5.90039 19.6511 5.90039 17.9865V9.30078" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M10.5596 12.8164V17.3248M13.94 12.8164V17.3248" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
+        <button id="undoDrawingBtn" class="drawing-tool-button" type="button" aria-label="Undo" title="Undo (Ctrl/Cmd+Z)"><span data-icon="undo"></span></button>
+        <button id="drawingMoreBtn" class="drawing-tool-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="drawingAdvancedPanel" aria-label="More drawing options" title="More drawing options"><span data-icon="more"></span></button>
       </div>
+    </div>
 
+    <div id="drawInkPanel" class="drawing-popover drawing-ink-panel" role="dialog" aria-modal="false" aria-label="Pen settings" hidden>
+      <div id="drawSizeMarkers" class="drawing-ink-row" role="group" aria-label="Size"></div>
+      <div id="drawInkColors" class="drawing-ink-row" role="group" aria-label="Colour">
+        <button id="drawColorBtn" class="drawing-ink-swatch drawing-ink-custom" type="button" aria-label="Custom colour" title="Custom colour"><span data-icon="plus"></span></button>
+      </div>
+      <div id="recentDrawingColors" class="drawing-ink-row" role="group" aria-label="Recent drawing colours"></div>
+      <label id="pressureOption" class="drawing-menu-item drawing-option"><span>Pressure</span><input type="checkbox" id="pressureToggle"></label>
+      <label id="eraseWholeOption" class="drawing-menu-item drawing-option"><span>Erase whole strokes</span><input type="checkbox" id="eraseWholeToggle"></label>
+      <button id="deleteSelectedStrokeBtn" class="drawing-menu-item drawing-menu-item-danger" type="button"><span data-icon="trash" class="drawing-menu-icon"></span><span>Delete stroke</span></button>
+      <input type="range" id="drawSize" min="0.08" max="1.4" step="0.01" value="0.22" aria-label="Brush size" hidden>
+    </div>
+
+    <div id="drawingAdvancedPanel" class="drawing-popover drawing-menu" role="group" aria-label="More drawing options" hidden>
+      <button id="redoDrawingBtn" class="drawing-menu-item" type="button" title="Redo (Ctrl/Cmd+Shift+Z)"><span data-icon="redo" class="drawing-menu-icon"></span><span>Redo</span></button>
+      <button id="smoothExistingDrawingsBtn" class="drawing-menu-item" type="button" title="Smooth existing drawings (can undo)"><span data-icon="curve" class="drawing-menu-icon"></span><span>Smooth strokes</span></button>
+      <label class="drawing-menu-item drawing-option" title="Attach new strokes to words"><span data-icon="pin" class="drawing-menu-icon"></span><span>Follow text</span><input type="checkbox" id="followTextToggle"></label>
+      <div class="drawing-menu-separator" role="separator"></div>
+      <button id="clearDrawingsBtn" class="drawing-menu-item drawing-menu-item-danger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="clearDrawingsConfirm"><span data-icon="trash" class="drawing-menu-icon"></span><span>Clear page</span></button>
     </div>
 
       <button id="drawingToolbarVisibilityToggleBtn" class="rail-collapse-toggle" type="button" aria-expanded="false" aria-controls="drawingToolbar" title="Show drawing tools" aria-label="Show drawing tools">
@@ -108,19 +76,6 @@
     </div>
 
     <input type="color" id="drawColor" value="#5B4FA8" hidden>
-
-    <div class="drawing-size-popover" id="drawSizePopover" role="dialog" aria-modal="false" aria-labelledby="drawSizePopoverTitle" hidden>
-      <div class="drawing-size-popover-header">
-        <p id="drawSizePopoverTitle" class="drawing-size-popover-title">Brush size</p>
-        <span id="drawSizeValue" class="drawing-size-value" title="Stroke width">4px</span>
-      </div>
-
-      <label class="drawing-size-control" for="drawSize">
-        <input type="range" id="drawSize" class="drawing-size-slider" min="0.08" max="1.4" step="0.01" value="0.22" aria-label="Brush size">
-      </label>
-
-      <div class="drawing-size-markers" id="drawSizeMarkers" role="list" aria-label="Brush size presets"></div>
-    </div>
 
     <!-- Page tabs -->
     <div class="page-tabs">
@@ -511,8 +466,9 @@
           <button id="copyPublishLinkBtn" class="secondary-btn" type="button">Copy link</button>
         </div>
         <p class="publish-size" id="publishSizeHint" data-tier="ok">Building the link…</p>
-        <a id="previewPublishLink" class="dialog-link" target="_blank" rel="noopener" hidden>Preview this copy</a>
       </div>
+      <p id="publishCapturedAt" class="dialog-note"></p>
+      <a id="previewPublishLink" class="dialog-link" target="_blank" rel="noopener" hidden>Preview this copy</a>
       <details id="sharedLinksDetails" class="dialog-disclosure">
         <summary class="dialog-disclosure-summary">
           <span>Shared links from this browser</span>

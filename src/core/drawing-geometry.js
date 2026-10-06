@@ -3,6 +3,7 @@
 // wrappers that fill in its DOM-derived defaults. Keeping one copy is what
 // stops a published note from rendering its drawings differently than the
 // editor that made it.
+import {renderStroke} from './drawing-renderer.js';
 export const MIN_DRAW_SIZE = 0.08;
 export const MAX_DRAW_SIZE = 1.4;
 export const DEFAULT_DRAW_SIZE = 4 / 18;
@@ -64,29 +65,5 @@ export function getBrushSizeInPixels(size, fontSize, scale = 1) {
 // device pixel ratio. Used by the reader; the editor has its own incremental
 // path because it paints while the pointer is still moving.
 export function paintStroke(context, stroke, { fontSize = DEFAULT_FONT_SIZE, scale = 1 } = {}) {
-  if (!context || !stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) return;
-
-  const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
-  const points = stroke.points.map(point => convertPointToCanvasPixels(point, referenceFontSize, fontSize, scale));
-  const [startPoint, ...tailPoints] = points;
-  const isEraserStroke = stroke.tool === 'eraser';
-
-  context.save();
-  context.globalCompositeOperation = isEraserStroke ? 'destination-out' : 'source-over';
-  context.strokeStyle = isEraserStroke ? '#000000' : (stroke.color || '#000000');
-  context.lineWidth = getBrushSizeInPixels(stroke.width, fontSize, scale);
-  context.lineCap = 'round';
-  context.lineJoin = 'round';
-  context.beginPath();
-  context.moveTo(startPoint.x, startPoint.y);
-
-  if (tailPoints.length === 0) {
-    // Single-point stroke — nudge a hair so a dot renders.
-    context.lineTo(startPoint.x + 0.01, startPoint.y + 0.01);
-  } else {
-    tailPoints.forEach(point => context.lineTo(point.x, point.y));
-  }
-
-  context.stroke();
-  context.restore();
+  renderStroke(context,stroke,{fontSize,scale});
 }

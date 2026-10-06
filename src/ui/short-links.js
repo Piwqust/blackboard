@@ -77,13 +77,13 @@ export function setupShortLinks({dialog, getSnapshot, baseUrl, onError}) {
       for (const record of records) {
         const row = document.createElement('div'); row.className = 'shared-link-row';
         const title = document.createElement('strong');title.textContent = record.title;row.append(title);
-        const meta = document.createElement('small');meta.textContent = new Date(record.createdAt).toLocaleString()+' · '+({active:'Available',pending:'Creation needs confirmation',revoked:'Disabled'}[record.state] || 'Unknown');row.append(meta);
+        const meta = document.createElement('small');meta.textContent = new Date(record.createdAt).toLocaleString()+' · '+({active:'Published copy',pending:'Creation needs confirmation',revoked:'Disabled'}[record.state] || 'Unknown');row.append(meta);
         if (record.state !== 'revoked') {
           const input = document.createElement('input');input.readOnly = true;input.value = record.url;input.setAttribute('aria-label','Short link for '+record.title);row.append(input);
           const actions=document.createElement('div');actions.className='shared-link-actions';row.append(actions);
           const add=(text,fn)=>{const b=document.createElement('button');b.type='button';b.className='delete-confirm-cancel';b.textContent=text;b.addEventListener('click',fn);actions.append(b);return b;};
           if(record.state==='active') add('Copy',()=>void copyText(record.url,input));
-          if(record.state==='pending') {
+          if(record.state==='pending' && record.token) {
             const retry=add('Retry same link',async()=>{
               retry.disabled=true;
               try {await upload(record,generation);}catch(error){meta.textContent=error.message;}

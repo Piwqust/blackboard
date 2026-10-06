@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-04",
+  "version": "2.3.3",
+  "node": "26.7.0",
+  "verify": {
+    "passed": true,
+    "unitPassed": 24,
+    "offlineShellEntries": 42
+  },
+  "browser": {
+    "passed": 38,
+    "failed": 1,
+    "skipped": 7,
+    "failure": "palette.onScreen; audit.spec.js:168"
+  },
+  "repeatedPalette": {
+    "passed": 1,
+    "failed": 2
+  },
+  "shortLinks": {
+    "apiPassed": true,
+    "browserPassed": 4
+  },
+  "npmAudit": {
+    "packages": 3,
+    "high": 1,
+    "moderate": 2,
+    "scope": "development tools"
+  },
+  "launchVideo": {
+    "lintPassed": false,
+    "error": "Shy.tsx:397 unused i",
+    "typecheckPassed": true
+  },
+  "productionChanged": false
+}

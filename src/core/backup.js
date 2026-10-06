@@ -46,7 +46,7 @@ export function parseWorkspaceBackup(text, options = {}) {
     throw new Error('This is not a Blackboard Text backup.');
   }
 
-  if (backup.schemaVersion !== WORKSPACE_SCHEMA_VERSION) {
+  if (![1, WORKSPACE_SCHEMA_VERSION].includes(backup.schemaVersion)) {
     throw new Error(`This backup uses schema version ${String(backup.schemaVersion)} and cannot be imported by this release.`);
   }
 

@@ -12,4 +12,5 @@ export async function openDrawingTools(page) {
   if (await page.locator('#drawingToolbarVisibilityToggleBtn').getAttribute('aria-expanded') !== 'true') {
     await page.locator('#drawingToolbarVisibilityToggleBtn').click();
   }
+  if(await page.locator('#drawingMoreBtn').getAttribute('aria-expanded')!=='true')await page.locator('#drawingMoreBtn').click();
 }

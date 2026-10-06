@@ -2,6 +2,21 @@
 // 1.5 weight, round caps and joins, so the icons match the drawing toolbar
 // glyphs that were already drawn in that style.
 const ICONS = {
+  text:['M4 5h16M12 5v15M8 20h8'],
+  // Chisel-tip highlighter. The last path is the ink line, which the drawing
+  // toolbar recolours with the tool's current colour and thickness.
+  marker:['M14.9 4.6a1.5 1.5 0 0 1 2.1 0l2.4 2.4a1.5 1.5 0 0 1 0 2.1L11 17.5H7.5V14Z','M12.6 6.9l4.5 4.5','M4 20.5h8'],
+  pen:['M12 3 4 18h16z','M12 3v9','M12 12h.01'],
+  select:['M4 3v16l4-4 3 6 3-1-3-6h6z'],
+  lasso:['M12 4.5c4.4 0 8 2.2 8 5s-3.6 5-8 5-8-2.2-8-5 3.6-5 8-5Z','M7 13.4c-1.1 1-1.2 2.6 0 3.4 1 .7 1.2 2 .4 3.2'],
+  eraser:['M3 20.08h18','M10.78 19.97 19.33 11.42c.93-.93.93-2.43 0-3.36l-3.45-3.45c-.93-.93-2.43-.93-3.36 0L3.75 13.38c-1 1-1 2.63 0 3.63l3.03 3.03','M8.07 9.06l6.81 6.81'],
+  undo:['M7.05 11.69C5.86 10.5 5.19 9.83 4 8.64 5.19 7.44 5.86 6.77 7.05 5.58','M4 8.64h10.86A5.14 5.14 0 0 1 20 13.78a5.14 5.14 0 0 1-5.14 5.14H6.42'],
+  more:['M5.25 12a.75.75 0 1 0 1.5 0 .75.75 0 1 0-1.5 0','M11.25 12a.75.75 0 1 0 1.5 0 .75.75 0 1 0-1.5 0','M17.25 12a.75.75 0 1 0 1.5 0 .75.75 0 1 0-1.5 0'],
+  plus:['M12 6.5v11','M6.5 12h11'],
+  trash:['M4 6h16','M8 6V3h8v3','M6 6l1 15h10l1-15','M10 10v7M14 10v7'],
+  curve:['M3 17c4 0 2-10 7-10s1 10 6 10 5-7 5-7'],
+  sliders:['M4 7h16M4 17h16','M8 4v6M16 14v6'],
+  pin:['M8 3h8l-1 7 4 4H5l4-4z','M12 14v7'],
   search: [
     'M17.5 11a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z',
     'M15.7 15.7 20.5 20.5'

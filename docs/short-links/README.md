@@ -8,7 +8,13 @@ The immutable copy is stored by a Cloudflare Worker and D1. SHORT_LINKS_API_URL 
 
 Opening Share uploads nothing. Create short link uploads only the selected snapshot. Full links remain available and require no server storage. If the API is not configured, short links are disabled with an explanation.
 
-A separate 256-bit management key controls each ID. Its hash is stored on the server; the key stays in a separate browser IndexedDB database. It is never included in recipient URLs or workspace backups. Clearing browser data loses management access.
+A separate 256-bit management key controls each ID. Its hash is stored on the server; the key stays in a separate browser IndexedDB database. It is never included in recipient URLs or workspace backups. Clearing browser data loses management access unless the separate encrypted link-management backup was exported first.
+
+Version 2.4.0 adds **Settings → Your data → Link management backup**. Export with a passphrase of at least eight characters; import into the same configured service to restore controls locally. No note tokens are included. Existing IDs with different keys are rejected atomically, and existing locally stored state is retained.
+
+The health response exposes aggregate remaining bytes/record capacity, without note IDs. Capacity exhaustion returns 507 with a useful instruction instead of claiming a random ID collision. Revoked IDs remain tombstones and still count against the 10,000-record lifetime cap; this preserves the no-resurrection guarantee. Raising or replacing that cap is an explicit production decision.
+
+Release the Worker and PWA together when changing published schema. Version 2.4.0 emits schema 2 and accepts old schema 1; the previous Worker only accepts schema 1. No new D1 migration is required for this release. Keep a pre-update workspace export; do not downgrade a browser profile with database version 2 into the version-1 app.
 
 ID, key and pending snapshot are saved locally before uploading. A lost response can retry the same ID and payload. Revocation removes the note payload and leaves an ID tombstone, so retries cannot resurrect it. Copies already saved by recipients cannot be recalled. The service operator can read stored copies: this is not end-to-end encryption.
 

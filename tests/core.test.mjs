@@ -105,7 +105,7 @@ test('rejects malformed and unsupported backups before workspace replacement', (
   assert.throws(() => parseWorkspaceBackup(JSON.stringify({ format: 'wrong', schemaVersion: 1 })), /not a Blackboard Text backup/);
   assert.throws(() => parseWorkspaceBackup(JSON.stringify({
     format: 'BlackboardTextWorkspace',
-    schemaVersion: 2,
+    schemaVersion: 99,
     workspace: { pages: [{}] }
   })), /cannot be imported/);
 });

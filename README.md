@@ -9,7 +9,7 @@
 Write, sketch, and keep your notes in the browser profile you control. No
 account, telemetry, or automatic note sync. Short links optionally store only a copy you explicitly share.
 
-![Version](https://img.shields.io/badge/version-2.3.3-3D47FF?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.4.1-3D47FF?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-offline--ready-3D47FF?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-5B4FA8?style=flat-square)
 
@@ -18,6 +18,24 @@ account, telemetry, or automatic note sync. Short links optionally store only a 
 ![Blackboard Text — default Lavender theme](./screenshots/01-hero-lavender.png)
 
 ## What ships in v2
+
+### New in 2.4.0
+
+The 2.4.1 interface correction keeps drawing tools beside page navigation, with a small overflow menu. Opening tools never changes text padding, wrapping or scroll position. [Details and screenshots](docs/updates/2.4.1/README.md).
+
+- Drawing tools open beside page navigation without changing the writing layout. Text, brush, eraser, undo/redo and more tools have explicit states; mobile navigation uses a page list instead of reserving a gutter across the entire note.
+- New strokes use a shared smooth renderer in the editor, published reader and image/PDF exports. Old strokes keep their original path style; **More tools → Smooth existing** is reversible with drawing Undo.
+- Marker, pressure pen, Shift for straight lines, Alt for a temporary eraser, selection/moving, colour/size editing, and an optional whole-stroke eraser. Brush and eraser settings are remembered independently.
+- **More tools → Attach new strokes to words** attaches a new annotation near a word. Insertions before the word move the annotation; replacing or deleting the word detaches the annotation as a free stroke rather than deleting it. Moving a selected annotation also detaches it. Text Undo restores attachments changed by that text edit.
+- Long notes render only a viewport-sized bitmap. Logical stroke coordinates survive shortened text and reload; drawing resolution no longer decreases with total page length.
+- **Settings → Page actions → Export PNG/PDF** includes text and drawings. Tall pages use a multipage PDF; a single PNG is bounded to 8 million logical pixels and 8192 px per side. PDF is an image of the board, with bundled fonts rendered into it, rather than editable/selectable PDF text.
+- **Settings → Page actions → Page history** offers up to 25 versions per page, 100 total and 10 MB locally. Versions are captured at most once per 30 seconds when a saved page changes. Recovering creates a new page. Portable workspace backups contain current pages, not the history database.
+- Pin pages, search snippets near the matching text, add a drawing description for shared copies, and switch interface language between English and Russian in Settings. User text and page names are never translated.
+- **Settings → Your data → Link management backup** exports/imports separate encrypted link controls. Keep its passphrase private. This file contains no note payloads and is not included in an ordinary workspace backup.
+
+New exports and published notes use schema version 2. This release still reads version-1 backups and links. Earlier apps reject version-2 backups/links rather than silently discarding new drawing properties. The local IndexedDB upgrade preserves existing pages and recovery snapshots.
+
+Publishing requires updating the short-link Worker together with the PWA because the Worker validates the published schema. No new server database migration is needed. See [implementation and verification](docs/updates/2.4.0/README.md).
 
 - **Publish a page as a link.** One page becomes a read-only link that anyone can open — the note travels inside the link itself, so nothing is uploaded and no account appears.
 - A desktop PWA for Chrome and Edge, designed for GitHub Pages and offline use after the first visit.

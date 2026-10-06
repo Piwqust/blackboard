@@ -3845,3 +3845,88 @@ body:has(#board) {
   text-underline-offset: 2px;
   cursor: pointer;
 }
+
+/* Drawing toolbar: four tools, then undo and More, beside page navigation.
+   The ink panel and the More menu are fixed overlays anchored to it, so
+   opening either never moves the note. */
+.drawing-toolbar {position:absolute;top:0;left:auto;right:calc(100% + 10px);bottom:auto;transform:none;gap:0;padding:4px;max-width:calc(100vw - 24px);border-radius:14px;background:var(--panel-bg);backdrop-filter:blur(12px);transition:opacity 120ms ease,visibility 0s;}
+.top-right-rail.tools-collapsed .drawing-toolbar {transform:none;filter:none;transition:opacity 120ms ease,visibility 0s linear 120ms;}
+.drawing-toolbar-group {gap:0;}
+.drawing-toolbar-group-actions {margin-left:4px;padding-left:4px;border-left:1px solid var(--ui-border);}
+.drawing-toolbar .drawing-tool-button {width:36px;height:36px;flex:0 0 36px;border:0;border-radius:10px;}
+.drawing-toolbar .drawing-tool-button svg {width:20px;height:20px;}
+.drawing-toolbar .drawing-tool-button.active {background:var(--ui-hover-strong);}
+/* The last line of the pen and marker icons previews each tool's ink. */
+.drawing-tool-ink {stroke:var(--tool-ink,currentColor);stroke-width:var(--tool-ink-width,1.5);transition:stroke var(--dur-hover) var(--ease-out),stroke-width var(--dur-hover) var(--ease-out);}
+#markerToggleBtn .drawing-tool-ink {stroke-opacity:.6;}
+
+.drawing-popover {position:fixed;left:0;top:0;z-index:2600;display:flex;flex-direction:column;gap:2px;padding:6px;box-sizing:border-box;max-height:calc(100dvh - 24px);overflow:auto;border:1px solid var(--ui-border-strong);border-radius:14px;background:var(--panel-bg);backdrop-filter:blur(18px) saturate(135%);-webkit-backdrop-filter:blur(18px) saturate(135%);color:var(--ui-text);font:13px/1.3 system-ui,-apple-system,sans-serif;box-shadow:var(--ui-shadow-subtle);animation:drawing-popover-in var(--dur-pop) var(--ease-out);}
+@keyframes drawing-popover-in {from {opacity:0;transform:translateY(calc(-4px * var(--motion-shift))) scale(.98);}}
+.drawing-popover[hidden],.drawing-popover [hidden],.top-right-rail.tools-collapsed .drawing-popover {display:none!important;}
+
+.drawing-ink-panel {width:min(232px,calc(100vw - 24px));}
+.drawing-ink-row {display:grid;grid-template-columns:repeat(6,1fr);}
+#drawSizeMarkers {padding-bottom:4px;margin-bottom:2px;border-bottom:1px solid var(--ui-border);}
+.drawing-ink-panel .drawing-size-marker {width:auto;height:36px;display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:9px;background:transparent;color:var(--ui-text);opacity:.6;cursor:pointer;}
+.drawing-ink-panel .drawing-size-marker:hover {background:var(--ui-hover);opacity:1;}
+.drawing-ink-panel .drawing-size-marker.active {background:var(--ui-hover-strong);opacity:1;}
+.drawing-ink-panel .drawing-size-marker-swatch {width:var(--size-dot,8px);height:var(--size-dot,8px);border-radius:50%;background:currentColor;}
+.drawing-ink-swatch {position:relative;height:36px;display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:9px;background:transparent;color:var(--ui-text);cursor:pointer;}
+.drawing-ink-swatch::before {content:'';width:20px;height:20px;border-radius:50%;background:var(--swatch);box-shadow:inset 0 0 0 1px rgba(128,128,128,.35);transition:box-shadow var(--dur-hover) var(--ease-out),transform var(--dur-press) var(--ease-out);}
+.drawing-ink-swatch:hover::before {transform:scale(1.1);}
+.drawing-ink-swatch.active::before {box-shadow:0 0 0 2px var(--bg-color),0 0 0 3.5px var(--ui-text);}
+.drawing-ink-custom::before {background:conic-gradient(#E5484D,#F5A524,#3DBE7A,#3E8BFF,#9B7CF6,#E5484D);-webkit-mask:radial-gradient(circle,transparent 7px,#000 7.5px);mask:radial-gradient(circle,transparent 7px,#000 7.5px);}
+.drawing-ink-custom.active::before {background:var(--swatch);-webkit-mask:none;mask:none;}
+.drawing-ink-custom svg {position:absolute;top:50%;left:50%;width:12px;height:12px;transform:translate(-50%,-50%);}
+.drawing-ink-custom.active svg {display:none;}
+.drawing-ink-panel > .drawing-menu-item {margin-top:5px;}
+.drawing-ink-panel > .drawing-menu-item::before {content:'';position:absolute;top:-4px;left:4px;right:4px;height:1px;background:var(--ui-border);}
+
+.drawing-menu {width:min(212px,calc(100vw - 24px));}
+.drawing-menu-item {position:relative;display:flex;align-items:center;gap:10px;width:100%;min-height:36px;padding:0 10px;box-sizing:border-box;border:0;border-radius:9px;background:transparent;color:var(--ui-text);font:inherit;text-align:left;cursor:pointer;transition:var(--transition-control);}
+.drawing-menu-item:hover:not(:disabled) {background:var(--ui-hover);}
+.drawing-menu-item:disabled {opacity:.4;cursor:default;}
+.drawing-menu-icon {width:18px;height:18px;flex:0 0 18px;opacity:.75;}
+.drawing-menu-item-danger:hover:not(:disabled) {color:var(--ui-danger-text);background:var(--ui-danger-surface);}
+.drawing-menu-separator {height:1px;margin:3px 4px;background:var(--ui-border);}
+.drawing-option > span:not(.drawing-menu-icon) {flex:1;}
+.drawing-option input {appearance:none;width:30px;height:18px;flex:0 0 30px;margin:0;border:1px solid var(--ui-border-strong);border-radius:99px;background:var(--control-bg);cursor:pointer;position:relative;transition:var(--transition-control);}
+.drawing-option input::before {content:'';position:absolute;width:12px;height:12px;left:2px;top:2px;border-radius:50%;background:var(--ui-text);opacity:.7;transition:transform var(--dur-hover) var(--ease-out);}
+.drawing-option input:checked {background:var(--selection-color);border-color:var(--selection-color);}
+.drawing-option input:checked::before {transform:translateX(12px);background:var(--selection-text-color);opacity:1;}
+#drawingCursor {position:fixed;transform:translate(-50%,-50%);border:1px solid;border-radius:50%;pointer-events:none;z-index:2400;}
+#drawingCursor[hidden] {display:none;}
+#drawingCursor.is-eraser {border-width:2px;box-shadow:0 0 0 1px var(--bg-color);}
+body.drawing-mode #drawingLayer {cursor:none;}
+body.drawing-mode:has(#selectToggleBtn.active) #drawingLayer {cursor:move;}
+#drawingLayer {max-height:none;}
+@media(max-width:768px) {
+  html {padding-right:0;}
+  body:not(.reader-body):not(.legal-page-body) {width:100%;max-width:100%;}
+  .top-right-rail {top:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));right:72px;flex-direction:row;gap:8px;}
+  .page-tabs {flex-direction:row;gap:8px;}
+  #pageTabsList {display:none;}
+  .mobile-pages-button {display:inline-flex;}
+  .drawing-toolbar {position:fixed;top:auto;bottom:calc(72px + env(safe-area-inset-bottom,0px));left:auto;right:12px;transform:none;flex-wrap:nowrap;}
+  .top-right-rail.tools-collapsed .drawing-toolbar {transform:none;}
+  .drawing-toolbar .drawing-tool-button {width:44px;height:44px;flex-basis:44px;}
+  .drawing-ink-panel {width:min(276px,calc(100vw - 24px));}
+  .drawing-ink-panel .drawing-size-marker,.drawing-ink-swatch,.drawing-menu-item {height:44px;min-height:44px;}
+  .word-count {left:24px;right:auto;bottom:78px;}
+  body.drawing-ui-open .word-count {opacity:0;}
+}
+.mobile-pages-button {width:44px;height:44px;align-items:center;justify-content:center;display:none;background:var(--ui-surface);color:var(--ui-text);border:1px solid var(--ui-border);border-radius:13px;cursor:pointer;}
+.mobile-pages-button svg {width:22px;height:22px;}
+@media(max-width:768px){.mobile-pages-button{display:inline-flex;}}
+@media(prefers-reduced-motion:reduce){.drawing-toolbar{transition:none;}.drawing-popover{animation-name:none;}}
+@media print {.drawing-toolbar,.drawing-popover,#drawingCursor{display:none!important;}}
+.settings-language{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid var(--ui-border);color:var(--ui-text);font:12px/1.4 system-ui,sans-serif;}
+.settings-language select{max-width:140px;color:var(--ui-text);background:var(--control-bg);border:1px solid var(--control-border);border-radius:8px;padding:8px;}
+#editor:empty::before{content:var(--editor-placeholder,'Start writing...');}
+#workspaceToolsContent textarea{display:block;box-sizing:border-box;width:100%;margin:12px 0;padding:12px;background:var(--control-bg);color:var(--ui-text);border:1px solid var(--ui-border-strong);border-radius:8px;resize:vertical;font:14px/1.5 system-ui,sans-serif;}
+#linkKeyBackupDialog label{display:block;margin:16px 0;color:var(--ui-text);font:13px/1.5 system-ui,sans-serif;}
+#linkKeyPassphrase{box-sizing:border-box;display:block;width:100%;margin-top:8px;padding:12px;background:var(--control-bg);color:var(--ui-text);border:1px solid var(--ui-border-strong);border-radius:8px;}
+@media(max-width:768px){body:has(#board){width:100%;}}
+.reader-drawing-description{margin:16px;padding:16px;color:var(--text-color);border:1px solid var(--ui-border);border-radius:10px;font:14px/1.5 system-ui,sans-serif;}
+.reader-drawing-description[hidden]{display:none;}
+.reader-drawing-description p{margin-top:12px;white-space:pre-wrap;}

@@ -1,5 +1,12 @@
 import { setupShortLinks } from './src/ui/short-links.js';
 import { canvasBackingSize } from './src/core/canvas-budget.js';
+import {renderStroke,strokeBounds,hitStroke,moveStroke} from './src/core/drawing-renderer.js';
+import {createDrawingHistory} from './src/core/drawing-history.js';
+import {anchorBox,captureTextAnchor,reconcileAnchor} from './src/ui/text-anchors.js';
+import {setupDrawingTools} from './src/ui/drawing-tools.js';
+import {exportPageFile} from './src/ui/page-export.js';
+import {setupLinkKeyBackup} from './src/ui/link-key-backup.js';
+import {setupLocalization} from './src/ui/localization.js';
 import { setupPageTools } from './src/ui/page-tools.js';
 import { mergeWorkspacePages, recoverPageAsNew } from './src/core/page-tools.js';
 import { bindModalDialog } from './src/ui/dialogs.js';
@@ -10,11 +17,8 @@ import { sanitizeStoredContent } from './src/core/sanitize-html.js';
 import {
   MAX_DRAW_SIZE,
   clampBrushSize as clampBrushSizeValue,
-  convertPointToCanvasPixels as convertPointToCanvasPixelsValue,
   getBrushSizeInPixels as getBrushSizeInPixelsValue,
   getNormalizedFontSize as getNormalizedFontSizeValue,
-  getStrokeReferenceFontSize as getStrokeReferenceFontSizeValue,
-  normalizeStoredPoint
 } from './src/core/drawing-geometry.js';
 import {
   buildPublishedNoteUrl,
@@ -28,7 +32,7 @@ import { createStatusAnnouncer } from './src/ui/app-status.js';
 import { registerPwaUpdates } from './src/ui/pwa-updates.js';
 import { hydrateIcons } from './src/ui/icons.js';
 
-const APP_VERSION = '2.3.3';
+const APP_VERSION = '2.4.1';
 
 // Static markup ships icon placeholders that already reserve their box, so
 // filling them in here cannot shift a row.
@@ -102,7 +106,7 @@ const DEFAULT_SETTINGS = DEFAULT_WORKSPACE_SETTINGS;
 
 const DRAWING_COORDINATE_SPACE = 'text-scaled-px';
 // Squared minimum distance (px²) between consecutive stored stroke points.
-const MIN_STROKE_POINT_DISTANCE_SQ = 1.5 * 1.5;
+
 
 // Static emoji collection for pages
 const PAGE_EMOJIS = [
@@ -127,8 +131,6 @@ const drawingLayer = document.getElementById('drawingLayer');
 const drawingToolbar = document.getElementById('drawingToolbar');
 const topRightRail = document.querySelector('.top-right-rail');
 const drawingToolbarVisibilityToggleBtn = document.getElementById('drawingToolbarVisibilityToggleBtn');
-const drawToggleBtn = document.getElementById('drawToggleBtn');
-const eraseToggleBtn = document.getElementById('eraseToggleBtn');
 const drawColorBtn = document.getElementById('drawColorBtn');
 const drawColorPreview = document.getElementById('drawColorPreview');
 const undoDrawingBtn = document.getElementById('undoDrawingBtn');
@@ -209,7 +211,8 @@ const drawSizeValue = document.getElementById('drawSizeValue');
 const drawSizeMarkers = document.getElementById('drawSizeMarkers');
 // Marker buttons live in `drawSizeMarkerButtons` once `initBrushSizeMarkers`
 // runs — they don't exist at module load, so there's no top-level handle.
-const DRAW_SIZE_MARKERS = [0.08, 0.14, 0.22, 0.32, 0.46, 0.66, 0.92, 1.22];
+// Six steps fit one row of the ink panel at phone width with 44px targets.
+const DRAW_SIZE_MARKERS = [0.08, 0.14, 0.22, 0.36, 0.6, 1];
 
 // Hex input controls
 const hexInputs = {
@@ -800,7 +803,10 @@ let pendingWorkspaceImport = null;
 let pendingRecoverySnapshot = null;
 const workspaceStore = createWorkspaceStore();
 const workspaceChannel = createWorkspaceChannel();
+let editGeneration=0;
+function markWorkspaceDirty(){editGeneration++;editor.dataset.saveState='dirty';}
 const statusAnnouncer = createStatusAnnouncer(appStatus);
+setupLinkKeyBackup({baseUrl:getPublishBaseUrl,openSettings:()=>setSettingsPanelOpen(true)});
 
 // Overlay/menu state
 const uiState = {
@@ -830,6 +836,33 @@ const drawingState = {
   scrollTopBeforeMode: 0,
   activePointerId: null
 };
+const drawingHistory = createDrawingHistory();
+const saveDrawingEditLater=debounce(()=>void saveContent(),200);
+Object.assign(drawingState,{selectedStrokeId:null,selectionDrag:null,followText:false,eraseWhole:false,penPressure:false,anchorBoxes:new Map(),viewportTop:0,viewportHeight:1});
+let lastAnchorText='';
+const textDetachedStrokes=new Set();
+const toolPreferences=new Map();
+// The pen button draws with the pressure pen when "Pressure" is on.
+const penTool=()=>drawingState.penPressure?'pen':'brush';
+function getToolInk(tool) {
+  if(drawingState.currentTool===tool)return{color:getCurrentBrushColor(),size:drawingState.currentBrushSize};
+  const preference=toolPreferences.get(tool);
+  return{color:preference?.color?(preference.mode==='theme'?controls.textColor.value:preference.color):getCurrentBrushColor(),
+    size:preference?.size??(tool==='marker'?0.6:DEFAULT_SETTINGS.drawSize)};
+}
+const drawingTools=setupDrawingTools({
+  getState:()=>({enabled:drawingState.enabled,tool:drawingState.currentTool,color:getCurrentBrushColor(),mode:drawingState.currentBrushColorMode,
+    themeColor:controls.textColor?.value||DEFAULT_SETTINGS.textColor,pressure:Boolean(drawingState.penPressure),pen:getToolInk(penTool()),marker:getToolInk('marker')}),
+  selectTool(tool){if(!workspaceWritable)return;setDrawingTool(tool);setDrawMode(true);},
+  setPressure(value){
+    drawingState.penPressure=value;
+    const tool=drawingState.currentTool;
+    if(tool==='brush'||tool==='pen'){const next=penTool();toolPreferences.set(next,{size:drawingState.currentBrushSize,color:getCurrentBrushColor(),mode:drawingState.currentBrushColorMode});setDrawingTool(next);}
+    scheduleSettingsSave();
+  },
+  redo:redoLastStroke,removeSelected:deleteSelectedStroke,
+  setFollowText:value=>{drawingState.followText=value;scheduleSettingsSave();},setEraseWhole:value=>{drawingState.eraseWhole=value;scheduleSettingsSave();},setColor:setBrushColor,
+  smoothExisting(){const page=getCurrentPage();if(!workspaceWritable||!page?.drawings.length)return;const before=structuredClone(page.drawings);page.drawings.forEach(stroke=>{stroke.renderer='smooth-v1';});drawingHistory.record(page.id,{kind:'replace',before,after:page.drawings});redrawDrawings();touchPageEdited(page);void saveContent();}});
 
 // These wrappers exist so the rest of the editor can keep calling with no
 // arguments; the maths itself lives in src/core/drawing-geometry.js so the
@@ -851,14 +884,6 @@ function normalizeBrushSizeSetting(size, fontSize = DEFAULT_SETTINGS.fontSize) {
   const normalizedFontSize = getNormalizedFontSize(fontSize);
   const scaledSize = parsedSize > MAX_DRAW_SIZE ? parsedSize / normalizedFontSize : parsedSize;
   return clampBrushSize(scaledSize);
-}
-
-function getStrokeReferenceFontSize(stroke = {}, fallbackFontSize = DEFAULT_SETTINGS.fontSize) {
-  return getStrokeReferenceFontSizeValue(stroke, fallbackFontSize);
-}
-
-function convertPointToCanvasPixels(point, referenceFontSize = DEFAULT_SETTINGS.fontSize, fontSize = getNormalizedFontSize()) {
-  return convertPointToCanvasPixelsValue(point, referenceFontSize, fontSize);
 }
 
 function getBrushSizeInPixels(size = drawingState.currentBrushSize, fontSize = getNormalizedFontSize()) {
@@ -907,15 +932,16 @@ function initBrushSizeMarkers() {
   }
 
   drawSizeMarkers.innerHTML = '';
-  drawSizeMarkerButtons = DRAW_SIZE_MARKERS.map(markerSize => {
+  drawSizeMarkerButtons = DRAW_SIZE_MARKERS.map((markerSize, index) => {
     const button = document.createElement('button');
     const swatch = document.createElement('span');
 
     button.className = 'drawing-size-marker';
     button.type = 'button';
     button.dataset.drawSize = String(markerSize);
-    button.setAttribute('role', 'listitem');
     button.setAttribute('aria-label', `Set brush size to ${formatBrushSizeLabel(markerSize)}`);
+    // Dots grow evenly so the row reads as a scale, whatever the pixel widths.
+    button.style.setProperty('--size-dot', `${4 + index * 3}px`);
     button.setAttribute('aria-pressed', 'false');
 
     swatch.className = 'drawing-size-marker-swatch';
@@ -955,6 +981,7 @@ function updateBrushSizeButtons() {
   }
 
   updateBrushSizeMarkers(normalizedBrushSize);
+  drawingTools?.refresh();
 }
 
 function normalizePage(page = {}, fontSize = DEFAULT_SETTINGS.fontSize) {
@@ -970,6 +997,7 @@ function touchPageEdited(page = getCurrentPage()) {
   }
 
   page.editedAt = new Date().toISOString();
+  if(page.id===currentPageId)markWorkspaceDirty();
 }
 
 function getPageDisplayTitle(page) {
@@ -1073,14 +1101,11 @@ function syncCurrentPageScrollPosition() {
 
 function persistCurrentPageScrollPosition({ immediate = false } = {}) {
   syncCurrentPageScrollPosition();
-
-  if (immediate) {
-    persistPagesStateImmediately();
-    return;
-  }
-
-  persistPagesState();
+  const page=getCurrentPage();if(!workspaceWritable||!workspaceReady||!page)return;
+  if(immediate)void workspaceStore.saveScrollPosition(page.id,page.scrollTop).catch(error=>handleStorageError(error,'saving scroll position'));
+  else saveScrollPositionLater(page.id,page.scrollTop);
 }
+const saveScrollPositionLater=debounce((id,scrollTop)=>{if(workspaceWritable&&workspaceReady)void workspaceStore.saveScrollPosition(id,scrollTop).catch(error=>handleStorageError(error,'saving scroll position'));},200);
 
 function restorePageScrollPosition(scrollTop = 0) {
   const targetScrollTop = Math.max(0, Number(scrollTop) || 0);
@@ -1183,6 +1208,7 @@ function updateDrawColorPreview() {
   if (drawColorPreview) {
     drawColorPreview.style.backgroundColor = getCurrentBrushColor();
   }
+  drawingTools?.refresh();
 }
 
 function setBrushColor(color, { persist = true, mode = 'custom' } = {}) {
@@ -1192,7 +1218,9 @@ function setBrushColor(color, { persist = true, mode = 'custom' } = {}) {
   }
 
   controls.drawColor.value = color;
+  if(persist)document.dispatchEvent(new CustomEvent('drawing-color-changed',{detail:color}));
   drawingState.currentBrushColorMode = mode;
+  updateSelectedStroke({color});
   updateDrawColorPreview();
   redrawDrawings();
 
@@ -1204,6 +1232,7 @@ function setBrushColor(color, { persist = true, mode = 'custom' } = {}) {
 function setBrushSize(size, persist = true) {
   if (!workspaceWritable) return;
   drawingState.currentBrushSize = normalizeBrushSizeSetting(size, getNormalizedFontSize());
+  updateSelectedStroke({width:drawingState.currentBrushSize});
   updateBrushSizeButtons();
 
   if (persist) {
@@ -1212,29 +1241,40 @@ function setBrushSize(size, persist = true) {
 }
 
 function updateDrawingToolButtons() {
-  const isBrushActive = drawingState.enabled && drawingState.currentTool === 'brush';
-  const isEraserActive = drawingState.enabled && drawingState.currentTool === 'eraser';
-
-  if (drawToggleBtn) {
-    drawToggleBtn.classList.toggle('active', isBrushActive);
-    drawToggleBtn.setAttribute('aria-pressed', String(isBrushActive));
-  }
-
-  if (eraseToggleBtn) {
-    eraseToggleBtn.classList.toggle('active', isEraserActive);
-    eraseToggleBtn.setAttribute('aria-pressed', String(isEraserActive));
+  const tool = drawingState.currentTool;
+  const on = drawingState.enabled;
+  const pressed = {
+    drawToggleBtn: on && (tool === 'brush' || tool === 'pen'),
+    markerToggleBtn: on && tool === 'marker',
+    eraseToggleBtn: on && tool === 'eraser',
+    selectToggleBtn: on && tool === 'select'
+  };
+  for (const [id, value] of Object.entries(pressed)) {
+    const button = document.getElementById(id);
+    button?.classList.toggle('active', value);
+    button?.setAttribute('aria-pressed', String(value));
   }
 
   if (drawingToolbar) {
-    drawingToolbar.classList.toggle('eraser-active', isEraserActive);
+    drawingToolbar.classList.toggle('eraser-active', pressed.eraseToggleBtn);
   }
 
-  document.body.classList.toggle('eraser-mode', isEraserActive);
+  document.body.classList.toggle('eraser-mode', pressed.eraseToggleBtn);
+  const page=getCurrentPage();
+  const hasDrawings=Boolean(page?.drawings?.length);
+  undoDrawingBtn.disabled=!workspaceWritable||!drawingHistory.canUndo(page?.id,page?.drawings);
+  const redo=document.getElementById('redoDrawingBtn');if(redo)redo.disabled=!workspaceWritable||!drawingHistory.canRedo(page?.id);
+  document.getElementById('deleteSelectedStrokeBtn')?.toggleAttribute('disabled',!drawingState.selectedStrokeId||!workspaceWritable);
+  document.getElementById('smoothExistingDrawingsBtn')?.toggleAttribute('disabled',!hasDrawings||!workspaceWritable);
+  clearDrawingsBtn?.toggleAttribute('disabled',!hasDrawings||!workspaceWritable);
+  drawingTools?.refresh();
 }
 
 function setDrawingToolbarCollapsed(collapsed) {
+  cancelPageScrollRestore();
   const isCollapsed = Boolean(collapsed);
   uiState.drawingToolbarCollapsed = isCollapsed;
+  document.body.classList.toggle('drawing-ui-open',!isCollapsed);
 
   // The collapse animation lives on the rail so the arrow (a sibling of the
   // toolbar) can flip direction from the same state class.
@@ -1249,15 +1289,28 @@ function setDrawingToolbarCollapsed(collapsed) {
   }
 
   if (isCollapsed) {
+    if(drawingState.enabled)setDrawMode(false);
+    drawingTools?.close();
     closeDrawSizePopover();
     closeClearDrawingsConfirm();
     closeColorPicker();
   }
+  scheduleDrawingLayerSync({forceRedraw:true});
 }
 
 function setDrawingTool(tool) {
-  drawingState.currentTool = tool === 'eraser' ? 'eraser' : 'brush';
+  if(drawingState.currentTool!=='select')toolPreferences.set(drawingState.currentTool,{size:drawingState.currentBrushSize,color:getCurrentBrushColor(),mode:drawingState.currentBrushColorMode});
+  drawingState.currentTool = ['eraser','marker','pen','select'].includes(tool) ? tool : 'brush';
+  if(tool!=='select')drawingState.selectedStrokeId=null;
+  if(tool!=='select') {
+    const preference=toolPreferences.get(tool);
+    drawingState.currentBrushSize=preference?.size??(tool==='marker'?0.6:tool==='eraser'?0.65:DEFAULT_SETTINGS.drawSize);
+    if(preference?.color&&tool!=='eraser'){drawingState.currentBrushColorMode=preference.mode;controls.drawColor.value=preference.mode==='theme'?controls.textColor.value:preference.color;}
+    drawingState.lastPaintingTool=tool;
+    updateBrushSizeButtons();updateDrawColorPreview();
+  }
   updateDrawingToolButtons();
+  scheduleSettingsSave();
 }
 
 function focusEditorWithoutScroll(scrollTop = getViewportScrollTop()) {
@@ -1276,7 +1329,7 @@ function focusEditorWithoutScroll(scrollTop = getViewportScrollTop()) {
 
 function toggleDrawingTool(tool) {
   if (!workspaceWritable) return;
-  const nextTool = tool === 'eraser' ? 'eraser' : 'brush';
+  const nextTool = ['eraser','marker','pen','select'].includes(tool) ? tool : 'brush';
 
   if (drawingState.enabled && drawingState.currentTool === nextTool) {
     setDrawMode(false);
@@ -1290,6 +1343,7 @@ function toggleDrawingTool(tool) {
 function setDrawMode(enabled) {
   if (!workspaceWritable && enabled) return;
   const viewportScrollTop = getViewportScrollTop();
+  if(!enabled&&drawingState.isDrawing)finishStroke();
   drawingState.enabled = Boolean(enabled);
   document.body.classList.toggle('drawing-mode', drawingState.enabled);
   if (drawingToolbar) {
@@ -1303,7 +1357,9 @@ function setDrawMode(enabled) {
     syncCurrentPageScrollPosition();
     editor.blur();
   } else {
-    focusEditorWithoutScroll(drawingState.scrollTopBeforeMode || viewportScrollTop);
+    document.getElementById('drawingCursor')?.setAttribute('hidden','');
+    drawingTools?.close();
+    focusEditorWithoutScroll(viewportScrollTop);
     syncCurrentPageScrollPosition();
   }
 }
@@ -1330,7 +1386,7 @@ function getBoardSize() {
 
   return {
     width: Math.max(1, Math.round(board.clientWidth)),
-    height: Math.max(1, Math.round(Math.max(board.scrollHeight, board.clientHeight, board.offsetHeight)))
+    height: Math.max(1, Math.round(Math.max(editorShell.offsetHeight, board.clientHeight)))
   };
 }
 
@@ -1343,306 +1399,179 @@ function clearDrawingSurface() {
   drawingContext.restore();
 }
 
-// Shared canvas paint path. Treats a single-point stroke as a tiny dot so it
-// still renders. `tailPoints` is the array of vertices to lineTo *after* the
-// starting point — keeps `drawStroke` and `drawStrokeRange` on one code path.
-function paintPath(stroke, startPoint, tailPoints, fontSize) {
-  if (!drawingContext || !startPoint) return;
-
-  const isEraserStroke = stroke.tool === 'eraser';
-
-  drawingContext.save();
-  drawingContext.globalCompositeOperation = isEraserStroke ? 'destination-out' : 'source-over';
-  drawingContext.strokeStyle = isEraserStroke ? '#000000' : (stroke.color || getCurrentBrushColor());
-  drawingContext.lineWidth = getBrushSizeInPixels(stroke.width, fontSize);
-  drawingContext.lineCap = 'round';
-  drawingContext.lineJoin = 'round';
-  drawingContext.beginPath();
-  drawingContext.moveTo(startPoint.x, startPoint.y);
-
-  if (!tailPoints || tailPoints.length === 0) {
-    // Single-point stroke — nudge a hair so a dot renders.
-    drawingContext.lineTo(startPoint.x + 0.01, startPoint.y + 0.01);
-  } else {
-    tailPoints.forEach(point => drawingContext.lineTo(point.x, point.y));
-  }
-
-  drawingContext.stroke();
-  drawingContext.restore();
+function getDrawingOptions(stroke) {
+  const style=getComputedStyle(editor);
+  const options={fontSize:getNormalizedFontSize(),lineHeight:Number(controls.lineHeight.value),paddingX:parseFloat(style.paddingLeft),paddingY:parseFloat(style.paddingTop)};
+  if(stroke?.anchor){options.anchorBox=anchorBox(editor,board,stroke.anchor);if(options.anchorBox)drawingState.anchorBoxes.set(stroke.id,options.anchorBox);}
+  return options;
 }
 
-function drawStroke(stroke) {
-  if (!drawingContext || !stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) {
-    return;
-  }
+function updateSelectedStroke(changes) {
+  const page=getCurrentPage(),stroke=page?.drawings.find(s=>s.id===drawingState.selectedStrokeId);
+  if(!stroke||drawingState.currentTool!=='select')return;
+  if(Object.entries(changes).every(([key,value])=>stroke[key]===value))return;
+  const before=structuredClone(stroke);Object.assign(stroke,changes);
+  drawingHistory.record(page.id,{kind:'update',before,after:stroke,mergeKey:'style:'+stroke.id+':'+Object.keys(changes).sort().join(',')});touchPageEdited(page);saveDrawingEditLater();updateDrawingToolButtons();
+}
 
-  const fontSize = getNormalizedFontSize();
-  const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
-  const renderedPoints = stroke.points.map(point => convertPointToCanvasPixels(point, referenceFontSize, fontSize));
-  const [firstPoint, ...tail] = renderedPoints;
-  paintPath(stroke, firstPoint, tail, fontSize);
+function deleteSelectedStroke() {
+  const page=getCurrentPage(),index=page?.drawings.findIndex(s=>s.id===drawingState.selectedStrokeId);
+  if(!workspaceWritable||index===undefined||index<0)return;
+  drawingHistory.record(page.id,{kind:'remove',index,stroke:page.drawings[index]});page.drawings.splice(index,1);drawingState.selectedStrokeId=null;
+  redrawDrawings();touchPageEdited(page);void saveContent();
 }
 
 function redrawDrawings() {
+  if(!drawingContext)return;
   clearDrawingSurface();
-
-  const page = getCurrentPage();
-  if (!page || !Array.isArray(page.drawings) || page.drawings.length === 0) {
-    return;
+  const page=getCurrentPage();
+  const top=drawingState.viewportTop,bottom=top+drawingState.viewportHeight;
+  drawingContext.save();drawingContext.translate(0,-top);
+  for(const stroke of page?.drawings||[]) {
+    const options=getDrawingOptions(stroke),bounds=strokeBounds(stroke,options);
+    if(bounds&&bounds.bottom>=top&&bounds.top<=bottom)renderStroke(drawingContext,stroke,options);
   }
-
-  page.drawings.forEach(stroke => drawStroke(stroke));
+  const selected=page?.drawings.find(s=>s.id===drawingState.selectedStrokeId);
+  if(selected&&drawingState.currentTool==='select') {
+    const b=strokeBounds(selected,getDrawingOptions(selected));
+    if(b){drawingContext.strokeStyle=getCurrentBrushColor();drawingContext.lineWidth=1.5;drawingContext.setLineDash([5,4]);drawingContext.strokeRect(b.left-4,b.top-4,b.right-b.left+8,b.bottom-b.top+8);}
+  }
+  drawingContext.restore();updateDrawingToolButtons();
 }
 
-function syncDrawingLayerSize({ forceRedraw = false } = {}) {
-  if (!drawingLayer || !drawingContext || !board) return;
-
-  const { width, height } = getBoardSize();
-  const dpr = window.devicePixelRatio || 1;
-  const backing = canvasBackingSize(width, height, dpr);
-  const targetWidth = backing.width;
-  const targetHeight = backing.height;
-  let resized = false;
-
-  if (drawingLayer.width !== targetWidth || drawingLayer.height !== targetHeight) {
-    drawingLayer.width = targetWidth;
-    drawingLayer.height = targetHeight;
-    drawingLayer.style.width = `${width}px`;
-    drawingLayer.style.height = `${height}px`;
-    drawingContext.setTransform(backing.scaleX, 0, 0, backing.scaleY, 0, 0);
-    resized = true;
-  }
-
-  if (resized || forceRedraw) {
-    redrawDrawings();
-  }
+function syncDrawingLayerSize() {
+  if(!drawingLayer||!drawingContext||!board)return;
+  const page=getCurrentPage();
+  let height=Math.max(window.innerHeight,editorShell.offsetHeight);
+  for(const stroke of page?.drawings||[]){const bounds=strokeBounds(stroke,getDrawingOptions(stroke));if(bounds)height=Math.max(height,bounds.bottom+48);}
+  board.style.minHeight=Math.ceil(height)+'px';
+  const rect=board.getBoundingClientRect(),width=Math.max(1,board.clientWidth);
+  const top=Math.max(0,Math.floor(-rect.top)-64),visibleHeight=Math.max(1,Math.min(height-top,window.innerHeight+128));
+  const backing=canvasBackingSize(width,visibleHeight,window.devicePixelRatio||1);
+  if(drawingLayer.width!==backing.width||drawingLayer.height!==backing.height){drawingLayer.width=backing.width;drawingLayer.height=backing.height;}
+  drawingLayer.style.width=width+'px';drawingLayer.style.height=visibleHeight+'px';drawingLayer.style.top=top+'px';
+  drawingContext.setTransform(backing.scaleX,0,0,backing.scaleY,0,0);
+  drawingState.viewportTop=top;drawingState.viewportHeight=visibleHeight;redrawDrawings();
 }
 
-function getRelativePoint(event, rect = drawingState.activeBoardRect) {
-  if (!board) {
-    return { x: 0, y: 0 };
-  }
-
-  const boardRect = rect || board.getBoundingClientRect();
-  const width = Math.max(boardRect.width, 1);
-  const height = Math.max(boardRect.height, 1);
-  const x = Math.min(Math.max(event.clientX - boardRect.left, 0), width);
-  const y = Math.min(Math.max(event.clientY - boardRect.top, 0), height);
-
-  return { x, y };
+function getRelativePoint(event) {
+  const rect=board.getBoundingClientRect();
+  return {x:Math.max(0,Math.min(event.clientX-rect.left,rect.width)),y:Math.max(0,Math.min(event.clientY-rect.top,rect.height))};
 }
 
-function drawStrokeRange(stroke, startIndex = 0) {
-  if (!drawingContext || !stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) {
-    return;
-  }
-
-  const clampedStartIndex = Math.max(0, Math.min(Number(startIndex) || 0, stroke.points.length - 1));
-  const pathStartIndex = clampedStartIndex > 0 ? clampedStartIndex - 1 : 0;
-  const fontSize = getNormalizedFontSize();
-  const referenceFontSize = getStrokeReferenceFontSize(stroke, fontSize);
-  const startPoint = convertPointToCanvasPixels(stroke.points[pathStartIndex], referenceFontSize, fontSize);
-  const tailPoints = stroke.points
-    .slice(clampedStartIndex > 0 ? clampedStartIndex : 1)
-    .map(point => convertPointToCanvasPixels(point, referenceFontSize, fontSize));
-  const isSinglePointStroke = stroke.points.length === 1 && clampedStartIndex === 0;
-
-  paintPath(stroke, startPoint, isSinglePointStroke ? [] : tailPoints, fontSize);
+function updateDrawingCursor(event) {
+  const cursor=document.getElementById('drawingCursor');if(!cursor)return;
+  cursor.hidden=!drawingState.enabled||event.pointerType==='touch'||drawingState.currentTool==='select';
+  const size=getBrushSizeInPixels();cursor.style.width=cursor.style.height=Math.max(4,size)+'px';cursor.style.left=event.clientX+'px';cursor.style.top=event.clientY+'px';
+  cursor.style.borderColor=getCurrentBrushColor();cursor.classList.toggle('is-eraser',drawingState.currentTool==='eraser'||event.altKey);
 }
 
-function flushPendingStrokeRender() {
-  const stroke = drawingState.currentStroke;
-  if (!stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) {
-    return;
-  }
-
-  const startIndex = drawingState.lastRenderedPointIndex < 0
-    ? 0
-    : drawingState.lastRenderedPointIndex + 1;
-
-  if (startIndex >= stroke.points.length) {
-    return;
-  }
-
-  drawStrokeRange(stroke, startIndex);
-  drawingState.lastRenderedPointIndex = stroke.points.length - 1;
-}
-
-function schedulePendingStrokeRender() {
-  if (drawingState.strokeFrame) {
-    return;
-  }
-
-  drawingState.strokeFrame = requestAnimationFrame(() => {
-    drawingState.strokeFrame = null;
-    flushPendingStrokeRender();
-  });
-}
+function flushPendingStrokeRender(){syncDrawingLayerSize();}
+function schedulePendingStrokeRender(){if(!drawingState.strokeFrame)drawingState.strokeFrame=requestAnimationFrame(()=>{drawingState.strokeFrame=null;flushPendingStrokeRender();});}
 
 function resetCurrentStrokeState() {
-  drawingState.isDrawing = false;
-  drawingState.currentStroke = null;
-  drawingState.activeBoardRect = null;
-  drawingState.lastRenderedPointIndex = -1;
-  drawingState.activePointerId = null;
-
-  if (drawingState.strokeFrame) {
-    cancelAnimationFrame(drawingState.strokeFrame);
-    drawingState.strokeFrame = null;
-  }
+  drawingState.isDrawing=false;drawingState.currentStroke=null;drawingState.activeBoardRect=null;drawingState.activePointerId=null;drawingState.selectionDrag=null;
+  drawingState.eraseCommands=null;
+  if(drawingState.strokeFrame){cancelAnimationFrame(drawingState.strokeFrame);drawingState.strokeFrame=null;}
 }
 
-const drawingRedo = new Map();
-const clearedDrawings = new Map();
+const clearedDrawings=new Map();
 
 function beginStroke(event) {
-  if (!workspaceWritable) return;
-  if (!drawingState.enabled || event.button !== 0) return;
-
-  const page = getCurrentPage();
-  if (!page) return;
-
-  event.preventDefault();
-  drawingState.activeBoardRect = board?.getBoundingClientRect() || null;
-  const referenceFontSize = getNormalizedFontSize();
-  const initialPoint = normalizeStoredPoint(getRelativePoint(event, drawingState.activeBoardRect));
-
-  const stroke = {
-    id: generateId(),
-    tool: drawingState.currentTool,
-    color: drawingState.currentTool === 'eraser' ? null : getCurrentBrushColor(),
-    width: clampBrushSize(drawingState.currentBrushSize),
-    points: [initialPoint],
-    coordinateSpace: DRAWING_COORDINATE_SPACE,
-    referenceFontSize
-  };
-
-  drawingRedo.delete(page.id);
-  page.drawings.push(stroke);
-  drawingState.isDrawing = true;
-  drawingState.currentStroke = stroke;
-  drawingState.lastRenderedPointIndex = -1;
-  drawingState.activePointerId = event.pointerId;
-
-  if (drawingLayer.setPointerCapture) {
-    drawingLayer.setPointerCapture(event.pointerId);
+  if(!workspaceWritable||!drawingState.enabled||drawingState.isDrawing||(event.button!==0&&event.button!==5))return;
+  const page=getCurrentPage();if(!page)return;
+  event.preventDefault();const point=getRelativePoint(event);
+  drawingState.activePointerId=event.pointerId;drawingState.isDrawing=true;
+  try{drawingLayer.setPointerCapture?.(event.pointerId);}catch{ /* Synthetic events and disconnected pointers cannot capture. */ }
+  const erasing=event.altKey||event.button===5||Boolean(event.buttons&32)||drawingState.currentTool==='eraser';
+  if(drawingState.currentTool==='select'||(erasing&&drawingState.eraseWhole)) {
+    if(erasing)drawingState.eraseCommands=[];
+    const stroke=[...page.drawings].reverse().find(s=>hitStroke(s,point,getDrawingOptions(s)));
+    drawingState.selectedStrokeId=stroke?.id||null;
+    if(stroke&&erasing){const index=page.drawings.indexOf(stroke);drawingState.eraseCommands.push({kind:'remove',index,stroke:structuredClone(stroke)});page.drawings.splice(index,1);drawingState.selectedStrokeId=null;}
+    else if(stroke){drawingState.selectionDrag={start:point,before:structuredClone(stroke),options:getDrawingOptions(stroke)};drawingState.currentBrushSize=stroke.width;controls.drawColor.value=stroke.color||getCurrentBrushColor();updateBrushSizeButtons();updateDrawColorPreview();}
+    redrawDrawings();return;
   }
-
-  schedulePendingStrokeRender();
+  drawingState.selectedStrokeId=null;
+  const options=getDrawingOptions();
+  const stroke={id:generateId(),tool:erasing?'eraser':drawingState.currentTool,color:erasing?null:getCurrentBrushColor(),width:clampBrushSize(drawingState.currentBrushSize),
+    points:[{...point,...(event.pointerType==='pen'?{pressure:event.pressure||0.5}:{})}],coordinateSpace:DRAWING_COORDINATE_SPACE,referenceFontSize:options.fontSize,
+    referencePaddingX:options.paddingX,referencePaddingY:options.paddingY,referenceLineHeight:options.lineHeight,renderer:'smooth-v1'};
+  if(stroke.tool==='marker')stroke.opacity=0.25;
+  if(drawingState.followText&&!erasing){const anchor=captureTextAnchor(editor,board,event);if(anchor)stroke.anchor=anchor;}
+  page.drawings.push(stroke);drawingState.currentStroke=stroke;schedulePendingStrokeRender();updateDrawingCursor(event);
 }
 
-function extendStroke(event) {
-  if (!drawingState.enabled || !drawingState.isDrawing || !drawingState.currentStroke) return;
-  if (drawingState.activePointerId !== null && event.pointerId !== drawingState.activePointerId) return;
-
+function extendStroke(event, final=false) {
+  updateDrawingCursor(event);
+  if(!drawingState.enabled||!drawingState.isDrawing||event.pointerId!==drawingState.activePointerId)return;
   event.preventDefault();
-  const point = normalizeStoredPoint(getRelativePoint(event, drawingState.activeBoardRect));
-  const points = drawingState.currentStroke.points;
-  const lastPoint = points[points.length - 1];
-
-  // Skip points closer than ~1.5px to the previous one — high-refresh pointers
-  // fire 120+ events/sec and the extra vertices are invisible but balloon the
-  // stored stroke data.
-  if (lastPoint) {
-    const dx = point.x - lastPoint.x;
-    const dy = point.y - lastPoint.y;
-    if ((dx * dx) + (dy * dy) < MIN_STROKE_POINT_DISTANCE_SQ) {
-      return;
-    }
+  const page=getCurrentPage();
+  if(drawingState.eraseCommands){const point=getRelativePoint(event),stroke=[...page.drawings].reverse().find(s=>hitStroke(s,point,getDrawingOptions(s)));if(stroke){const index=page.drawings.indexOf(stroke);drawingState.eraseCommands.push({kind:'remove',index,stroke:structuredClone(stroke)});page.drawings.splice(index,1);schedulePendingStrokeRender();}return;}
+  if(drawingState.selectionDrag) {
+    const drag=drawingState.selectionDrag,point=getRelativePoint(event),index=page.drawings.findIndex(s=>s.id===drag.before.id);
+    if(!drag.moved&&Math.hypot(point.x-drag.start.x,point.y-drag.start.y)<2)return;
+    drag.moved=true;
+    if(index>=0){page.drawings[index]=moveStroke(drag.before,point.x-drag.start.x,point.y-drag.start.y,drag.options);textDetachedStrokes.delete(drag.before.id);}
+    schedulePendingStrokeRender();return;
   }
-
-  points.push(point);
+  const stroke=drawingState.currentStroke;if(!stroke)return;
+  const events=event.getCoalescedEvents?.()||[];
+  const samples=events.length?[...events,event]:[event];
+  for(const sample of samples) {
+    const point=getRelativePoint(sample),last=stroke.points.at(-1);
+    if(event.pointerType==='pen')point.pressure=sample.pressure??event.pressure??0.5;
+    if(event.shiftKey){stroke.points.splice(1,stroke.points.length-1,point);continue;}
+    const distance=Math.hypot(point.x-last.x,point.y-last.y);
+    if(distance>=(final?0.01:Math.min(1,Math.max(0.35,getBrushSizeInPixels(stroke.width)/8)))||(stroke.tool==='pen'&&Math.abs((point.pressure??0.5)-(last.pressure??0.5))>=0.04))stroke.points.push(point);
+  }
   schedulePendingStrokeRender();
 }
 
 function finishStroke(event) {
-  if (!drawingState.isDrawing || !drawingState.currentStroke) return;
-  if (event && drawingState.activePointerId !== null && event.pointerId !== drawingState.activePointerId) return;
-
-  if (event) {
-    event.preventDefault();
-    if (drawingLayer.releasePointerCapture) {
-      try {
-        drawingLayer.releasePointerCapture(event.pointerId);
-      } catch (error) {
-        // Ignore release errors when pointer capture is already cleared.
-      }
-    }
-  }
-
-  if (drawingState.strokeFrame) {
-    cancelAnimationFrame(drawingState.strokeFrame);
-    drawingState.strokeFrame = null;
-  }
-
-  flushPendingStrokeRender();
-
-  if (drawingState.currentStroke.points.length === 1) {
-    drawingState.currentStroke.points.push({ ...drawingState.currentStroke.points[0] });
-  }
-
-  resetCurrentStrokeState();
-  touchPageEdited();
-  saveContent();
+  if(!drawingState.isDrawing||(event&&event.pointerId!==drawingState.activePointerId))return;
+  if(event?.type==='pointerup')extendStroke(event,true);
+  const page=getCurrentPage();
+  if(drawingState.eraseCommands?.length)drawingHistory.record(page.id,{kind:'batch',commands:drawingState.eraseCommands});
+  else if(drawingState.selectionDrag){const drag=drawingState.selectionDrag,after=page.drawings.find(s=>s.id===drag.before.id);if(after&&JSON.stringify(after)!==JSON.stringify(drag.before))drawingHistory.record(page.id,{kind:'update',before:drag.before,after});}
+  else if(drawingState.currentStroke)drawingHistory.record(page.id,{kind:'insert',index:page.drawings.indexOf(drawingState.currentStroke),stroke:drawingState.currentStroke});
+  const pointerId=drawingState.activePointerId;resetCurrentStrokeState();
+  try{drawingLayer.releasePointerCapture?.(pointerId);}catch{ /* Already released. */ }
+  syncDrawingLayerSize();touchPageEdited(page);void saveContent();
 }
 
 function undoLastStroke() {
-  if (!workspaceWritable) return false;
-  const page = getCurrentPage();
-  if (!page || !Array.isArray(page.drawings)) {
-    return false;
-  }
-
-  if (drawingState.currentStroke && cancelActiveStroke()) {
-    touchPageEdited(page);
-    saveContent();
-    return true;
-  }
-
-  if (page.drawings.length === 0) {
-    return false;
-  }
-
-  const redo = drawingRedo.get(page.id) || [];
-  redo.push(page.drawings.pop());
-  drawingRedo.set(page.id, redo);
-  redrawDrawings();
-  touchPageEdited(page);
-  saveContent();
-  return true;
+  if(!workspaceWritable)return false;const page=getCurrentPage();if(!page)return false;
+  if(drawingState.isDrawing){if(drawingState.eraseCommands){for(const command of [...drawingState.eraseCommands].reverse())page.drawings.splice(command.index,0,command.stroke);resetCurrentStrokeState();}else if(drawingState.selectionDrag){const drag=drawingState.selectionDrag,index=page.drawings.findIndex(s=>s.id===drag.before.id);if(index>=0)page.drawings[index]=drag.before;resetCurrentStrokeState();}else cancelActiveStroke();}
+  else if(!drawingHistory.undo(page.id,page.drawings))return false;
+  drawingState.selectedStrokeId=null;syncDrawingLayerSize();touchPageEdited(page);void saveContent();return true;
 }
-
 function redoLastStroke() {
-  if (!workspaceWritable) return;
-  const page = getCurrentPage();
-  const redo = drawingRedo.get(page?.id);
-  if (!page || !redo?.length) return;
-  page.drawings.push(redo.pop()); redrawDrawings(); touchPageEdited(page); void saveContent();
+  if(!workspaceWritable)return;const page=getCurrentPage();if(!page||!drawingHistory.redo(page.id,page.drawings))return;
+  syncDrawingLayerSize();touchPageEdited(page);void saveContent();
 }
 function restoreClearedDrawings() {
-  if (!workspaceWritable) return;
-  const page=getCurrentPage();const cleared=clearedDrawings.get(page?.id);
-  if(!page || !cleared) return;
-  page.drawings = [...cleared, ...page.drawings]; clearedDrawings.delete(page.id);
-  redrawDrawings(); touchPageEdited(page); void saveContent();
+  if(!workspaceWritable)return;const page=getCurrentPage(),cleared=clearedDrawings.get(page?.id);if(!page||!cleared)return;
+  const before=structuredClone(page.drawings);page.drawings=[...cleared,...page.drawings];clearedDrawings.delete(page.id);
+  drawingHistory.record(page.id,{kind:'replace',before,after:page.drawings});syncDrawingLayerSize();touchPageEdited(page);void saveContent();
 }
 async function clearCurrentPageDrawings() {
-  if (!workspaceWritable) return;
-  const page = getCurrentPage();
-  if (!page || !Array.isArray(page.drawings) || page.drawings.length === 0) {
-    closeClearDrawingsConfirm();
-    return;
-  }
+  if(!workspaceWritable)return;const page=getCurrentPage();if(!page?.drawings.length){closeClearDrawingsConfirm();return;}
+  try{await captureDestructiveSnapshot('Before clearing page drawings');}catch(error){handleStorageError(error,'saving recovery snapshot');return;}
+  const before=structuredClone(page.drawings);clearedDrawings.set(page.id,before);page.drawings=[];drawingState.selectedStrokeId=null;
+  drawingHistory.record(page.id,{kind:'replace',before,after:[]});touchPageEdited(page);syncDrawingLayerSize();
+  await safeLocalSet({pages,currentPageId},'clearing page drawings');closeClearDrawingsConfirm({restoreFocus:true});
+}
 
-  try { await captureDestructiveSnapshot('Before clearing page drawings'); }
-  catch(error) { handleStorageError(error, 'saving recovery snapshot'); return; }
-  clearedDrawings.set(page.id, structuredClone(page.drawings));
-  page.drawings = [];
-  drawingRedo.delete(page.id);
-  touchPageEdited(page);
-  redrawDrawings();
-  await safeLocalSet({ pages, currentPageId }, 'clearing page drawings');
-  closeClearDrawingsConfirm({ restoreFocus: true });
+function refreshTextAnchors() {
+  const next=editor.textContent,page=getCurrentPage();
+  for(let i=0;i<(page?.drawings.length||0);i++) {
+    const stroke=page.drawings[i];if(!stroke.anchor)continue;
+    const updated=reconcileAnchor(stroke.anchor,lastAnchorText,next);
+    if(updated)stroke.anchor=updated;
+    else {const options=getDrawingOptions();options.anchorBox=drawingState.anchorBoxes.get(stroke.id)||stroke.anchor.box;page.drawings[i]=moveStroke(stroke,0,0,options);textDetachedStrokes.add(stroke.id);}
+  }
+  lastAnchorText=next;
 }
 
 // Confirm popover for the "clear drawings" toolbar button — mirrors the page
@@ -1652,7 +1581,9 @@ function positionClearDrawingsConfirm() {
     return;
   }
 
-  const triggerRect = clearDrawingsBtn.getBoundingClientRect();
+  // The trigger lives in the "More" menu, which closes on click.
+  const trigger = clearDrawingsBtn.getClientRects().length ? clearDrawingsBtn : drawingToolbar;
+  const triggerRect = trigger.getBoundingClientRect();
   const popoverWidth = Math.min(clearDrawingsConfirm.offsetWidth || 244, window.innerWidth - 24);
   const popoverHeight = Math.min(clearDrawingsConfirm.offsetHeight || 120, window.innerHeight - 24);
   const viewportPadding = 12;
@@ -2127,13 +2058,11 @@ async function safeLocalSet(payload, context = 'saving') {
   }
 }
 
-const persistPagesState = debounce(() => {
-  safeLocalSet({ pages, currentPageId }, 'saving pages');
-}, 200);
-
 async function persistPagesStateImmediately() {
   return safeLocalSet({ pages, currentPageId }, 'saving pages');
 }
+function persistPageOrder(){if(workspaceWritable&&workspaceReady)void workspaceStore.savePageOrder(pages.map(page=>page.id)).catch(error=>handleStorageError(error,'saving page order'));}
+function persistOnePage(page){if(!workspaceWritable||!workspaceReady||!page)return;if(page.id===currentPageId)page.content=sanitizeStoredContent(editor.innerHTML);const generation=editGeneration;editor.dataset.saveState='saving';void workspaceStore.savePage({...page,position:pages.indexOf(page)},currentPageId).then(()=>{if(generation===editGeneration)editor.dataset.saveState='saved';showSaveIndicator();}).catch(handleStorageError);}
 
 // Apply settings to CSS custom properties
 function applySettings(settings) {
@@ -2184,8 +2113,14 @@ function updateControlValues(settings) {
   controls.textColor.value = settings.textColor;
   controls.backgroundColor.value = settings.backgroundColor;
   controls.selectionColor.value = selectionColor;
-  drawingState.currentBrushSize = normalizedDrawSize;
-  drawingState.currentBrushColorMode = settings.drawColorMode || DEFAULT_SETTINGS.drawColorMode;
+  toolPreferences.clear();Object.entries(settings.drawTools||{}).forEach(([tool,preference])=>toolPreferences.set(tool,preference));
+  drawingState.currentTool=settings.drawLastTool||'brush';drawingState.lastPaintingTool=drawingState.currentTool;
+  const activePreference=settings.drawTools?.[drawingState.currentTool];
+  if(activePreference)controls.drawColor.value=activePreference.mode==='theme'?settings.textColor:activePreference.color;
+  drawingState.currentBrushSize = settings.drawTools?.[drawingState.currentTool]?.size ?? normalizedDrawSize;
+  drawingState.followText=settings.drawFollowText===true;drawingState.eraseWhole=settings.drawEraseWhole===true;drawingState.penPressure=settings.drawPressure===true;
+  document.getElementById('followTextToggle').checked=drawingState.followText;document.getElementById('eraseWholeToggle').checked=drawingState.eraseWhole;document.getElementById('pressureToggle').checked=drawingState.penPressure;
+  drawingState.currentBrushColorMode = activePreference?.mode ?? settings.drawColorMode ?? DEFAULT_SETTINGS.drawColorMode;
   updateBrushSizeButtons();
   updateDrawingToolButtons();
   updateDrawColorPreview();
@@ -2225,8 +2160,10 @@ async function saveContent() {
     }
     pages[pageIndex].content = content;
     pages[pageIndex].drawings = Array.isArray(pages[pageIndex].drawings) ? pages[pageIndex].drawings : [];
+    const generation=editGeneration,savedId=currentPageId;editor.dataset.saveState='saving';
     await workspaceStore.savePage({ ...pages[pageIndex], position: pageIndex }, currentPageId);
-    workspaceChannel.post('page-saved', { pageId: currentPageId });
+    if(generation===editGeneration)editor.dataset.saveState='saved';
+    workspaceChannel.post('page-saved', { pageId: savedId });
     showSaveIndicator();
     updateWordCount();
     return true;
@@ -2241,6 +2178,7 @@ async function saveContent() {
 function handleStorageError(error, context = 'saving') {
   console.error(`Error ${context}:`, error);
   if (!saveIndicator) return;
+  editor.dataset.saveState='error';
 
   saveIndicator.classList.add('error', 'visible');
   saveIndicator.title = error?.message
@@ -2258,6 +2196,7 @@ const debouncedSave = debounce(saveContent, 1000);
 // Show save indicator briefly
 function showSaveIndicator() {
   if (workspaceStore.hasWriteError()) return;
+  if(['dirty','saving'].includes(editor.dataset.saveState))return;
   // A successful save clears any lingering error state.
   saveIndicator.classList.remove('error');
   saveIndicator.title = '';
@@ -2278,6 +2217,7 @@ async function saveSettings(settings) {
   try {
     await workspaceStore.saveSettings(normalizeSettings(settings, DEFAULT_SETTINGS));
     workspaceChannel.post('settings-saved');
+    if(editor.dataset.saveState==='error'&&!workspaceStore.hasWriteError()){editor.dataset.saveState='saved';showSaveIndicator();}
   } catch (error) {
     handleStorageError(error, 'saving settings');
   }
@@ -2437,6 +2377,7 @@ async function updateStorageSummary() {
   }
 
   try { const exported = localStorage.getItem('blackboard-text:last-export'); if (exported) message += ' Last backup: '+new Date(exported).toLocaleString()+'.'; } catch { /* Optional hint only. */ }
+  if(pages.some(page=>page.content||page.drawings?.length)){try{const exported=localStorage.getItem('blackboard-text:last-export');if(!exported||Date.now()-Date.parse(exported)>7*24*60*60*1000)message+=' Keep a portable backup outside this browser.';}catch{ /* Optional reminder only. */ }}
   storageSummary.textContent = message;
 }
 
@@ -2452,7 +2393,7 @@ async function updateRecoverySummary() {
     }
 
     const label = latestSnapshot.label || 'Recovery snapshot';
-    const time = new Date(latestSnapshot.createdAt).toLocaleString('en-US');
+    const time = new Date(latestSnapshot.createdAt).toLocaleString(document.documentElement.lang==='ru'?'ru-RU':'en-US');
     recoverySummary.textContent = `Latest snapshot: ${label} · ${time}.`;
   } catch (error) {
     recoverySummary.textContent = 'Recovery snapshots are unavailable until local storage is ready.';
@@ -2663,12 +2604,14 @@ function setEditorSelectionOffsets(start, end = start) {
 function ensureTextHistory(pageId, html) {
   if (!textHistories.has(pageId)) {
     textHistories.set(pageId, {
-      states: [{ html: typeof html === 'string' ? html : '', sel: null }],
+      states: [{ html: typeof html === 'string' ? html : '', sel: null, drawingAnchors:captureDrawingAnchors(pageId) }],
       index: 0
     });
   }
   return textHistories.get(pageId);
 }
+function captureDrawingAnchors(pageId=currentPageId){return (getPageById(pageId)?.drawings||[]).filter(stroke=>stroke.anchor).map(({id,points,anchor,referenceFontSize,referencePaddingX,referencePaddingY,referenceLineHeight})=>structuredClone({id,points,anchor,referenceFontSize,referencePaddingX,referencePaddingY,referenceLineHeight}));}
+function captureAnchorsBeforeTextEdit(){if(!currentPageId)return;const history=ensureTextHistory(currentPageId,editor.innerHTML),state=history.states[history.index];if(state.html===editor.innerHTML)state.drawingAnchors=captureDrawingAnchors();}
 
 function captureTextSnapshot() {
   if (textSnapshotTimeout) {
@@ -2689,7 +2632,7 @@ function captureTextSnapshot() {
 
   // A new edit after undo discards the redo branch.
   history.states.length = history.index + 1;
-  history.states.push({ html, sel: getEditorSelectionOffsets() });
+  history.states.push({ html, sel: getEditorSelectionOffsets(),drawingAnchors:captureDrawingAnchors() });
 
   if (history.states.length > TEXT_HISTORY_LIMIT) {
     history.states.shift();
@@ -2723,11 +2666,14 @@ function cancelPendingTextSnapshot() {
 
 function applyTextHistoryState(state) {
   editor.innerHTML = state.html;
+  refreshTextAnchors();
+  for(const saved of state.drawingAnchors||[]){const stroke=getCurrentPage()?.drawings.find(item=>item.id===saved.id);if(stroke&&(stroke.anchor||textDetachedStrokes.has(stroke.id))){Object.assign(stroke,structuredClone(saved));textDetachedStrokes.delete(stroke.id);}}
   if (state.sel) {
     setEditorSelectionOffsets(state.sel.start, state.sel.end);
   } else {
     setEditorSelectionOffsets(editor.textContent.length);
   }
+  markWorkspaceDirty();
   debouncedSave();
   updateWordCount();
   scheduleDrawingLayerSync();
@@ -2768,7 +2714,8 @@ function redoTextEdit() {
 }
 
 function clearTextHistories() {
-  drawingRedo.clear();
+  textDetachedStrokes.clear();
+  drawingHistory.clear();
   clearedDrawings.clear();
   textHistories.clear();
   if (textSnapshotTimeout) {
@@ -2781,6 +2728,7 @@ function clearTextHistories() {
 
 // Load page content
 function loadPageContent(pageId) {
+  if(drawingState.isDrawing)finishStroke();
   const page = pages.find(p => p.id === pageId);
   if (page) {
     // Callers that switch pages flush the outgoing page's pending snapshot
@@ -2788,6 +2736,7 @@ function loadPageContent(pageId) {
     cancelPendingTextSnapshot();
     resetCurrentStrokeState();
     editor.innerHTML = sanitizeStoredContent(page.content);
+    lastAnchorText=editor.textContent;drawingState.selectedStrokeId=null;drawingState.anchorBoxes.clear();
     ensureTextHistory(pageId, editor.innerHTML);
     currentPageId = pageId;
     safeLocalSet({ currentPageId }, 'updating active page');
@@ -2802,7 +2751,7 @@ function loadPageContent(pageId) {
 function renderPageTabs() {
   pageTabsList.innerHTML = '';
   
-  pages.forEach((page, index) => {
+  [...pages].sort((a,b)=>Number(b.pinned)-Number(a.pinned)).forEach((page, index) => {
     const tab = document.createElement('button');
     const isActive = page.id === currentPageId;
     const emoji = getPageDisplayEmoji(page);
@@ -2971,7 +2920,7 @@ function formatPageDate(value) {
 
   const date = new Date(time);
   const sameYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(document.documentElement.lang==='ru'?'ru-RU':'en-US', {
     month: 'short',
     day: 'numeric',
     ...(sameYear ? {} : { year: 'numeric' })
@@ -3235,7 +3184,7 @@ function handleDrop(e) {
   draggedPageId = null;
   clearPageTabDragState();
   setPageReorderingState(false);
-  safeLocalSet({ pages, currentPageId }, 'saving pages');
+  persistPageOrder();
   renderPageTabs();
 }
 
@@ -3277,7 +3226,7 @@ function movePageByOffset(pageId, delta) {
 
   const [page] = pages.splice(fromIndex, 1);
   pages.splice(toIndex, 0, page);
-  safeLocalSet({ pages, currentPageId }, 'saving pages');
+  persistPageOrder();
   renderPageTabs();
 
   // Re-rendering resets the roving tabindex to the active page; keep focus on
@@ -3333,6 +3282,7 @@ if (pageTabsList) {
 // Add new page
 function addNewPage() {
   if (!workspaceWritable) return;
+  if(drawingState.isDrawing)finishStroke();
   // Get a random unused emoji, or any if all used
   const usedEmojis = pages.map(p => p.emoji);
   const unusedEmojis = PAGE_EMOJIS.filter(e => !usedEmojis.includes(e));
@@ -3482,7 +3432,7 @@ function clearPageEmoji() {
 
   page.emoji = '';
   touchPageEdited(page);
-  safeLocalSet({ pages, currentPageId }, 'saving pages');
+  persistOnePage(page);
   renderPageTabs();
   closeEmojiPicker({ restoreFocus: true });
 }
@@ -3495,7 +3445,7 @@ function selectEmoji(emoji) {
   if (page) {
     page.emoji = emoji;
     touchPageEdited(page);
-    safeLocalSet({ pages, currentPageId }, 'saving pages');
+    persistOnePage(page);
     renderPageTabs();
   }
   
@@ -3561,8 +3511,8 @@ function initEmojiPicker() {
 
   // Page name input — applies live to the tab tooltip, persists debounced.
   if (pageTitleInput) {
-    const persistPageTitle = debounce(() => {
-      safeLocalSet({ pages, currentPageId }, 'saving pages');
+    const persistPageTitle = debounce((pageId) => {
+      persistOnePage(getPageById(pageId));
     }, 400);
 
     pageTitleInput.addEventListener('input', () => {
@@ -3574,7 +3524,7 @@ function initEmojiPicker() {
       page.title = pageTitleInput.value.slice(0, MAX_PAGE_TITLE_LENGTH);
       touchPageEdited(page);
       updatePageTabLabels(page.id);
-      persistPageTitle();
+      persistPageTitle(page.id);
     });
 
     pageTitleInput.addEventListener('keydown', (event) => {
@@ -3606,6 +3556,7 @@ function initEmojiPicker() {
 
 // Get current settings from controls
 function getCurrentSettings() {
+  if(drawingState.currentTool!=='select')toolPreferences.set(drawingState.currentTool,{size:drawingState.currentBrushSize,color:getCurrentBrushColor(),mode:drawingState.currentBrushColorMode});
   return {
     fontFamily: controls.fontFamily.value,
     fontSize: parseFloat(controls.fontSize.value),
@@ -3618,7 +3569,9 @@ function getCurrentSettings() {
     textColor: controls.textColor.value,
     backgroundColor: controls.backgroundColor.value,
     selectionColor: normalizeHex(controls.selectionColor.value || controls.textColor.value),
-    currentTheme: currentTheme
+    currentTheme: currentTheme,
+    drawTools:Object.fromEntries(toolPreferences),drawLastTool:drawingState.currentTool==='select'?(drawingState.lastPaintingTool||'brush'):drawingState.currentTool,
+    drawFollowText:drawingState.followText,drawEraseWhole:drawingState.eraseWhole,drawPressure:Boolean(drawingState.penPressure)
   };
 }
 
@@ -3907,6 +3860,7 @@ async function regeneratePublishLink() {
     const preview = document.getElementById('previewPublishLink');
     preview.href = url;
     preview.hidden = false;
+    document.getElementById('publishCapturedAt').textContent='Preview captured '+new Date(note.publishedAt).toLocaleString()+'. Creating a short link captures the selected copy at that moment.';
     const { kilobytes, tier } = describePublishedLink(url);
     if (publishSizeHint) {
       publishSizeHint.dataset.tier = tier;
@@ -4011,7 +3965,7 @@ async function selectWorkspaceBackup(file) {
       : 'No matching page IDs.';
     if (importConfirmText) {
       const exportedWhen = parsed.metadata.exportedAt
-        ? ` It was exported ${new Date(parsed.metadata.exportedAt).toLocaleString('en-US')}.`
+        ? ` It was exported ${new Date(parsed.metadata.exportedAt).toLocaleString(document.documentElement.lang==='ru'?'ru-RU':'en-US')}.`
         : '';
       importConfirmText.textContent = `Backup: ${describeBackup(parsed.workspace)}. Current workspace: ${describeBackup(getWorkspaceForPersistence())}. Choose Add to keep existing pages, or Replace to use the backup. A recovery snapshot is saved first.${exportedWhen}`;
     }
@@ -4076,7 +4030,7 @@ async function openLatestRecoverySnapshot() {
 
     pendingRecoverySnapshot = latestSnapshot;
     if (restoreConfirmText) {
-      restoreConfirmText.textContent = `Restore the snapshot from ${new Date(latestSnapshot.createdAt).toLocaleString('en-US')}? Your current workspace will be saved as a new snapshot first.`;
+      restoreConfirmText.textContent = `Restore the snapshot from ${new Date(latestSnapshot.createdAt).toLocaleString(document.documentElement.lang==='ru'?'ru-RU':'en-US')}? Your current workspace will be saved as a new snapshot first.`;
     }
     if (restoreConfirmDialog) {
       restoreConfirmDialog.showModal();
@@ -4228,9 +4182,12 @@ if (publishDialog) {
 }
 
 // Editor input - auto-save
+editor.addEventListener('beforeinput',captureAnchorsBeforeTextEdit);
 editor.addEventListener('input', cancelPageScrollRestore);
+editor.addEventListener('input',markWorkspaceDirty);
 document.body.addEventListener('wheel', cancelPageScrollRestore, {passive:true});
 document.body.addEventListener('touchstart', cancelPageScrollRestore, {passive:true});
+editor.addEventListener('input', refreshTextAnchors);
 editor.addEventListener('input', debouncedSave);
 editor.addEventListener('input', () => scheduleDrawingLayerSync());
 editor.addEventListener('input', scheduleTextSnapshot);
@@ -4238,6 +4195,7 @@ editor.addEventListener('input', scheduleTextSnapshot);
 // Prevent unwanted formatting on paste - keep plain text
 editor.addEventListener('paste', (e) => {
   e.preventDefault();
+  flushPendingTextSnapshot();captureAnchorsBeforeTextEdit();
   const text = e.clipboardData.getData('text/plain');
   const selection = window.getSelection();
   if (selection.rangeCount) {
@@ -4248,8 +4206,10 @@ editor.addEventListener('paste', (e) => {
     selection.removeAllRanges();
     selection.addRange(range);
     // Inserting via script doesn't fire 'input', so save/snapshot explicitly.
-    debouncedSave();
+    markWorkspaceDirty();
+  debouncedSave();
     debouncedWordCount();
+    refreshTextAnchors();
     scheduleTextSnapshot();
     scheduleDrawingLayerSync();
   }
@@ -4259,6 +4219,7 @@ editor.addEventListener('paste', (e) => {
 editor.addEventListener('keydown', (e) => {
   if (e.key === 'Tab') {
     e.preventDefault();
+    flushPendingTextSnapshot();captureAnchorsBeforeTextEdit();
     
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
@@ -4271,7 +4232,8 @@ editor.addEventListener('keydown', (e) => {
       handleIndent(selection);
     }
 
-    debouncedSave();
+    markWorkspaceDirty();
+  debouncedSave();
     scheduleTextSnapshot();
   }
   
@@ -4441,20 +4403,6 @@ if (drawingToolbarVisibilityToggleBtn) {
   });
 }
 
-if (drawToggleBtn) {
-  drawToggleBtn.addEventListener('click', (event) => {
-    toggleDrawingTool('brush');
-    event.currentTarget.blur();
-  });
-}
-
-if (eraseToggleBtn) {
-  eraseToggleBtn.addEventListener('click', (event) => {
-    toggleDrawingTool('eraser');
-    event.currentTarget.blur();
-  });
-}
-
 if (drawSizeToggleBtn) {
   drawSizeToggleBtn.addEventListener('click', (event) => {
     event.preventDefault();
@@ -4516,6 +4464,8 @@ if (drawingLayer) {
   drawingLayer.addEventListener('pointermove', extendStroke);
   drawingLayer.addEventListener('pointerup', finishStroke);
   drawingLayer.addEventListener('pointercancel', finishStroke);
+  drawingLayer.addEventListener('lostpointercapture',finishStroke);
+  drawingLayer.addEventListener('pointerleave',()=>document.getElementById('drawingCursor')?.setAttribute('hidden',''));
 }
 
 window.addEventListener('resize', () => {
@@ -4556,6 +4506,7 @@ window.addEventListener('wheel', (event) => {
 
 document.body.addEventListener('scroll', () => {
   handleScrollActivity({ persistPageScroll: !isRestoringPageScroll });
+  scheduleDrawingLayerSync();
 }, { passive: true });
 
 if (pageTabsList) {
@@ -4670,6 +4621,11 @@ document.addEventListener('keydown', (e) => {
   }
 
   if (e.target instanceof Element && e.target.closest('#workspaceToolsDialog[open]')) return;
+  if(!e.ctrlKey&&!e.metaKey&&!e.altKey&&!isTextEditingShortcutTarget(e)&&!e.target.closest?.('dialog[open]')) {
+    if(e.key.toLowerCase()==='b'){e.preventDefault();toggleDrawingTool(penTool());return;}
+    if(e.key.toLowerCase()==='e'){e.preventDefault();toggleDrawingTool('eraser');return;}
+    if(drawingState.enabled&&drawingState.currentTool==='select'&&['Delete','Backspace'].includes(e.key)){e.preventDefault();deleteSelectedStroke();return;}
+  }
 
   if (e.key === 'Escape') {
     if (publishDialog?.open) {
@@ -4745,7 +4701,7 @@ document.addEventListener('keydown', (e) => {
 
   if (matchesAltShiftKey('b', 'KeyB') && shouldHandleBrushToggleShortcut(e)) {
     e.preventDefault();
-    toggleDrawingTool('brush');
+    toggleDrawingTool(penTool());
     return;
   }
 
@@ -4791,7 +4747,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  if (drawingState.enabled && shouldHandleDrawingShortcut(e)) {
+  if (drawingState.enabled && (shouldHandleDrawingShortcut(e)||e.target.closest?.('#drawingToolbar,#drawingAdvancedPanel'))) {
     if (e.key === 'Escape') {
       e.preventDefault();
       setDrawMode(false);
@@ -4874,6 +4830,11 @@ setupPageTools({
   redoDrawing: redoLastStroke,
   restoreDrawings: restoreClearedDrawings,
   listSnapshots: () => workspaceStore.listSnapshots(),
+  listPageHistory: id=>workspaceStore.listPageHistory(id),
+  addPage:addNewPage,
+  togglePin(id){const page=getPageById(id);if(!workspaceWritable||!page)return;page.pinned=!page.pinned;void workspaceStore.savePage({...page,position:pages.indexOf(page)},currentPageId).catch(handleStorageError);renderPageTabs();},
+  setDrawingDescription(id,value){const page=getPageById(id);if(!workspaceWritable||!page)return;page.drawingDescription=value.slice(0,2000);touchPageEdited(page);void saveContent();},
+  async exportPage(format){const workspace=getWorkspaceForPersistence({captureEditor:true}),page=workspace.pages.find(p=>p.id===workspace.currentPageId);await exportPageFile(page,workspace.settings,format,{boardWidth:board.clientWidth,paddingX:parseFloat(getComputedStyle(editor).paddingLeft)});},
   async recoverPage(page) {
     if (!workspaceWritable || !workspaceReady) throw new Error('This tab is read-only.');
     const current = getWorkspaceForPersistence({captureEditor:true});
@@ -4884,10 +4845,13 @@ setupPageTools({
   },
   async retrySave() {
     try {
+      const generation=editGeneration;editor.dataset.saveState='saving';
       await workspaceStore.saveWorkspace(getWorkspaceForPersistence({captureEditor:true}));
+      if(generation===editGeneration)editor.dataset.saveState='saved';
       showSaveIndicator();
     } catch(error) { handleStorageError(error); throw error; }
   }
 });
 
+setupLocalization();
 void bootstrapApp();

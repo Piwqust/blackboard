@@ -6,7 +6,7 @@ import {
 } from './schema.js';
 
 export const PUBLISH_FORMAT = 'BlackboardTextNote';
-export const PUBLISH_SCHEMA_VERSION = 1;
+export const PUBLISH_SCHEMA_VERSION = 2;
 export const PUBLISH_ROUTE = 'read.html';
 export const PUBLISH_HASH_KEY = 'n';
 
@@ -55,9 +55,15 @@ function compactStroke(stroke) {
     tool: stroke.tool,
     color: stroke.color,
     width: Math.round(Number(stroke.width) * 10_000) / 10_000,
-    points: (stroke.points || []).map(point => ({ x: roundPoint(point.x), y: roundPoint(point.y) })),
+    points: (stroke.points || []).map(point => ({ x: roundPoint(point.x), y: roundPoint(point.y), ...(point.pressure !== undefined ? {pressure:point.pressure} : {}) })),
     coordinateSpace: stroke.coordinateSpace,
-    referenceFontSize: stroke.referenceFontSize
+    referenceFontSize: stroke.referenceFontSize,
+    renderer:stroke.renderer,
+    referencePaddingX:stroke.referencePaddingX,
+    referencePaddingY:stroke.referencePaddingY,
+    referenceLineHeight:stroke.referenceLineHeight,
+    opacity:stroke.opacity,
+    anchor:stroke.anchor?{start:stroke.anchor.start,end:stroke.anchor.end,box:stroke.anchor.box}:undefined
   };
 }
 
@@ -87,6 +93,7 @@ export function createPublishedNote(page, settings, {
     note: {
       emoji: typeof source.emoji === 'string' ? source.emoji.slice(0, 16) : '📝',
       title,
+      drawingDescription: typeof source.drawingDescription==='string' ? source.drawingDescription.slice(0,2000) : '',
       content,
       drawings,
       createdAt: typeof source.createdAt === 'string' ? source.createdAt : null,
@@ -228,7 +235,7 @@ export async function decodePublishedNote(token, { sanitizeHtml, defaults = DEFA
     throw new Error('This link is not a published Blackboard note.');
   }
 
-  if (candidate.schemaVersion !== PUBLISH_SCHEMA_VERSION) {
+  if (![1, PUBLISH_SCHEMA_VERSION].includes(candidate.schemaVersion)) {
     throw new Error('This note was published by a newer version of Blackboard Text.');
   }
 

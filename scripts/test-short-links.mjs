@@ -27,7 +27,7 @@ try {
     await new Promise(resolve=>setTimeout(resolve,150));
   }
   await run(['tests/short-links-api.mjs']);
-  await run(['node_modules/@playwright/test/cli.js','test','short-links.spec.js','--reporter=line']);
+  await run(['node_modules/@playwright/test/cli.js','test','short-links.spec.js','--reporter=line',...process.argv.slice(2)]);
 } finally {
   if(server && server.exitCode===null) {
     server.kill('SIGTERM');

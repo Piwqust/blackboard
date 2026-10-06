@@ -1,0 +1,467 @@
+{
+  "endpoint": {
+    "releasedAt": {
+      "x": 280,
+      "y": 260
+    },
+    "stored": [
+      {
+        "x": 200,
+        "y": 200
+      },
+      {
+        "x": 220,
+        "y": 220
+      }
+    ]
+  },
+  "coalesced": {
+    "id": "50cb72d6-ffb5-452d-9881-7eb96ad2ce31",
+    "tool": "brush",
+    "color": "#dddad2",
+    "width": 0.2222222222222222,
+    "points": [
+      {
+        "x": 200,
+        "y": 200
+      },
+      {
+        "x": 240,
+        "y": 240
+      }
+    ],
+    "coordinateSpace": "text-scaled-px",
+    "referenceFontSize": 40
+  },
+  "multiPointer": [
+    {
+      "id": "9caeb7e2-d18c-413f-84d2-9358e3aaec8b",
+      "tool": "brush",
+      "color": "#dddad2",
+      "width": 0.2222222222222222,
+      "points": [
+        {
+          "x": 200,
+          "y": 200
+        },
+        {
+          "x": 220,
+          "y": 220
+        }
+      ],
+      "coordinateSpace": "text-scaled-px",
+      "referenceFontSize": 40
+    },
+    {
+      "id": "0314f1b8-201d-4d6c-b882-11d2e6ac84da",
+      "tool": "brush",
+      "color": "#dddad2",
+      "width": 0.2222222222222222,
+      "points": [
+        {
+          "x": 600,
+          "y": 200
+        },
+        {
+          "x": 610,
+          "y": 220
+        }
+      ],
+      "coordinateSpace": "text-scaled-px",
+      "referenceFontSize": 40
+    }
+  ],
+  "scrollDuringStroke": {
+    "boardTop": -400,
+    "expectedY": 620,
+    "stored": [
+      {
+        "x": 200,
+        "y": 200
+      },
+      {
+        "x": 230,
+        "y": 220
+      }
+    ]
+  },
+  "canvasResolution": [
+    {
+      "dpr": 2,
+      "boardWidth": 1344,
+      "boardHeight": 900,
+      "pixelWidth": 2688,
+      "pixelHeight": 1800,
+      "scaleX": 2,
+      "scaleY": 2
+    },
+    {
+      "dpr": 2,
+      "boardWidth": 1344,
+      "boardHeight": 6568,
+      "pixelWidth": 1279,
+      "pixelHeight": 6252,
+      "scaleX": 0.9516369047619048,
+      "scaleY": 0.9518879415347138
+    },
+    {
+      "dpr": 2,
+      "boardWidth": 1344,
+      "boardHeight": 25768,
+      "pixelWidth": 427,
+      "pixelHeight": 8192,
+      "scaleX": 0.3177083333333333,
+      "scaleY": 0.31791369140018627
+    }
+  ],
+  "clippedDrawing": {
+    "storedMaxY": 3920,
+    "beforeReload": {
+      "board": {
+        "x": 0,
+        "y": -55,
+        "width": 1344,
+        "height": 900
+      },
+      "canvas": {
+        "x": 0,
+        "y": -55,
+        "width": 1344,
+        "height": 6568
+      }
+    },
+    "afterReload": {
+      "board": {
+        "x": 0,
+        "y": 0,
+        "width": 1344,
+        "height": 900
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1344,
+        "height": 900
+      }
+    },
+    "strokeCount": 1
+  },
+  "hideDrawingMode": {
+    "toolbarExpanded": "false",
+    "drawingMode": true,
+    "strokes": 1
+  },
+  "retrySave": {
+    "persistedText": "Unsaved first edit",
+    "status": "Saved on this device",
+    "indicator": "save-indicator visible",
+    "retryVisible": false
+  },
+  "autosaveAfterFailure": {
+    "persistedText": "Saved second edit",
+    "status": "Saving…",
+    "indicator": "save-indicator visible error"
+  },
+  "layouts": [
+    {
+      "width": 1440,
+      "editor": {
+        "x": 0,
+        "y": 0,
+        "width": 1344,
+        "height": 900
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1344,
+        "height": 900
+      },
+      "toolbar": {
+        "x": 1081,
+        "y": 21,
+        "width": 275,
+        "height": 50
+      },
+      "rail": {
+        "x": 1360,
+        "y": 24,
+        "width": 56,
+        "height": 158
+      },
+      "overflow": false,
+      "tools": [
+        {
+          "id": "drawToggleBtn",
+          "w": 38,
+          "h": 38
+        },
+        {
+          "id": "eraseToggleBtn",
+          "w": 38,
+          "h": 38
+        },
+        {
+          "id": "drawSizeToggleBtn",
+          "w": 38,
+          "h": 38
+        },
+        {
+          "id": "drawColorBtn",
+          "w": 38,
+          "h": 38
+        },
+        {
+          "id": "undoDrawingBtn",
+          "w": 38,
+          "h": 38
+        },
+        {
+          "id": "clearDrawingsBtn",
+          "w": 38,
+          "h": 38
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "editor": {
+        "x": 0,
+        "y": 0,
+        "width": 1184,
+        "height": 900
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 1184,
+        "height": 900
+      },
+      "toolbar": {
+        "x": 921,
+        "y": 21,
+        "width": 275,
+        "height": 50
+      },
+      "rail": {
+        "x": 1200,
+        "y": 24,
+        "width": 56,
+        "height": 158
+      },
+      "overflow": false,
+      "tools": [
+        {
+          "id": "drawToggleBtn",
+          "w": 38,
+          "h": 38
+        },
+        {
+          "id": "eraseToggleBtn",
+          "w": 38,
+          "h": 38
+        },
+        {
+          "id": "drawSizeToggleBtn",
+          "w": 38,
+          "h": 38
+        },
+        {
+          "id": "drawColorBtn",
+          "w": 38,
+          "h": 38
+        },
+        {
+          "id": "undoDrawingBtn",
+          "w": 38,
+          "h": 38
+        },
+        {
+          "id": "clearDrawingsBtn",
+          "w": 38,
+          "h": 38
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "editor": {
+        "x": 0,
+        "y": 0,
+        "width": 688,
+        "height": 900
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 688,
+        "height": 900
+      },
+      "toolbar": {
+        "x": 229.5,
+        "y": 768,
+        "width": 309,
+        "height": 56
+      },
+      "rail": {
+        "x": 700,
+        "y": 16,
+        "width": 52,
+        "height": 154
+      },
+      "overflow": false,
+      "tools": [
+        {
+          "id": "drawToggleBtn",
+          "w": 44,
+          "h": 44
+        },
+        {
+          "id": "eraseToggleBtn",
+          "w": 44,
+          "h": 44
+        },
+        {
+          "id": "drawSizeToggleBtn",
+          "w": 44,
+          "h": 44
+        },
+        {
+          "id": "drawColorBtn",
+          "w": 44,
+          "h": 44
+        },
+        {
+          "id": "undoDrawingBtn",
+          "w": 44,
+          "h": 44
+        },
+        {
+          "id": "clearDrawingsBtn",
+          "w": 44,
+          "h": 44
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "editor": {
+        "x": 0,
+        "y": 0,
+        "width": 310,
+        "height": 900
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 310,
+        "height": 900
+      },
+      "toolbar": {
+        "x": 40.5,
+        "y": 768,
+        "width": 309,
+        "height": 56
+      },
+      "rail": {
+        "x": 322,
+        "y": 16,
+        "width": 52,
+        "height": 154
+      },
+      "overflow": false,
+      "tools": [
+        {
+          "id": "drawToggleBtn",
+          "w": 44,
+          "h": 44
+        },
+        {
+          "id": "eraseToggleBtn",
+          "w": 44,
+          "h": 44
+        },
+        {
+          "id": "drawSizeToggleBtn",
+          "w": 44,
+          "h": 44
+        },
+        {
+          "id": "drawColorBtn",
+          "w": 44,
+          "h": 44
+        },
+        {
+          "id": "undoDrawingBtn",
+          "w": 44,
+          "h": 44
+        },
+        {
+          "id": "clearDrawingsBtn",
+          "w": 44,
+          "h": 44
+        }
+      ]
+    },
+    {
+      "width": 320,
+      "editor": {
+        "x": 0,
+        "y": 0,
+        "width": 240,
+        "height": 900
+      },
+      "body": {
+        "x": 0,
+        "y": 0,
+        "width": 240,
+        "height": 900
+      },
+      "toolbar": {
+        "x": 17.5,
+        "y": 772,
+        "width": 285,
+        "height": 52
+      },
+      "rail": {
+        "x": 252,
+        "y": 16,
+        "width": 52,
+        "height": 154
+      },
+      "overflow": false,
+      "tools": [
+        {
+          "id": "drawToggleBtn",
+          "w": 40,
+          "h": 40
+        },
+        {
+          "id": "eraseToggleBtn",
+          "w": 40,
+          "h": 40
+        },
+        {
+          "id": "drawSizeToggleBtn",
+          "w": 40,
+          "h": 40
+        },
+        {
+          "id": "drawColorBtn",
+          "w": 40,
+          "h": 40
+        },
+        {
+          "id": "undoDrawingBtn",
+          "w": 40,
+          "h": 40
+        },
+        {
+          "id": "clearDrawingsBtn",
+          "w": 40,
+          "h": 40
+        }
+      ]
+    }
+  ]
+}
