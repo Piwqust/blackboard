@@ -1113,13 +1113,22 @@ const saveScrollPositionLater=debounce((id,scrollTop)=>{if(workspaceWritable&&wo
 
 function restorePageScrollPosition(scrollTop = 0) {
   const targetScrollTop = Math.max(0, Number(scrollTop) || 0);
+  let appliedScrollTop = null;
   const applyScroll = () => {
+    // Someone else moved the page since the last step, such as the reader
+    // scrolling right after load. Their position wins over the late retries.
+    if (appliedScrollTop !== null && Math.abs(getViewportScrollTop() - appliedScrollTop) > 1) {
+      cancelPageScrollRestore();
+      return;
+    }
+
     const clampedScrollTop = Math.min(targetScrollTop, getMaxViewportScrollTop());
     document.body.scrollTop = clampedScrollTop;
 
     if (Math.abs(getViewportScrollTop() - clampedScrollTop) > 1) {
       document.body.scrollTop = clampedScrollTop;
     }
+    appliedScrollTop = getViewportScrollTop();
   };
 
   // Cancel any pending restore from a previous switch so it can't overwrite this one.
