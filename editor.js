@@ -38,6 +38,10 @@ const APP_VERSION = '2.4.1';
 // filling them in here cannot shift a row.
 hydrateIcons();
 
+// Each page restores its own scroll position. The browser's reload restoration
+// would land later and fight it, so it stays off.
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
 // Links published from the local unpacked extension have to point somewhere a
 // recipient can actually open, so they use the public deployment rather than
 // this browser's private extension origin.
