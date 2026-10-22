@@ -59,7 +59,8 @@ backups and links stay compatible with 2.4.
 ## [2.4.2] - 2026-10-23
 
 Bug fixes and polish. No data format changes: backups and links stay
-compatible with 2.4.1.
+compatible with 2.4.1. This version was tagged but not deployed on its own:
+its fixes reached the website, and the extension zip, with 2.5.0.
 
 ### Fixed
 
