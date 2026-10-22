@@ -1,5 +1,5 @@
 import {test,expect,chromium} from '@playwright/test';
-import {readFile,mkdtemp,rm,cp,writeFile,utimes} from 'node:fs/promises';
+import {readFile,mkdir,mkdtemp,rm,cp,writeFile,utimes} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 
@@ -46,6 +46,8 @@ test('real extension migrates Chrome storage and keeps source data', async ({bro
 
 test('real waiting service worker updates only after saving', async ({browser},testInfo) => {
   test.skip(testInfo.project.name!=='pwa');
+  // .tmp/ is ignored by git, so a fresh checkout (CI) does not have it yet.
+  await mkdir('.tmp',{recursive:true});
   const fixture=await mkdtemp(path.resolve('.tmp/pwa-update-'));
   await cp('dist/pwa',fixture,{recursive:true});
   const relative=path.relative('.',fixture).split(path.sep).join('/');
