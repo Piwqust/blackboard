@@ -14,4 +14,4 @@ const server=createServer(async(req,res)=>{
     res.end(req.method==='HEAD'?undefined:bytes);
   } catch {res.writeHead(404);res.end('Not found');}
 });
-server.listen(4190,'127.0.0.1');
+server.listen(Number(process.env.TEST_PORT||4190),'127.0.0.1');

@@ -2,6 +2,7 @@ import { renderStroke, strokeBounds } from "../core/drawing-renderer.js";
 import { canvasBackingSize } from "../core/canvas-budget.js";
 import { sanitizeStoredContent } from "../core/sanitize-html.js";
 import { anchorBox } from "./text-anchors.js";
+import { pageFileName } from "../core/page-tools.js";
 
 function base64(bytes) {
   let result = "";
@@ -17,11 +18,7 @@ function download(blob, name) {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
-function filename(page) {
-  return (page.title || "Blackboard note")
-    .replace(/[\\/:*?"<>|]/g, "_")
-    .slice(0, 80);
-}
+const filename = (page) => pageFileName(page);
 const fontFiles = [
   ["Inter Tight", "InterTight-Variable.ttf", "truetype"],
   ["Inter", "InterVariable.woff2", "woff2"],

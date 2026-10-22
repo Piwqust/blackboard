@@ -77,7 +77,7 @@ export function setupShortLinks({dialog, getSnapshot, baseUrl, onError}) {
       for (const record of records) {
         const row = document.createElement('div'); row.className = 'shared-link-row';
         const title = document.createElement('strong');title.textContent = record.title;row.append(title);
-        const meta = document.createElement('small');meta.textContent = new Date(record.createdAt).toLocaleString()+' · '+({active:'Published copy',pending:'Creation needs confirmation',revoked:'Disabled'}[record.state] || 'Unknown');row.append(meta);
+        const meta = document.createElement('small');meta.textContent = new Date(record.createdAt).toLocaleString(document.documentElement.lang==='ru'?'ru-RU':'en-US')+' · '+({active:'Published copy',pending:'Creation needs confirmation',revoked:'Disabled'}[record.state] || 'Unknown');row.append(meta);
         if (record.state !== 'revoked') {
           const input = document.createElement('input');input.readOnly = true;input.value = record.url;input.setAttribute('aria-label','Short link for '+record.title);row.append(input);
           const actions=document.createElement('div');actions.className='shared-link-actions';row.append(actions);

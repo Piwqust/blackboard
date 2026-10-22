@@ -1570,14 +1570,15 @@ button.controls-icon {
 
 .data-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   margin-top: 10px;
 }
 
 .data-action {
   min-width: 0;
-  white-space: nowrap;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .data-action-wide {
@@ -2120,6 +2121,13 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   transform-origin: left center;
 }
 
+/* The opening click finishes before the panel appears (see page tools), so the
+   outside-click handler cannot close it on the same click. */
+.emoji-picker[data-placement="sheet"] {
+  --emoji-picker-enter-x: 0px;
+  transform-origin: center bottom;
+}
+
 .emoji-picker.visible {
   opacity: 1;
   visibility: visible;
@@ -2207,7 +2215,9 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
    places whatever their labels are. */
 .emoji-picker-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, …) lets long labels (Russian) wrap instead of widening the
+     panel past its clipped edge. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
 
@@ -2215,9 +2225,12 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
   min-height: 32px;
-  padding: 0 10px;
-  white-space: nowrap;
+  padding: 4px 10px;
+  text-align: center;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
   background: var(--ui-surface-soft);
   border: 1px solid var(--ui-border);
   border-radius: 9px;
@@ -3930,3 +3943,46 @@ body.drawing-mode:has(#selectToggleBtn.active) #drawingLayer {cursor:move;}
 .reader-drawing-description{margin:16px;padding:16px;color:var(--text-color);border:1px solid var(--ui-border);border-radius:10px;font:14px/1.5 system-ui,sans-serif;}
 .reader-drawing-description[hidden]{display:none;}
 .reader-drawing-description p{margin-top:12px;white-space:pre-wrap;}
+
+/* Touch screens: controls in Settings, dialogs and the reader get 44px targets.
+   Their look stays quiet; min sizes and padding grow only the hit area. */
+@media (pointer: coarse) {
+  .controls-close,
+  .dialog-close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .settings-action,
+  .secondary-btn,
+  .data-action,
+  .reset-btn,
+  .font-dropdown-trigger,
+  .control-disclosure-summary,
+  .emoji-picker-action,
+  .reader-view-controls button {
+    min-height: 44px;
+  }
+
+  .color-control input[type="color"] {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* 16px text keeps iOS from zooming the page when a field gets focus. */
+  .color-hex-input {
+    width: 100px;
+    min-height: 36px;
+    font-size: 16px;
+  }
+
+  .control-group input[type="range"] {
+    height: 32px;
+  }
+
+  .data-hint a {
+    display: inline-block;
+    padding: 12px 4px;
+    margin: -12px -4px;
+  }
+}

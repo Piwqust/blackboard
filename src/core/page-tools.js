@@ -29,12 +29,21 @@ export function recoverPageAsNew(current, source) {
   return normalizeWorkspace(workspace);
 }
 
+const BLOCK_TAGS = new Set(['DIV','P','LI','UL','OL','H1','H2','H3','H4','H5','H6','PRE','BLOCKQUOTE']);
+
 export function pageText(html, { markdown = false } = {}) {
   const root = document.createElement('template');
   root.innerHTML = html;
   function walk(node) {
     if (node.nodeType === Node.TEXT_NODE) return node.textContent;
-    const text = [...node.childNodes].map(walk).join('');
+    // contenteditable keeps the first line as a bare text node and wraps the
+    // following lines in blocks, so a block must also start on its own line.
+    let text = '';
+    for (const child of node.childNodes) {
+      const part = walk(child);
+      if (BLOCK_TAGS.has(child.nodeName) && text && !text.endsWith('\n')) text += '\n';
+      text += part;
+    }
     const tag = node.nodeName;
     if (tag === 'BR') return '\n';
     if (markdown && ['B','STRONG'].includes(tag)) return '**'+text+'**';
@@ -42,7 +51,13 @@ export function pageText(html, { markdown = false } = {}) {
     if (markdown && tag === 'A' && /^(https?:|mailto:)/i.test(node.getAttribute('href') || '')) return '['+text+']('+node.getAttribute('href')+')';
     if (markdown && /^H[1-6]$/.test(tag)) return '#'.repeat(Number(tag[1]))+' '+text+'\n';
     if (markdown && tag === 'LI') return '- '+text+'\n';
-    return text + (['DIV','P','LI','H1','H2','H3','H4','PRE','BLOCKQUOTE'].includes(tag) ? '\n' : '');
+    return text + (BLOCK_TAGS.has(tag) && !['UL','OL'].includes(tag) ? '\n' : '');
   }
   return walk(root.content).replace(/\n{3,}/g,'\n\n').trimEnd();
+}
+
+// File name for an exported page: its name, else its first line of text.
+export function pageFileName(page, fallback = 'Blackboard note') {
+  const name = (page?.title || '').trim() || pageText(page?.content || '').split('\n', 1)[0].trim() || fallback;
+  return name.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
 }

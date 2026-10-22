@@ -32,7 +32,7 @@ import { createStatusAnnouncer } from './src/ui/app-status.js';
 import { registerPwaUpdates } from './src/ui/pwa-updates.js';
 import { hydrateIcons } from './src/ui/icons.js';
 
-const APP_VERSION = '2.4.1';
+const APP_VERSION = '2.4.2';
 
 // Static markup ships icon placeholders that already reserve their box, so
 // filling them in here cannot shift a row.
@@ -1812,15 +1812,21 @@ function positionEmojiPicker(pageId = editingPageId) {
   }
 
   const anchor = getPageTab(pageId);
-  if (!anchor) {
-    return;
-  }
-
-  const anchorRect = anchor.getBoundingClientRect();
+  const anchorRect = anchor?.getBoundingClientRect();
   const pickerWidth = Math.min(emojiPicker.offsetWidth || 280, window.innerWidth - 24);
   const pickerHeight = Math.min(emojiPicker.offsetHeight || 280, window.innerHeight - 24);
   const viewportPadding = 12;
   const gutter = 10;
+
+  // Phones hide the page rail, and a tab can be scrolled out of view. The
+  // panel then rises from the bottom edge instead of pointing at nothing.
+  if (!anchorRect || !anchorRect.width || window.matchMedia('(max-width: 768px)').matches) {
+    emojiPicker.style.left = `${Math.max(viewportPadding, (window.innerWidth - pickerWidth) / 2)}px`;
+    emojiPicker.style.top = `${Math.max(viewportPadding, window.innerHeight - pickerHeight - viewportPadding)}px`;
+    emojiPicker.dataset.placement = 'sheet';
+    if (uiState.deleteConfirmOpen) positionDeletePageConfirm();
+    return;
+  }
 
   let left = anchorRect.left - pickerWidth - gutter;
   let placement = 'left';
@@ -2032,16 +2038,29 @@ function shouldHandleBrushToggleShortcut(event) {
 }
 
 // Debounce utility
-function debounce(func, wait) {
+// Trailing debounce. maxWait bounds how long a burst can postpone the call, so
+// someone who types without pausing still gets saved every few seconds.
+function debounce(func, wait, { maxWait = Infinity } = {}) {
   let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
+  let burstStartedAt = 0;
+  let lastArgs = [];
+  const cancel = () => {
     clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
+    timeout = undefined;
+    burstStartedAt = 0;
   };
+  const debounced = function executedFunction(...args) {
+    lastArgs = args;
+    const now = Date.now();
+    if (!burstStartedAt) burstStartedAt = now;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      cancel();
+      func(...lastArgs);
+    }, Math.max(0, Math.min(wait, burstStartedAt + maxWait - now)));
+  };
+  debounced.cancel = cancel;
+  return debounced;
 }
 
 // Every local write goes through IndexedDB. The editor keeps page objects in
@@ -2054,11 +2073,15 @@ async function safeLocalSet(payload, context = 'saving') {
 
   try {
     if (Array.isArray(payload.pages)) {
+      const generation = editGeneration;
       await workspaceStore.saveWorkspace({
         pages: payload.pages.map((page, position) => ({ ...page, position })),
         currentPageId: payload.currentPageId || currentPageId,
         settings: normalizeSettings(getCurrentSettings(), DEFAULT_SETTINGS)
       });
+      // Whole-workspace saves (clearing drawings, new pages) also settle the
+      // indicator, unless something was edited while the write was running.
+      if (generation === editGeneration && editor.dataset.saveState === 'dirty') editor.dataset.saveState = 'saved';
     } else if (typeof payload.currentPageId === 'string') {
       await workspaceStore.saveCurrentPageId(payload.currentPageId);
     }
@@ -2204,7 +2227,7 @@ function handleStorageError(error, context = 'saving') {
 }
 
 // Debounced save
-const debouncedSave = debounce(saveContent, 1000);
+const debouncedSave = debounce(saveContent, 1000, { maxWait: 5000 });
 
 // Show save indicator briefly
 function showSaveIndicator() {
@@ -2389,7 +2412,7 @@ async function updateStorageSummary() {
     // durable way for the user to retain control over a browser profile reset.
   }
 
-  try { const exported = localStorage.getItem('blackboard-text:last-export'); if (exported) message += ' Last backup: '+new Date(exported).toLocaleString()+'.'; } catch { /* Optional hint only. */ }
+  try { const exported = localStorage.getItem('blackboard-text:last-export'); if (exported) message += ' Last backup: '+new Date(exported).toLocaleString(document.documentElement.lang==='ru'?'ru-RU':'en-US')+'.'; } catch { /* Optional hint only. */ }
   if(pages.some(page=>page.content||page.drawings?.length)){try{const exported=localStorage.getItem('blackboard-text:last-export');if(!exported||Date.now()-Date.parse(exported)>7*24*60*60*1000)message+=' Keep a portable backup outside this browser.';}catch{ /* Optional reminder only. */ }}
   storageSummary.textContent = message;
 }
@@ -2453,6 +2476,22 @@ function validateWorkspace(workspace) {
 }
 
 
+// Import, snapshot restore and page recovery replace the whole workspace on
+// disk before the editor shows it. Until then the in-memory pages are the old
+// workspace, so nothing may write them back: a tab switch (pagehide flush) or a
+// pending debounced save would otherwise overwrite what was just imported.
+async function replaceWorkspaceSafely(replace) {
+  debouncedSave.cancel();
+  workspaceReady = false;
+  try {
+    const workspace = await replace();
+    applyWorkspaceToEditor(workspace);
+    return workspace;
+  } finally {
+    workspaceReady = true;
+  }
+}
+
 function applyWorkspaceToEditor(workspace) {
   clearTextHistories();
   const settings = normalizeSettings(workspace.settings, DEFAULT_SETTINGS);
@@ -2484,7 +2523,7 @@ function setWorkspaceReadOnlyMode(reason = 'Another Blackboard Text tab is editi
   });
 
   if (workspaceModeNotice) {
-    workspaceModeNotice.textContent = `${reason} This tab is read-only and may show an older copy. You can browse pages and export a backup.`;
+    workspaceModeNotice.textContent = `${reason} This tab is read-only and follows the editing tab. You can browse pages and export a backup.`;
     workspaceModeNotice.hidden = false;
   }
 }
@@ -2502,6 +2541,28 @@ function setWorkspaceWritableMode() {
   renderPageTabs();
   if (workspaceModeNotice) workspaceModeNotice.hidden = true;
 }
+
+// A read-only tab follows the editing tab. What it shows, exports and shares is
+// then the saved workspace instead of the copy it loaded at startup. It keeps
+// its own page and scroll position.
+const READ_ONLY_REFRESH_MESSAGES = new Set(['workspace-saved', 'page-saved', 'workspace-imported', 'snapshot-restored']);
+const refreshReadOnlyWorkspace = debounce(async () => {
+  if (workspaceWritable || !workspaceReady) return;
+  try {
+    const saved = await workspaceStore.readWorkspace();
+    if (workspaceWritable || !saved?.pages?.length) return;
+    const viewingId = saved.pages.some(page => page.id === currentPageId) ? currentPageId : saved.currentPageId;
+    const scrollTop = viewingId === currentPageId ? getViewportScrollTop() : undefined;
+    applyWorkspaceToEditor({
+      ...saved,
+      settings: saved.settings ?? getCurrentSettings(),
+      currentPageId: viewingId,
+      pages: saved.pages.map(page => page.id === viewingId && scrollTop !== undefined ? { ...page, scrollTop } : page)
+    });
+  } catch (error) {
+    console.warn('Could not refresh the read-only copy:', error);
+  }
+}, 400);
 
 async function tryPromoteReadOnlyTab() {
   if (workspaceWritable || !workspaceReady) return;
@@ -2760,11 +2821,26 @@ function loadPageContent(pageId) {
   }
 }
 
+// Pinned pages lead the rail. Pages created before pinning existed have no
+// flag at all, so compare strictly against true rather than coercing.
+function comparePinnedFirst(a, b) {
+  return (b.pinned === true) - (a.pinned === true);
+}
+
+function getDisplayedPages() {
+  return [...pages].sort(comparePinnedFirst);
+}
+
+// Reorders act on what the rail shows, then keep pinned pages in front.
+function applyDisplayedOrder(ordered) {
+  pages.splice(0, pages.length, ...ordered.sort(comparePinnedFirst));
+}
+
 // Render page tabs
 function renderPageTabs() {
   pageTabsList.innerHTML = '';
   
-  [...pages].sort((a,b)=>Number(b.pinned)-Number(a.pinned)).forEach((page, index) => {
+  getDisplayedPages().forEach((page, index) => {
     const tab = document.createElement('button');
     const isActive = page.id === currentPageId;
     const emoji = getPageDisplayEmoji(page);
@@ -3185,14 +3261,16 @@ function handleDrop(e) {
   const targetId = tab.dataset.pageId;
   if (targetId === draggedPageId) return;
   
-  const draggedIndex = pages.findIndex(p => p.id === draggedPageId);
-  const targetIndex = pages.findIndex(p => p.id === targetId);
+  const ordered = getDisplayedPages();
+  const draggedIndex = ordered.findIndex(p => p.id === draggedPageId);
+  const targetIndex = ordered.findIndex(p => p.id === targetId);
   
   if (draggedIndex === -1 || targetIndex === -1) return;
   
   // Reorder pages array
-  const [draggedPage] = pages.splice(draggedIndex, 1);
-  pages.splice(targetIndex, 0, draggedPage);
+  const [draggedPage] = ordered.splice(draggedIndex, 1);
+  ordered.splice(targetIndex, 0, draggedPage);
+  applyDisplayedOrder(ordered);
   
   draggedPageId = null;
   clearPageTabDragState();
@@ -3227,18 +3305,24 @@ function focusPageTabAt(index) {
 
 function movePageByOffset(pageId, delta) {
   if (!workspaceWritable) return;
-  const fromIndex = pages.findIndex(p => p.id === pageId);
+  const ordered = getDisplayedPages();
+  const fromIndex = ordered.findIndex(p => p.id === pageId);
   if (fromIndex === -1) {
     return;
   }
 
-  const toIndex = Math.min(pages.length - 1, Math.max(0, fromIndex + delta));
+  // A page moves within its own group: pinned pages stay ahead of the rest.
+  const pinned = ordered[fromIndex].pinned === true;
+  const groupStart = pinned ? 0 : ordered.filter(p => p.pinned === true).length;
+  const groupEnd = pinned ? ordered.filter(p => p.pinned === true).length - 1 : ordered.length - 1;
+  const toIndex = Math.min(groupEnd, Math.max(groupStart, fromIndex + delta));
   if (toIndex === fromIndex) {
     return;
   }
 
-  const [page] = pages.splice(fromIndex, 1);
-  pages.splice(toIndex, 0, page);
+  const [page] = ordered.splice(fromIndex, 1);
+  ordered.splice(toIndex, 0, page);
+  applyDisplayedOrder(ordered);
   persistPageOrder();
   renderPageTabs();
 
@@ -3315,6 +3399,7 @@ function addNewPage() {
     content: '',
     drawings: [],
     scrollTop: 0,
+    pinned: false,
     createdAt,
     editedAt: createdAt
   };
@@ -3796,10 +3881,16 @@ function resetSettings() {
   scheduleDrawingLayerSync({ forceRedraw: true });
 }
 
-function downloadWorkspaceBackup() {
+async function downloadWorkspaceBackup() {
   if (!workspaceReady) return;
   try {
-    const content = serializeWorkspaceBackup(getWorkspaceForPersistence({ captureEditor: true }), { appVersion: APP_VERSION });
+    // A read-only tab exports what is saved, which includes the editing tab's
+    // latest work, rather than the copy this tab happens to show.
+    const saved = workspaceWritable ? null : await workspaceStore.readWorkspace();
+    const workspace = saved
+      ? { ...saved, settings: saved.settings ?? getCurrentSettings() }
+      : getWorkspaceForPersistence({ captureEditor: true });
+    const content = serializeWorkspaceBackup(workspace, { appVersion: APP_VERSION });
     const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -3873,7 +3964,7 @@ async function regeneratePublishLink() {
     const preview = document.getElementById('previewPublishLink');
     preview.href = url;
     preview.hidden = false;
-    document.getElementById('publishCapturedAt').textContent='Preview captured '+new Date(note.publishedAt).toLocaleString()+'. Creating a short link captures the selected copy at that moment.';
+    document.getElementById('publishCapturedAt').textContent='Preview captured '+new Date(note.publishedAt).toLocaleString(document.documentElement.lang==='ru'?'ru-RU':'en-US')+'. Creating a short link captures the selected copy at that moment.';
     const { kilobytes, tier } = describePublishedLink(url);
     if (publishSizeHint) {
       publishSizeHint.dataset.tier = tier;
@@ -4011,9 +4102,10 @@ async function confirmWorkspaceImport() {
           conflicts: document.getElementById('importConflictMode').value
         }).workspace
       : importCandidate;
-    await workspaceStore.replaceWorkspaceWithSnapshot(candidate, 'Before backup import');
-
-    applyWorkspaceToEditor(candidate);
+    await replaceWorkspaceSafely(async () => {
+      await workspaceStore.replaceWorkspaceWithSnapshot(candidate, 'Before backup import');
+      return candidate;
+    });
     closeImportDialog({ restoreFocus: true });
     workspaceChannel.post('workspace-imported');
     statusAnnouncer.show('Backup imported. Your previous workspace is available as a local recovery snapshot.', { kind: 'success', duration: 7_000 });
@@ -4063,8 +4155,7 @@ async function confirmRecoveryRestore() {
     const currentWorkspace = getWorkspaceForPersistence({ captureEditor: true });
     await workspaceStore.saveWorkspace(currentWorkspace);
     await workspaceStore.createSnapshot('Before restoring recovery snapshot', currentWorkspace);
-    const restoredWorkspace = await workspaceStore.restoreSnapshot(snapshot.id);
-    applyWorkspaceToEditor(restoredWorkspace);
+    await replaceWorkspaceSafely(() => workspaceStore.restoreSnapshot(snapshot.id));
     closeRestoreDialog({ restoreFocus: true });
     workspaceChannel.post('snapshot-restored', { snapshotId: snapshot.id });
     statusAnnouncer.show('Recovery snapshot restored. The workspace you replaced was saved first.', { kind: 'success', duration: 7_000 });
@@ -4208,10 +4299,36 @@ editor.addEventListener('input', scheduleTextSnapshot);
 // Prevent unwanted formatting on paste - keep plain text
 editor.addEventListener('paste', (e) => {
   e.preventDefault();
+  insertPlainTextAtSelection(e.clipboardData.getData('text/plain'));
+});
+
+// A drag that starts inside the note moves the note's own (already sanitized)
+// content, so the browser may handle it. Anything dragged in from elsewhere
+// takes the plain-text path, like paste: no remote images, styles or tables.
+let editorDragActive = false;
+editor.addEventListener('dragstart', () => { editorDragActive = true; });
+editor.addEventListener('dragend', () => { editorDragActive = false; });
+editor.addEventListener('drop', (e) => {
+  if (editorDragActive) return;
+  e.preventDefault();
+  const text = e.dataTransfer?.getData('text/plain');
+  if (!text || !workspaceWritable) return;
+  const caret = document.caretPositionFromPoint?.(e.clientX, e.clientY);
+  const range = caret ? document.createRange() : document.caretRangeFromPoint?.(e.clientX, e.clientY);
+  if (caret) range.setStart(caret.offsetNode, caret.offset);
+  if (range && editor.contains(range.startContainer)) {
+    range.collapse(true);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+  insertPlainTextAtSelection(text);
+});
+
+function insertPlainTextAtSelection(text) {
   flushPendingTextSnapshot();captureAnchorsBeforeTextEdit();
-  const text = e.clipboardData.getData('text/plain');
   const selection = window.getSelection();
-  if (selection.rangeCount) {
+  if (selection.rangeCount && editor.contains(selection.getRangeAt(0).commonAncestorContainer)) {
     const range = selection.getRangeAt(0);
     range.deleteContents();
     range.insertNode(document.createTextNode(text));
@@ -4226,7 +4343,7 @@ editor.addEventListener('paste', (e) => {
     scheduleTextSnapshot();
     scheduleDrawingLayerSync();
   }
-});
+}
 
 // Tab key handling for indentation (Markdown-like behavior)
 editor.addEventListener('keydown', (e) => {
@@ -4246,8 +4363,10 @@ editor.addEventListener('keydown', (e) => {
     }
 
     markWorkspaceDirty();
-  debouncedSave();
+    debouncedSave();
+    refreshTextAnchors();
     scheduleTextSnapshot();
+    scheduleDrawingLayerSync();
   }
   
   // BUG-08 fix: Allow keyboard exit from editor with Escape
@@ -4285,11 +4404,50 @@ function handleIndent(selection) {
     // No selection - just insert a tab character
     insertTextAtCursor('\t');
   } else {
-    // Multi-line selection - indent each line
-    const selectedText = range.toString();
-    const lines = selectedText.split('\n');
-    const indentedText = lines.map(line => '\t' + line).join('\n');
-    insertTextAtCursor(indentedText);
+    shiftSelectedLines(range, 1);
+  }
+}
+
+const LINE_BLOCK_TAGS = new Set(['DIV', 'P', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'BLOCKQUOTE']);
+
+// The first text node of every line the range touches. A line starts at the
+// top of the note, after a <br>, or at the start of a block element.
+function getLineStartNodes(range) {
+  const starts = [];
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  let atLineStart = true;
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      if (node.nodeName === 'BR' || LINE_BLOCK_TAGS.has(node.nodeName)) atLineStart = true;
+      continue;
+    }
+    if (!node.data.length) continue;
+    if (atLineStart) starts.push(node);
+    atLineStart = false;
+  }
+
+  const boundary = document.createRange();
+  const at = node => { boundary.setStart(node, 0); boundary.collapse(true); return boundary; };
+  return starts.filter((node, index) => {
+    // The line begins before the selection ends...
+    if (range.compareBoundaryPoints(Range.START_TO_END, at(node)) <= 0) return false;
+    // ...and the next line begins after the selection starts.
+    const next = starts[index + 1];
+    return !next || range.compareBoundaryPoints(Range.START_TO_START, at(next)) < 0;
+  });
+}
+
+// Indent or outdent whole lines in place. Rewriting the selection as plain
+// text would merge the lines into one and drop bold, italics and links.
+function shiftSelectedLines(range, direction) {
+  if (!editor.contains(range.commonAncestorContainer)) return;
+  for (const node of getLineStartNodes(range)) {
+    if (direction > 0) {
+      node.insertData(0, '\t');
+    } else {
+      const leading = /^(\t| {1,4})/.exec(node.data);
+      if (leading) node.deleteData(0, leading[0].length);
+    }
   }
 }
 
@@ -4345,19 +4503,7 @@ function handleUnindent(selection) {
       }
     }
   } else {
-    // Multi-line selection - unindent each line
-    const selectedText = range.toString();
-    const lines = selectedText.split('\n');
-    const unindentedText = lines.map(line => {
-      if (line.startsWith('\t')) {
-        return line.slice(1);
-      } else {
-        // Remove up to 4 leading spaces
-        const match = line.match(/^( {1,4})/);
-        return match ? line.slice(match[1].length) : line;
-      }
-    }).join('\n');
-    insertTextAtCursor(unindentedText);
+    shiftSelectedLines(range, -1);
   }
 }
 
@@ -4390,6 +4536,11 @@ if (settingsToggleBtn) {
   settingsToggleBtn.addEventListener('click', (event) => {
     event.stopPropagation();
     setSettingsPanelOpen(!uiState.settingsOpen);
+    // The panel comes before its button in the page, so Tab from the button
+    // would skip it. A keyboard press (detail 0) moves focus inside instead.
+    if (uiState.settingsOpen && event.detail === 0) {
+      controlsContainer?.querySelector('.controls-panel-body button:not(:disabled)')?.focus();
+    }
   });
 }
 
@@ -4547,9 +4698,10 @@ function flushPendingPersistence() {
 
   const page = getCurrentPage();
   if (page) {
-    page.content = editor.innerHTML;
+    page.content = sanitizeStoredContent(editor.innerHTML);
   }
 
+  debouncedSave.cancel();
   persistPagesStateImmediately();
   flushPendingSettingsSave();
 }
@@ -4617,7 +4769,7 @@ function updateWordCount() {
     wordCountEl.textContent = '';
     wordCountEl.classList.add('is-empty');
   } else {
-    wordCountEl.textContent = `${words} words · ${chars} chars`;
+    wordCountEl.textContent = `${words} ${words === 1 ? 'word' : 'words'} · ${chars} ${chars === 1 ? 'char' : 'chars'}`;
     wordCountEl.classList.remove('is-empty');
   }
 }
@@ -4793,9 +4945,7 @@ async function bootstrapApp() {
   }
 
   workspaceChannel.onMessage(message => {
-    if (!workspaceWritable && message?.type === 'workspace-imported') {
-      statusAnnouncer.show('The editing tab imported a backup. Reload this read-only tab to see it.', { kind: 'info', duration: 8_000 });
-    }
+    if (!workspaceWritable && READ_ONLY_REFRESH_MESSAGES.has(message?.type)) refreshReadOnlyWorkspace();
   });
 
   workspaceWritable = workspaceLock.acquired;
@@ -4853,8 +5003,10 @@ setupPageTools({
     const current = getWorkspaceForPersistence({captureEditor:true});
     await workspaceStore.saveWorkspace(current);
     const recovered = recoverPageAsNew(current, page);
-    await workspaceStore.replaceWorkspaceWithSnapshot(recovered, 'Before recovering a page');
-    applyWorkspaceToEditor(recovered);
+    await replaceWorkspaceSafely(async () => {
+      await workspaceStore.replaceWorkspaceWithSnapshot(recovered, 'Before recovering a page');
+      return recovered;
+    });
   },
   async retrySave() {
     try {

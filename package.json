@@ -1,9 +1,18 @@
 {
   "name": "blackboard-text",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "private": true,
   "type": "module",
-  "description": "Local-first PWA and personal browser extension for quiet note taking.",
+  "description": "A quiet, local-first place to think: a notes web app (PWA) and personal browser extension.",
+  "license": "MIT",
+  "homepage": "https://piwqust.github.io/blackboard/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Piwqust/blackboard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Piwqust/blackboard/issues"
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
     "lint": "eslint . && node scripts/check.mjs",

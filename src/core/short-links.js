@@ -56,8 +56,10 @@ async function api(id, { method = 'GET', managementKey, token, signal } = {}) {
     } finally {reader.releaseLock();}
     const bytes = new Uint8Array(size); let offset = 0;
     for (const chunk of chunks) {bytes.set(chunk, offset);offset += chunk.length;}
-    const data = JSON.parse(new TextDecoder().decode(bytes));
-    if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Short link unavailable.');
+    let data = {};
+    // A proxy or an outage can answer with an HTML page instead of JSON.
+    try { data = JSON.parse(new TextDecoder().decode(bytes)); } catch { if (response.ok) throw new Error('The short-link service sent an unexpected response. Try again later.'); }
+    if (!response.ok) throw new Error(typeof data?.error === 'string' ? data.error : `Short link unavailable (HTTP ${response.status}).`);
     return data;
   } catch (error) {
     if (controller.signal.aborted) throw new Error('The request was interrupted. Retry from Shared links to check the result.');

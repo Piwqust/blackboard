@@ -99,18 +99,24 @@ export function setupDrawingTools({
     }
     recents.hidden = !recents.childElementCount;
   }
+  // Dragging in the colour picker reports every colour it passes through, so
+  // only the colour the pointer settles on becomes a recent colour.
+  let pendingRecent;
   document.addEventListener("drawing-color-changed", (event) => {
-    try {
-      localStorage.setItem(
-        RECENTS_KEY,
-        JSON.stringify(
-          [event.detail, ...storedRecents().filter((c) => c !== event.detail)].slice(0, 12),
-        ),
-      );
-    } catch {
-      /* Optional preference. */
-    }
-    refresh();
+    clearTimeout(pendingRecent);
+    pendingRecent = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          RECENTS_KEY,
+          JSON.stringify(
+            [event.detail, ...storedRecents().filter((c) => c !== event.detail)].slice(0, 12),
+          ),
+        );
+      } catch {
+        /* Optional preference. */
+      }
+      refresh();
+    }, 500);
   });
 
   function refresh() {

@@ -21,3 +21,7 @@ playwright-report/
 **/.wrangler/
 **/.dev.vars*
 backend/short-links/worker-configuration.d.ts
+
+# Local tooling and side projects
+.claude/
+launch-video/

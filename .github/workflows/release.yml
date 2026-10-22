@@ -25,15 +25,55 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node scripts/verify-release-version.mjs
-      - run: npm run verify
+
+      # Fail before anything is deployed if the tag has no changelog section.
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p release
+          awk -v heading="## [${version}]" '
+            index($0, heading) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found && /^\[.+\]: / { exit }
+            found { print }
+          ' CHANGELOG.md > release/notes.md
+          if ! grep -q '[^[:space:]]' release/notes.md; then
+            echo "::error file=CHANGELOG.md::No '## [${version}]' section with content in CHANGELOG.md. Add one before tagging ${GITHUB_REF_NAME}."
+            exit 1
+          fi
+          cat release/notes.md
+
+      # Pages and the extension zip are built here, with short links connected.
+      - name: Verify and build
         env:
           SHORT_LINKS_API_URL: ${{ vars.SHORT_LINKS_API_URL }}
+        run: |
+          if [ -z "$SHORT_LINKS_API_URL" ]; then
+            echo "::error::The SHORT_LINKS_API_URL repository variable is empty, so this release would ship without short links."
+            exit 1
+          fi
+          npm run verify
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
       - run: npm run test:shares
+
+      # dist/ was built with SHORT_LINKS_API_URL above; the tests do not rebuild it.
+      - name: Package the extension
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          zip_name="blackboard-text-extension-${version}.zip"
+          (cd dist/edge-extension && zip -r -X -q "../../release/${zip_name}" .)
+          (cd release && sha256sum "${zip_name}" > "${zip_name}.sha256" && cat "${zip_name}.sha256")
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/pwa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: release/
+          if-no-files-found: error
+          retention-days: 7
 
   deploy-pwa:
     needs: build
@@ -44,3 +84,47 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  github-release:
+    needs: [build, deploy-pwa]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release
+      - name: Create or update the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          version="${tag#v}"
+          title="Blackboard Text ${version}"
+          zip="release/blackboard-text-extension-${version}.zip"
+          sha="${zip}.sha256"
+
+          # Only the highest stable vX.Y.Z tag becomes "Latest", so re-releasing
+          # an older tag never takes that badge away from a newer one.
+          highest="$(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)"
+          latest=false
+          prerelease=false
+          case "$tag" in
+            *-*) prerelease=true ;;
+            "$highest") latest=true ;;
+          esac
+          echo "Tag ${tag}; highest stable tag ${highest:-none}; latest=${latest}; prerelease=${prerelease}"
+
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release upload "$tag" "$zip" "$sha" --clobber
+            gh release edit "$tag" --title "$title" --notes-file release/notes.md \
+              --latest="$latest" --prerelease="$prerelease"
+          else
+            gh release create "$tag" --verify-tag --title "$title" --notes-file release/notes.md \
+              --latest="$latest" --prerelease="$prerelease" "$zip" "$sha"
+          fi

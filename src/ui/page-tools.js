@@ -1,5 +1,5 @@
 import { bindModalDialog } from './dialogs.js';
-import { pageText } from '../core/page-tools.js';
+import { pageFileName, pageText } from '../core/page-tools.js';
 import { createIcon } from './icons.js';
 
 export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSettings, publishPage, listSnapshots, listPageHistory, recoverPage, retrySave, redoDrawing, restoreDrawings, closeSettings, openSettings, togglePin, setDrawingDescription, exportPage, addPage }) {
@@ -70,18 +70,33 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
     content.append(input);
     const results = document.createElement('div'); results.className = 'workspace-results'; content.append(results);
     const workspace = getWorkspace();
-    const indexed = [...workspace.pages].sort((a,b)=>Number(b.pinned)-Number(a.pinned)).map(page => ({page,text:pageText(page.content)}));
+    const indexed = [...workspace.pages].sort((a,b)=>(b.pinned===true)-(a.pinned===true)).map(page => ({page,text:pageText(page.content)}));
     function render() {
       results.replaceChildren();
       const query=input.value.trim().toLocaleLowerCase();
       const matches=indexed.filter(({page,text})=>(page.title+' '+text).toLocaleLowerCase().includes(query));
       for(const {page,text} of matches.slice(0,100)) {
-        const row=button((page.pinned?'★ ':'')+(page.emoji || '')+' '+(page.title || text.slice(0,48) || 'Untitled page'),()=>{close({restoreFocus:false});selectPage(page.id)},results);
+        const row=button((page.pinned?'★ ':'')+(page.emoji || '')+' '+(page.title || text.split('\n',1)[0].slice(0,48) || 'Untitled page'),()=>{close({restoreFocus:false});selectPage(page.id)},results);
         const snippet=document.createElement('small'),match=text.toLocaleLowerCase().indexOf(query),start=query&&match>=0?Math.max(0,match-45):0;snippet.textContent=(start?'…':'')+text.slice(start,start+150);row.append(snippet);
       }
-      message.textContent=matches.length ? matches.length+' pages'+(matches.length>100?' · first 100 shown':'') : 'No pages match your search.';
+      message.textContent=matches.length ? matches.length+(matches.length===1?' page':' pages')+(matches.length>100?' · first 100 shown':'') : 'No pages match your search.';
     }
-    input.addEventListener('input',render);render();input.focus();
+    input.addEventListener('input',render);
+    // Enter opens the best match; arrow keys walk the results without leaving
+    // the keyboard.
+    input.addEventListener('keydown',event=>{
+      const first=results.querySelector('button');
+      if(event.key==='Enter'&&first){event.preventDefault();first.click();}
+      else if(event.key==='ArrowDown'&&first){event.preventDefault();first.focus();}
+    });
+    results.addEventListener('keydown',event=>{
+      const rows=[...results.querySelectorAll('button')],index=rows.indexOf(document.activeElement);
+      if(index===-1||!['ArrowDown','ArrowUp'].includes(event.key))return;
+      event.preventDefault();
+      if(event.key==='ArrowUp'&&index===0)input.focus();
+      else rows[Math.min(rows.length-1,Math.max(0,index+(event.key==='ArrowDown'?1:-1)))].focus();
+    });
+    render();input.focus();
     if(addPage)button('New page',()=>{close({restoreFocus:false});addPage();},content,'page').disabled=!isWritable();
   }
   function downloadPage(markdown) {
@@ -89,14 +104,14 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
     if(!page)return;
     const text=(markdown && page.title?'# '+page.title+'\n\n':'')+pageText(page.content,{markdown})+'\n';
     const a=document.createElement('a');const url=URL.createObjectURL(new Blob([text],{type:markdown?'text/markdown;charset=utf-8':'text/plain;charset=utf-8'}));
-    a.href=url;a.download=(page.title || 'Untitled page').replace(/[\\/:*?"<>|]/g,'_').slice(0,80)+(markdown?'.md':'.txt');a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    a.href=url;a.download=pageFileName(page)+(markdown?'.md':'.txt');a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     message.textContent='Text exported. Drawings stay in the workspace backup.';
   }
   function showActions() {
     open('Page actions');
     const workspace=getWorkspace();const page=workspace.pages.find(p=>p.id===workspace.currentPageId);
     if(!page)return;
-    button('Name, emoji and delete…',()=>{close({restoreFocus:false});pageSettings(page.id)},content,'pencil').disabled=!isWritable();
+    button('Name, emoji and delete…',()=>{close({restoreFocus:false});requestAnimationFrame(()=>pageSettings(page.id))},content,'pencil').disabled=!isWritable();
     button(page.pinned?'Unpin page':'Pin page',()=>{togglePin(page.id);showActions();},content,'pin').disabled=!isWritable();
     button('Share a copy…',()=>{close({restoreFocus:false});publishPage(page.id)},content,'link');
     button('Export text (.txt)',()=>downloadPage(false),content,'download');
@@ -123,7 +138,7 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
       message.textContent=snapshots.length?'Up to 7 snapshots are kept on this device. Recovering a page creates a new page.':'No snapshots yet. Importing or deleting saves a recovery snapshot first.';
       for(const snapshot of snapshots) {
         const details=document.createElement('details');details.className='recovery-snapshot';const summary=document.createElement('summary');
-        summary.textContent=new Date(snapshot.createdAt).toLocaleString()+' · '+snapshot.label+' · '+snapshot.workspace.pages.length+' pages';details.append(summary);content.append(details);
+        const count=snapshot.workspace.pages.length;summary.append(new Date(snapshot.createdAt).toLocaleString(document.documentElement.lang==='ru'?'ru-RU':'en-US')+' · ',Object.assign(document.createElement('span'),{textContent:snapshot.label}),' · ',Object.assign(document.createElement('span'),{textContent:count+(count===1?' page':' pages')}));details.append(summary);content.append(details);
         let built=false;details.addEventListener('toggle',()=>{if(!details.open||built)return;built=true;for(const page of snapshot.workspace.pages) {
           const row=document.createElement('div');row.className='recovery-page';
           const title=document.createElement('strong');title.textContent=page.title || 'Untitled page';row.append(title);
@@ -143,7 +158,7 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
     open('Page history');message.textContent='Loading page history…';const ticket=request;
     try{const revisions=await listPageHistory(page.id);if(ticket!==request)return;
       message.textContent=revisions.length?'Up to 25 earlier versions per page, 100 total and 10 MB on this device. Restoring creates a new page.':'No earlier versions yet. Changes save a version at most once every 30 seconds.';
-      for(const revision of revisions){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent=new Date(revision.createdAt).toLocaleString();details.append(summary);content.append(details);let built=false;
+      for(const revision of revisions){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent=new Date(revision.createdAt).toLocaleString(document.documentElement.lang==='ru'?'ru-RU':'en-US');details.append(summary);content.append(details);let built=false;
         details.addEventListener('toggle',()=>{if(!details.open||built)return;built=true;const preview=document.createElement('pre');preview.textContent=pageText(revision.page.content).slice(0,1000)||'Empty text';details.append(preview);
           button('Recover as new page',async()=>{try{await recoverPage(revision.page);message.textContent='Recovered as a new page. Existing pages were kept.';}catch(error){message.textContent=error.message;}},details,'page').disabled=!isWritable();
         });

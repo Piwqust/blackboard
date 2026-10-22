@@ -70,7 +70,7 @@ function formatPublishedDate(value) {
   if (!value) return "";
   const parsed = Date.parse(value);
   if (!Number.isFinite(parsed)) return "";
-  return new Date(parsed).toLocaleDateString(undefined, {
+  return new Date(parsed).toLocaleDateString(document.documentElement.lang === "ru" ? "ru-RU" : "en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -347,7 +347,13 @@ async function openNoteFromHash() {
     });
     if (requestId !== noteRequest) return;
     published = note;
+    // On a phone the author's board font can leave two or three words per
+    // line. A note without drawings loses nothing in Readable text, so it
+    // opens there; a note with drawings keeps its original board.
     renderNote();
+    if (!readingModeChosen && !note.note?.drawings?.length && globalThis.matchMedia?.("(max-width: 600px)").matches) {
+      setReadingMode("text");
+    }
   } catch (error) {
     if (requestId !== noteRequest) return;
     published = null;
@@ -398,6 +404,7 @@ if (document.fonts?.ready) {
 setupLocalization();
 void openNoteFromHash();
 
+let readingModeChosen = false;
 function setReadingMode(mode) {
   readingMode = mode;
   document.body.classList.toggle("reader-text-mode", mode === "text");
@@ -416,10 +423,10 @@ function setReadingMode(mode) {
 }
 document
   .getElementById("readerBoardMode")
-  .addEventListener("click", () => setReadingMode("board"));
+  .addEventListener("click", () => { readingModeChosen = true; setReadingMode("board"); });
 document
   .getElementById("readerTextMode")
-  .addEventListener("click", () => setReadingMode("text"));
+  .addEventListener("click", () => { readingModeChosen = true; setReadingMode("text"); });
 document.getElementById("readerZoom").addEventListener("change", (event) => {
   zoom = event.target.value;
   paintDrawings();

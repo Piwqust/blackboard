@@ -21,8 +21,8 @@ const RU = {
   "Retry save": "Повторить сохранение",
   "Stored only in this browser on this device.":
     "Хранится только в этом браузере на этом устройстве.",
-  "Export backup": "Скачать резервную копию",
-  "Import backup": "Импортировать копию",
+  "Export backup": "Скачать копию",
+  "Import backup": "Загрузить копию",
   "Export creates a portable": "Экспорт создаёт переносимый",
   "file. Import can add pages or replace the workspace.":
     "файл. Импорт добавляет страницы или заменяет рабочее пространство.",
@@ -288,7 +288,154 @@ const RU = {
   "Link-key import failed.": "Не удалось импортировать ключи ссылок.",
   "The sharing service has reached its storage limit. Use the full link or export this page.":
     "Хранилище ссылок заполнено. Используйте полную ссылку или скачайте страницу.",
+  "Add page (Alt+Shift+N)":
+    "Новая страница (Alt+Shift+N)",
+  "Opening note…":
+    "Открываем заметку…",
+  "Open Blackboard Text":
+    "Открыть Blackboard Text",
+  "Brush Color":
+    "Цвет кисти",
+  "Match theme":
+    "Как в теме",
+  "System Fonts":
+    "Системные шрифты",
+  "Bundled fonts":
+    "Встроенные шрифты",
+  "Save failed. Storage quota may be full.":
+    "Не удалось сохранить. Возможно, хранилище браузера заполнено.",
+  "Saved locally.":
+    "Сохранено локально.",
+  "Copied your legacy extension notes to local storage. The original Chrome storage was left untouched.":
+    "Заметки из старого расширения скопированы в локальное хранилище. Исходные данные Chrome не тронуты.",
+  "Local data could not be loaded. Reload to retry.":
+    "Не удалось загрузить локальные данные. Перезагрузите страницу.",
+  "Recovery snapshots are unavailable until local storage is ready.":
+    "Снимки восстановления недоступны, пока не готово локальное хранилище.",
+  "Recovery snapshot":
+    "Снимок восстановления",
+  "This tab now owns the writing lock.":
+    "Теперь редактировать можно в этой вкладке.",
+  "Another Blackboard Text tab is editing this workspace.":
+    "Эти заметки уже редактируются в другой вкладке Blackboard Text.",
+  "Another Blackboard Text tab already owns the writing lock.":
+    "Эти заметки уже редактируются в другой вкладке Blackboard Text.",
+  "Safe editing is unavailable in this browser. Use Chrome or Edge over HTTPS.":
+    "Безопасное редактирование в этом браузере недоступно. Откройте приложение в Chrome или Edge по HTTPS.",
+  "This tab is read-only.":
+    "Эта вкладка только для чтения.",
+  "Loading local notes.":
+    "Загружаем локальные заметки.",
+  "Just now":
+    "Только что",
+  "Empty page":
+    "Пустая страница",
+  "Usually fits in chat apps and email. Open the preview before sharing.":
+    "Обычно помещается в мессенджеры и почту. Перед отправкой откройте предпросмотр.",
+  "A very long link. Some apps cut long links: turn off drawings, or send it somewhere that keeps the whole address.":
+    "Очень длинная ссылка. Некоторые приложения обрезают длинные ссылки: отключите рисунки или отправьте её туда, где адрес сохранится целиком.",
+  "A very long link. Some apps cut long links, so send it somewhere that keeps the whole address.":
+    "Очень длинная ссылка. Некоторые приложения обрезают длинные ссылки, поэтому отправьте её туда, где адрес сохранится целиком.",
+  "This page could not be turned into a link.":
+    "Не удалось сделать ссылку из этой страницы.",
+  "Link copied. Anyone you send it to can read this page.":
+    "Ссылка скопирована. Любой, кому вы её отправите, сможет прочитать страницу.",
+  "Copying was blocked by the browser. The link is selected — press Ctrl/Cmd + C.":
+    "Браузер запретил копирование. Ссылка выделена — нажмите Ctrl/⌘ C.",
+  "This backup is larger than 50 MB.":
+    "Резервная копия больше 50 МБ.",
+  "No matching page IDs.":
+    "Совпадающих страниц нет.",
+  "The backup could not be imported.":
+    "Не удалось импортировать резервную копию.",
+  "Backup imported. Your previous workspace is available as a local recovery snapshot.":
+    "Копия импортирована. Прежние заметки сохранены в снимке восстановления.",
+  "There is no recovery snapshot yet.":
+    "Снимков восстановления пока нет.",
+  "Recovery snapshot restored. The workspace you replaced was saved first.":
+    "Снимок восстановлен. Заменённые заметки сохранены в новом снимке.",
+  "Cannot reload: unsaved changes. Export your work first.":
+    "Нельзя перезагрузить: есть несохранённые изменения. Сначала скачайте резервную копию.",
+  "Recovery history":
+    "История восстановления",
+  "The link is unavailable.":
+    "Ссылка недоступна.",
+  "Before backup import":
+    "Перед импортом резервной копии",
+  "Before import":
+    "Перед импортом",
+  "Before restoring recovery snapshot":
+    "Перед восстановлением снимка",
+  "Before clearing page drawings":
+    "Перед очисткой рисунков",
+  "Before deleting a page":
+    "Перед удалением страницы",
+  "Before recovering a page":
+    "Перед восстановлением страницы",
+  "The selected backup is not text.":
+    "Выбранный файл не текстовый.",
+  "This backup is larger than 50 MB and was not opened.":
+    "Резервная копия больше 50 МБ, поэтому не открыта.",
+  "This file is not valid JSON.":
+    "Файл не является корректным JSON.",
+  "This is not a Blackboard Text backup.":
+    "Это не резервная копия Blackboard Text.",
+  "The backup does not contain any pages.":
+    "В резервной копии нет страниц.",
+  "This backup contains a damaged page. Nothing was imported.":
+    "В резервной копии есть повреждённая страница. Ничего не импортировано.",
+  "The backup does not contain an importable page.":
+    "В резервной копии нет страниц, которые можно импортировать.",
+  "Invalid short link.":
+    "Неверная короткая ссылка.",
+  "This short link is incomplete. Copy the whole address.":
+    "Короткая ссылка неполная. Скопируйте адрес целиком.",
+  "Short links are not connected yet. The full link still works.":
+    "Короткие ссылки пока не подключены. Полная ссылка работает.",
+  "Short-link response is too large.":
+    "Ответ сервиса коротких ссылок слишком большой.",
+  "Short link unavailable.":
+    "Короткая ссылка недоступна.",
+  "The short-link service sent an unexpected response. Try again later.":
+    "Сервис коротких ссылок ответил неожиданно. Попробуйте позже.",
+  "The request was interrupted. Retry from Shared links to check the result.":
+    "Запрос прервался. Повторите его из списка ссылок, чтобы проверить результат.",
+  "Cannot reach the short-link service. Check your internet connection and try again.":
+    "Сервис коротких ссылок недоступен. Проверьте подключение к интернету и повторите.",
+  "This copy is too large for a short link. Use the full link or export a backup.":
+    "Копия слишком велика для короткой ссылки. Используйте полную ссылку или скачайте резервную копию.",
+  "This link is not a complete Blackboard note.":
+    "В ссылке нет полной заметки Blackboard.",
+  "This published note is too large to open.":
+    "Опубликованная заметка слишком велика, чтобы её открыть.",
+  "This note is too large to publish as a link.":
+    "Заметка слишком велика для ссылки.",
+  "This link does not contain a note.":
+    "В этой ссылке нет заметки.",
+  "This link was made by a different version of Blackboard Text.":
+    "Ссылка создана другой версией Blackboard Text.",
+  "This browser cannot open compressed note links.":
+    "Этот браузер не умеет открывать сжатые ссылки на заметки.",
+  "This link is not a published Blackboard note.":
+    "Это не опубликованная заметка Blackboard.",
+  "This note was published by a newer version of Blackboard Text.":
+    "Заметка опубликована более новой версией Blackboard Text. Обновите приложение.",
+  "This drawing is too large to display safely. Ask for a text-only copy.":
+    "Рисунок слишком большой для безопасного показа. Попросите копию без рисунков.",
+  "IndexedDB is unavailable in this browser profile.":
+    "В этом профиле браузера недоступен IndexedDB.",
+  "Could not open local storage.":
+    "Не удалось открыть локальное хранилище.",
+  "That recovery snapshot is no longer available.":
+    "Этот снимок восстановления больше недоступен.",
 };
+
+// Russian needs three plural forms: 1 страница, 3 страницы, 5 страниц.
+const ruPlurals = new Intl.PluralRules("ru-RU");
+function ruCount(count, one, few, many) {
+  const form = ruPlurals.select(Number(count));
+  return count + " " + (form === "one" ? one : form === "few" ? few : many);
+}
 const EXCLUDED =
   "#editor,#readerContent,#readerTitle,#readerEmoji,#readerDrawingDescriptionText,.workspace-results,.page-preview-title,.page-preview-snippet,.recovery-page strong,pre,textarea,input,.shared-link-row strong,.export-note-content";
 export function translateInterface(text, language) {
@@ -324,10 +471,38 @@ export function translateInterface(text, language) {
         "Keep a portable backup outside this browser.",
         "Храните резервную копию вне этого браузера.",
       );
-  if ((match = text.match(/^(\d+) words · (\d+) chars$/)))
-    return match[1] + " слов · " + match[2] + " символов";
-  if ((match = text.match(/^(\d+) pages(.*)$/)))
-    return match[1] + " страниц" + (match[2] ? " · показаны первые 100" : "");
+  if ((match = text.match(/^(\d+) words? · (\d+) chars?$/)))
+    return ruCount(match[1], "слово", "слова", "слов") + " · " + ruCount(match[2], "символ", "символа", "символов");
+  if ((match = text.match(/^(\d+) pages?( · first 100 shown)?$/)))
+    return ruCount(match[1], "страница", "страницы", "страниц") + (match[2] ? " · показаны первые 100" : "");
+  if ((match = text.match(/^Latest snapshot: (.+) · (.+)\.$/)))
+    return "Последний снимок: " + translateInterface(match[1], language) + " · " + match[2] + ".";
+  if ((match = text.match(/^(.+) This tab is read-only and follows the editing tab\. You can browse pages and export a backup\.$/)))
+    return translateInterface(match[1], language) + " Эта вкладка только для чтения и показывает изменения из основной вкладки. Можно листать страницы и скачать резервную копию.";
+  if ((match = text.match(/^Current page: (.+)\. Click to change the emoji or name\.$/s)))
+    return "Текущая страница: " + match[1] + ". Нажмите, чтобы изменить эмодзи или название.";
+  if ((match = text.match(/^Current page (\d+)\. Click to change the emoji\.$/)))
+    return "Текущая страница " + match[1] + ". Нажмите, чтобы изменить эмодзи.";
+  if ((match = text.match(/^Open page: (.+)\.$/s)))
+    return "Открыть страницу: " + match[1] + ".";
+  if ((match = text.match(/^Open page (\d+)\.$/)))
+    return "Открыть страницу " + match[1] + ".";
+  if ((match = text.match(/^Link is about ([\d.,]+) KB\. ?(.*)$/s)))
+    return "Длина ссылки — около " + match[1] + " КБ." + (match[2] ? " " + translateInterface(match[2], language) : "");
+  if ((match = text.match(/^(\d+) matching page IDs?\. Add mode keeps both copies by default\.$/)))
+    return "Совпадающих страниц: " + match[1] + ". При добавлении по умолчанию сохраняются обе копии.";
+  if ((match = text.match(/^Short link unavailable \(HTTP (\d+)\)\.$/)))
+    return "Короткая ссылка недоступна (HTTP " + match[1] + ").";
+  if ((match = text.match(/^This backup uses schema version (.+) and cannot be imported by this release\.$/)))
+    return "Эта копия создана в формате версии " + match[1] + " и не поддерживается этой версией приложения.";
+  if ((match = text.match(/^Restore the snapshot from (.+)\? Your current workspace will be saved as a new snapshot first\.$/)))
+    return "Восстановить снимок от " + match[1] + "? Текущие заметки сначала будут сохранены в новом снимке.";
+  if ((match = text.match(/^(.+) If a request was sent, check Shared links below before trying again\.$/s)))
+    return translateInterface(match[1], language) + " Если запрос успел отправиться, проверьте список ссылок ниже, прежде чем повторять.";
+  if ((match = text.match(/^Set brush size to (.+)$/)))
+    return "Толщина кисти " + match[1];
+  if ((match = text.match(/^Set page emoji to (.+)$/su)))
+    return "Выбрать эмодзи " + match[1];
   if ((match = text.match(/^Brush size: (.+)$/)))
     return "Толщина кисти: " + match[1];
   if ((match = text.match(/^Use (.+) theme$/)))
@@ -372,10 +547,11 @@ export function translateInterface(text, language) {
 }
 
 export function setupLocalization() {
-  let language = "en";
+  // Without a saved choice the interface follows the browser language.
+  let language = /^ru\b/i.test(navigator.language || "") ? "ru" : "en";
   try {
-    language =
-      localStorage.getItem("blackboard-text:language") === "ru" ? "ru" : "en";
+    const saved = localStorage.getItem("blackboard-text:language");
+    if (saved === "ru" || saved === "en") language = saved;
   } catch {
     /* Optional preference. */
   }
@@ -445,7 +621,11 @@ export function setupLocalization() {
     '<option value="en">English</option><option value="ru">Русский</option>';
   select.value = language;
   row.append(name, select);
-  document.querySelector(".controls-panel-body")?.append(row);
+  // Language is an appearance choice, so it sits under the theme grid rather
+  // than at the very bottom of Settings below the data tools.
+  const themeGrid = document.getElementById("themeGrid");
+  if (themeGrid) themeGrid.after(row);
+  else document.querySelector(".controls-panel-body")?.append(row);
   const apply = () => {
     document.documentElement.lang = language;
     document.documentElement.style.setProperty(
