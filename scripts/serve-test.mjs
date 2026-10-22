@@ -2,7 +2,7 @@ import {createServer} from 'node:http';
 import {readFile,stat} from 'node:fs/promises';
 import path from 'node:path';
 const root=process.cwd();
-const types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.woff2':'font/woff2','.ttf':'font/ttf','.otf':'font/otf','.txt':'text/plain'};
+const types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.woff2':'font/woff2','.ttf':'font/ttf','.otf':'font/otf','.txt':'text/plain','.webp':'image/webp'};
 const server=createServer(async(req,res)=>{
   try {
     const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
@@ -14,4 +14,5 @@ const server=createServer(async(req,res)=>{
     res.end(req.method==='HEAD'?undefined:bytes);
   } catch {res.writeHead(404);res.end('Not found');}
 });
-server.listen(Number(process.env.TEST_PORT||4190),'127.0.0.1');
+// TEST_PORT lets several checkouts run their browser tests side by side.
+server.listen(Number(process.env.TEST_PORT)||4190,'127.0.0.1');

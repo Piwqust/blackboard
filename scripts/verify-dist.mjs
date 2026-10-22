@@ -19,6 +19,10 @@ const required = [
   'dist/pwa/fonts/BoardGrotesqueSans-Regular.otf',
   'dist/pwa/icons/icon-192.png',
   'dist/pwa/icons/icon-512.png',
+  'dist/pwa/landing/app-desktop-dark.webp',
+  'dist/pwa/landing/app-desktop-light.webp',
+  'dist/pwa/landing/app-phone-dark.webp',
+  'dist/pwa/landing/app-phone-light.webp',
   'dist/edge-extension/editor.html',
   'dist/edge-extension/read.html',
   'dist/edge-extension/manifest.json',
@@ -26,9 +30,30 @@ const required = [
 ];
 
 await Promise.all(required.map(relativePath => access(path.join(root, relativePath))));
+const packageVersion = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')).version;
 const edgeManifest = JSON.parse(await readFile(path.join(root, 'dist/edge-extension/manifest.json'), 'utf8'));
-if (!edgeManifest.options_ui?.open_in_tab || edgeManifest.version !== JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')).version) {
+if (!edgeManifest.options_ui?.open_in_tab || edgeManifest.version !== packageVersion) {
   throw new Error('The generated Edge manifest is missing its focused editor page or has the wrong version.');
+}
+
+// The landing page belongs to the website only; the extension opens
+// editor.html directly and must not ship it.
+for (const relativePath of ['dist/edge-extension/index.html', 'dist/edge-extension/landing']) {
+  if (await access(path.join(root, relativePath)).then(() => true, () => false)) {
+    throw new Error(`${relativePath} is a website-only file and must not ship in the extension.`);
+  }
+}
+const landing = await readFile(path.join(root, 'dist/pwa/index.html'), 'utf8');
+if (landing.includes('__APP_VERSION__') || !landing.includes(`blackboard-text-extension-${packageVersion}.zip`)) {
+  throw new Error('The landing page still contains a version placeholder or names the wrong extension download.');
+}
+if (!landing.includes("location.replace('./editor.html')")) {
+  throw new Error('The landing page no longer sends the installed app to the editor.');
+}
+// Links may point elsewhere; nothing the page loads may.
+const landingResources = landing.replace(/<a\s[^>]*>/gi, '');
+if (/\b(?:src|srcset|href)=["']\s*(?:https?:)?\/\//i.test(landingResources) || /url\(\s*['"]?(?:https?:)?\/\//i.test(landingResources)) {
+  throw new Error('The landing page loads a resource from another origin.');
 }
 
 const pwaCss = await readFile(path.join(root, 'dist/pwa/editor.css'), 'utf8');
@@ -56,6 +81,12 @@ const cacheable = entries
 const missing = cacheable.filter(relativePath => !appShell.has(`./${relativePath}`));
 if (missing.length > 0) {
   throw new Error(`These deployed files are missing from the offline app shell: ${missing.join(', ')}`);
+}
+
+// Landing screenshots are cached when viewed, never precached by installs.
+const precachedLanding = [...appShell].filter(file => file.startsWith('./landing/'));
+if (precachedLanding.length > 0) {
+  throw new Error(`Landing images must not be precached: ${precachedLanding.join(', ')}`);
 }
 
 console.log(`Generated PWA and Edge extension artifacts are structurally valid (${appShell.size} shell entries).`);

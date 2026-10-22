@@ -202,18 +202,24 @@ src/ui/                interface modules
 backend/short-links/   Cloudflare Worker and D1 migrations
 scripts/               build, checks, test server, screenshots
 tests/                 unit tests; tests/browser holds the Playwright suite
+index.html, landing/   the website's landing page (PWA build only)
 dist/                  generated: pwa/ (GitHub Pages) and edge-extension/
 ```
 
 - `SHORT_LINKS_API_URL` is the public address of the short-link service, read
-  at build time. Without it, the share dialog explains that short links are not
-  connected and offers full links. CI uses the repository variable of the same
+  at build time. Without it, the share dialog offers full links only. CI uses the repository variable of the same
   name. For a local Worker, run `npm run shares:dev` and build with
   `SHORT_LINKS_API_URL=http://127.0.0.1:8787`.
 - New files under `src/` are picked up by the build automatically; add a new
   top-level page to `staticFiles` in `scripts/build.mjs`. The offline file list
   in `pwa-sw.js` is generated, and `scripts/verify-dist.mjs` fails if anything
   is missing from it.
+- The website's landing page (`index.html`) and its screenshots in `landing/`
+  ship in the PWA build only, never in the extension. An installed window, or
+  `index.html?app`, goes straight to the editor. Landing screenshots are not
+  precached.
+- Set `TEST_PORT` (default 4190) to run the browser tests beside another
+  checkout's test server.
 - Refresh the README screenshots with
   `npm run build && node scripts/readme-screenshots.mjs`.
 

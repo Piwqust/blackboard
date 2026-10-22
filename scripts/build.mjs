@@ -15,8 +15,8 @@ if (sharingApi) {
   }
 }
 
+// Shared by the PWA and the extension build.
 const staticFiles = [
-  'index.html',
   'editor.html',
   'editor.css',
   'editor.js',
@@ -29,10 +29,21 @@ const staticFiles = [
   'fonts/Inter-OFL.txt'
 ];
 
+// The landing page and its screenshots exist only on the website. The
+// extension opens editor.html directly (manifest action and options_ui), so it
+// never ships them.
+const pwaOnlyFiles = ['index.html'];
+const pwaOnlyDirectories = ['landing'];
+
 // Files the app shell is cached from. Anything not listed here still works
 // online, but would not survive going offline.
 const SHELL_EXTENSIONS = new Set(['.html', '.css', '.js', '.woff2', '.ttf', '.otf', '.png', '.webmanifest', '.txt', '']);
 const SHELL_EXCLUDED = new Set(['service-worker.js', 'pwa-sw.js', 'icons/generate-icons.html']);
+// Landing screenshots are cached only when someone views them. Precaching
+// would make every install download images the installed app never shows.
+// Pages, styles and scripts may not live here: scripts/verify-dist.mjs
+// requires every one of those in the shell.
+const SHELL_EXCLUDED_DIRECTORIES = ['landing/'];
 
 async function listShellFiles(destination) {
   const entries = await readdir(destination, { recursive: true, withFileTypes: true });
@@ -41,6 +52,7 @@ async function listShellFiles(destination) {
     .map(entry => path.relative(destination, path.join(entry.parentPath ?? entry.path, entry.name)))
     .map(relativePath => relativePath.split(path.sep).join('/'))
     .filter(relativePath => SHELL_EXTENSIONS.has(path.extname(relativePath)) && !SHELL_EXCLUDED.has(relativePath))
+    .filter(relativePath => !SHELL_EXCLUDED_DIRECTORIES.some(directory => relativePath.startsWith(directory)))
     .sort();
 
   return ['./', ...files.map(relativePath => `./${relativePath}`)];
@@ -51,6 +63,14 @@ async function copyFile(relativePath, destination) {
   const target = path.join(destination, relativePath);
   await mkdir(path.dirname(target), { recursive: true });
   await cp(source, target);
+}
+
+async function copyPwaOnlyFiles(destination) {
+  await Promise.all(pwaOnlyFiles.map(file => copyFile(file, destination)));
+  await Promise.all(pwaOnlyDirectories.map(directory => cp(path.join(root, directory), path.join(destination, directory), { recursive: true })));
+  const landingPath = path.join(destination, 'index.html');
+  const landing = await readFile(landingPath, 'utf8');
+  await writeFile(landingPath, landing.replaceAll('__APP_VERSION__', version));
 }
 
 async function copyRuntime(destination, { includePwaWorker }) {
@@ -66,6 +86,9 @@ async function copyRuntime(destination, { includePwaWorker }) {
   await copyFile('fonts/BoardGrotesqueSans-Medium.otf', destination);
 
   if (includePwaWorker) {
+    // Copied before the shell list is generated, so the landing page is
+    // precached like every other page.
+    await copyPwaOnlyFiles(destination);
     const worker = await readFile(path.join(root, 'pwa-sw.js'), 'utf8');
     const shellFiles = await listShellFiles(destination);
     await writeFile(

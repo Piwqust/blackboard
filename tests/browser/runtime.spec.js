@@ -49,7 +49,7 @@ test('real waiting service worker updates only after saving', async ({browser},t
   const fixture=await mkdtemp(path.resolve('.tmp/pwa-update-'));
   await cp('dist/pwa',fixture,{recursive:true});
   const relative=path.relative('.',fixture).split(path.sep).join('/');
-  const base=`http://127.0.0.1:${process.env.TEST_PORT||4190}/`+relative+'/';
+  const base=new URL('/'+relative+'/',testInfo.project.use.baseURL).href;
   const context=await browser.newContext({serviceWorkers:'allow'});
   try {
     const page=await context.newPage();await page.goto(base+'editor.html');
