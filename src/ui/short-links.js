@@ -25,7 +25,10 @@ export function setupShortLinks({dialog, getSnapshot, baseUrl, onError}) {
   }
   shortMode.addEventListener('change',mode);fullMode.addEventListener('change',mode);
   shortMode.disabled = !endpoint;
-  document.getElementById('shortLinkSetupHint').hidden = Boolean(endpoint);
+  // A build without the sharing service offers only full links, so there is no
+  // choice to show and no disabled option to explain.
+  document.querySelector('.share-modes').hidden = !endpoint;
+  document.getElementById('shortLinkSetupHint').hidden = true;
   create.disabled = !endpoint;
   async function copyText(text, input) {
     try {await navigator.clipboard.writeText(text);status.textContent = 'Link copied.';}

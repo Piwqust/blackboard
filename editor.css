@@ -368,14 +368,34 @@ body.drawing-mode #editor {
   background: var(--ui-surface-strong);
 }
 
+.rail-collapse-toggle {
+  position: relative;
+}
+
+.rail-collapse-pen,
+.rail-collapse-chevron {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  transition: opacity var(--dur-panel) var(--ease-out),
+              transform var(--dur-panel) var(--ease-out);
+}
+
+.rail-collapse-pen {
+  width: 20px;
+  height: 20px;
+}
+
 .rail-collapse-chevron {
   width: 16px;
   height: 16px;
-  transition: transform var(--dur-panel) var(--ease-out);
 }
 
-.top-right-rail.tools-collapsed .rail-collapse-chevron {
-  transform: rotate(180deg);
+/* Collapsed: the pen. Open: the chevron that folds the tools away. */
+.top-right-rail.tools-collapsed .rail-collapse-chevron,
+.top-right-rail:not(.tools-collapsed) .rail-collapse-pen {
+  opacity: 0;
+  transform: scale(calc(1 - 0.3 * var(--motion-shift)));
 }
 
 .drawing-toolbar.active {
@@ -2260,7 +2280,7 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
 
 .emoji-picker-action-danger {
   color: var(--ui-danger-text);
-  background: color-mix(in srgb, var(--ui-surface-soft) 78%, rgba(172, 92, 92, 0.22));
+  background: var(--ui-danger-surface);
   border-color: var(--ui-danger-border);
 }
 
@@ -2331,7 +2351,7 @@ body.page-reordering .page-tab.active:hover .page-tab-emoji {
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 11px;
   line-height: 1.45;
-  color: color-mix(in srgb, var(--ui-danger-text) 75%, white 25%);
+  color: var(--ui-text);
 }
 
 .delete-confirm-actions {
@@ -3984,5 +4004,169 @@ body.drawing-mode:has(#selectToggleBtn.active) #drawingLayer {cursor:move;}
     display: inline-block;
     padding: 12px 4px;
     margin: -12px -4px;
+  }
+}
+
+/* Phone page button: the current page's emoji. */
+.mobile-pages-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* A pinned page carries a small dot in the highlight colour. */
+.page-tab.is-pinned {
+  position: relative;
+}
+
+.page-tab.is-pinned::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--selection-color);
+  pointer-events: none;
+}
+
+/* Undo and similar one-step actions inside a status message. */
+.app-status-action {
+  margin-left: 6px;
+  padding: 4px 8px;
+  min-height: 28px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ui-text);
+  background: var(--ui-hover);
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.app-status-action:hover {
+  background: var(--ui-hover);
+}
+
+@media (pointer: coarse) {
+  .app-status-action {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+}
+
+/* Desktop: Settings opens beside the gear, left of the page rail, so the
+   lower tabs and the add-page button stay visible and usable. */
+@media (min-width: 769px) {
+  .controls-panel {
+    bottom: 0;
+    right: calc(100% + 12px);
+    max-height: min(660px, calc(100dvh - 48px));
+  }
+}
+
+/* Group headings inside Page actions, matching the Settings section labels. */
+.workspace-group-label {
+  margin: 12px 4px 4px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ui-text-muted);
+}
+
+.workspace-group-label:first-child {
+  margin-top: 0;
+}
+
+/* First-run tips sit in the bottom-left corner, as quiet as the word count. */
+.first-run-hint {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 15;
+  max-width: min(420px, calc(100vw - 120px));
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-color);
+  opacity: 0.62;
+  transition: opacity var(--dur-hover, 0.15s) ease;
+}
+
+.first-run-hint:hover,
+.first-run-hint:focus-within {
+  opacity: 0.9;
+}
+
+.first-run-hint[hidden],
+.app-status:not([hidden]) ~ .first-run-hint {
+  display: none;
+}
+
+.first-run-hint-line {
+  margin: 0;
+}
+
+.first-run-hint-phone {
+  display: none;
+}
+
+.first-run-hint-dismiss {
+  margin-top: 4px;
+  padding: 4px 10px;
+  min-height: 28px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .first-run-hint {
+    left: 24px;
+    right: 24px;
+    bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+    max-width: none;
+  }
+
+  .first-run-hint-desktop {
+    display: none;
+  }
+
+  .first-run-hint-phone {
+    display: block;
+  }
+
+  .first-run-hint-dismiss {
+    min-height: 44px;
+    padding: 0 14px;
+  }
+
+  /* Text scrolls under the fixed word count on a phone; a quiet backing keeps
+     the count readable without hiding the line beneath it. */
+  .word-count:not(.is-empty) {
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--bg-color) 82%, transparent);
+  }
+}
+
+@media (min-width: 769px) {
+  /* The page list is wider than its 44px chips, so the gear moves 6px left to
+     sit on the same centre line as the rail above it. */
+  .controls-container {
+    right: 30px;
+  }
+
+  /* An open Settings panel covers the corner the word count lives in. */
+  .controls-container.open ~ .word-count {
+    opacity: 0;
   }
 }

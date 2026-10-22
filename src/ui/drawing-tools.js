@@ -82,16 +82,23 @@ export function setupDrawingTools({
       return [];
     }
   }
+  // refresh() runs on every redraw, so the swatches are rebuilt only when the
+  // stored colours or the theme colour actually changed.
+  let renderedRecentsKey = null;
   function renderRecents(themeColor) {
-    recents.replaceChildren();
-    for (const color of storedRecents()
+    const colours = storedRecents()
       .filter(
         (c) =>
           /^#[0-9a-f]{6}$/i.test(c) &&
           !sameColor(c, themeColor) &&
           !PALETTE.some((p) => sameColor(p, c)),
       )
-      .slice(0, 6)) {
+      .slice(0, 6);
+    const key = themeColor + "|" + colours.join(",");
+    if (key === renderedRecentsKey) return;
+    renderedRecentsKey = key;
+    recents.replaceChildren();
+    for (const color of colours) {
       const el = swatch(color, "Use drawing colour " + color);
       el.dataset.color = color;
       el.addEventListener("click", () => setColor(color));

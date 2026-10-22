@@ -2,7 +2,7 @@ import { setupShortLinks } from './src/ui/short-links.js';
 import { canvasBackingSize } from './src/core/canvas-budget.js';
 import {renderStroke,strokeBounds,hitStroke,moveStroke} from './src/core/drawing-renderer.js';
 import {createDrawingHistory} from './src/core/drawing-history.js';
-import {anchorBox,captureTextAnchor,reconcileAnchor} from './src/ui/text-anchors.js';
+import {anchorBox,captureTextAnchor,createTextIndex,reconcileAnchor} from './src/ui/text-anchors.js';
 import {setupDrawingTools} from './src/ui/drawing-tools.js';
 import {exportPageFile} from './src/ui/page-export.js';
 import {setupLinkKeyBackup} from './src/ui/link-key-backup.js';
@@ -1044,6 +1044,25 @@ function getPageById(pageId) {
   return pages.find(page => page.id === pageId) || null;
 }
 
+// Phones have no page rail. Their page button carries the current page's
+// emoji, so it says where you are, and opens the list of pages.
+function updateMobilePagesButton() {
+  const button = document.getElementById('mobilePagesBtn');
+  const page = getCurrentPage();
+  if (!button || !page) return;
+  let emoji = button.querySelector('.mobile-pages-emoji');
+  if (!emoji) {
+    emoji = document.createElement('span');
+    emoji.className = 'mobile-pages-emoji';
+    emoji.setAttribute('aria-hidden', 'true');
+    button.replaceChildren(emoji);
+  }
+  emoji.textContent = getPageDisplayEmoji(page);
+  const name = getPageDisplayTitle(page);
+  button.setAttribute('aria-label', name ? `Pages. Current page: ${name}.` : 'Pages');
+  button.title = 'Pages';
+}
+
 function getPageDisplayEmoji(page) {
   if (!page || typeof page.emoji !== 'string' || page.emoji.length === 0) {
     return DEFAULT_PAGE_EMOJI;
@@ -1412,10 +1431,22 @@ function clearDrawingSurface() {
   drawingContext.restore();
 }
 
-function getDrawingOptions(stroke) {
+// Layout reads shared by every stroke in one redraw. The text index is built
+// only if some stroke is attached to words.
+function createDrawingFrame() {
   const style=getComputedStyle(editor);
-  const options={fontSize:getNormalizedFontSize(),lineHeight:Number(controls.lineHeight.value),paddingX:parseFloat(style.paddingLeft),paddingY:parseFloat(style.paddingTop)};
-  if(stroke?.anchor){options.anchorBox=anchorBox(editor,board,stroke.anchor);if(options.anchorBox)drawingState.anchorBoxes.set(stroke.id,options.anchorBox);}
+  let index=null;
+  return {
+    paddingX:parseFloat(style.paddingLeft),paddingY:parseFloat(style.paddingTop),
+    origin:board.getBoundingClientRect(),
+    get index(){return index??=createTextIndex(editor);}
+  };
+}
+
+function getDrawingOptions(stroke, frame = null) {
+  const style=frame?null:getComputedStyle(editor);
+  const options={fontSize:getNormalizedFontSize(),lineHeight:Number(controls.lineHeight.value),paddingX:frame?frame.paddingX:parseFloat(style.paddingLeft),paddingY:frame?frame.paddingY:parseFloat(style.paddingTop)};
+  if(stroke?.anchor){options.anchorBox=anchorBox(editor,board,stroke.anchor,frame);if(options.anchorBox)drawingState.anchorBoxes.set(stroke.id,options.anchorBox);}
   return options;
 }
 
@@ -1440,13 +1471,14 @@ function redrawDrawings() {
   const page=getCurrentPage();
   const top=drawingState.viewportTop,bottom=top+drawingState.viewportHeight;
   drawingContext.save();drawingContext.translate(0,-top);
+  const frame=createDrawingFrame();
   for(const stroke of page?.drawings||[]) {
-    const options=getDrawingOptions(stroke),bounds=strokeBounds(stroke,options);
+    const options=getDrawingOptions(stroke,frame),bounds=strokeBounds(stroke,options);
     if(bounds&&bounds.bottom>=top&&bounds.top<=bottom)renderStroke(drawingContext,stroke,options);
   }
   const selected=page?.drawings.find(s=>s.id===drawingState.selectedStrokeId);
   if(selected&&drawingState.currentTool==='select') {
-    const b=strokeBounds(selected,getDrawingOptions(selected));
+    const b=strokeBounds(selected,getDrawingOptions(selected,frame));
     if(b){drawingContext.strokeStyle=getCurrentBrushColor();drawingContext.lineWidth=1.5;drawingContext.setLineDash([5,4]);drawingContext.strokeRect(b.left-4,b.top-4,b.right-b.left+8,b.bottom-b.top+8);}
   }
   drawingContext.restore();updateDrawingToolButtons();
@@ -1456,7 +1488,8 @@ function syncDrawingLayerSize() {
   if(!drawingLayer||!drawingContext||!board)return;
   const page=getCurrentPage();
   let height=Math.max(window.innerHeight,editorShell.offsetHeight);
-  for(const stroke of page?.drawings||[]){const bounds=strokeBounds(stroke,getDrawingOptions(stroke));if(bounds)height=Math.max(height,bounds.bottom+48);}
+  const frame=createDrawingFrame();
+  for(const stroke of page?.drawings||[]){const bounds=strokeBounds(stroke,getDrawingOptions(stroke,frame));if(bounds)height=Math.max(height,bounds.bottom+48);}
   board.style.minHeight=Math.ceil(height)+'px';
   const rect=board.getBoundingClientRect(),width=Math.max(1,board.clientWidth);
   const top=Math.max(0,Math.floor(-rect.top)-64),visibleHeight=Math.max(1,Math.min(height-top,window.innerHeight+128));
@@ -2124,6 +2157,12 @@ function applySettings(settings) {
   root.style.setProperty('--ui-hover', hexToRgba(settings.textColor, 0.08));
   root.style.setProperty('--ui-hover-strong', hexToRgba(settings.textColor, 0.14));
   root.style.setProperty('--ui-track', hexToRgba(settings.textColor, 0.12));
+  // Warnings follow the board's lightness: the default deep red is unreadable
+  // on the dark themes, so they get a light red instead.
+  const darkBoard = getContrastingTextColor(normalizeHex(settings.backgroundColor)) === '#FFFFFF';
+  root.style.setProperty('--ui-danger-text', darkBoard ? '#F0A8A8' : '#8C4A4A');
+  root.style.setProperty('--ui-danger-surface', darkBoard ? 'rgba(240, 168, 168, 0.14)' : 'rgba(172, 92, 92, 0.14)');
+  root.style.setProperty('--ui-danger-border', darkBoard ? 'rgba(240, 168, 168, 0.34)' : 'rgba(172, 92, 92, 0.24)');
   root.style.setProperty('--ui-shadow-soft', '0 18px 42px rgba(15, 23, 42, 0.06)');
   root.style.setProperty('--ui-shadow-subtle', '0 10px 24px rgba(15, 23, 42, 0.04)');
   root.style.setProperty('--panel-bg', hexToRgba(settings.backgroundColor, 0.92));
@@ -2845,7 +2884,7 @@ function renderPageTabs() {
     const isActive = page.id === currentPageId;
     const emoji = getPageDisplayEmoji(page);
 
-    tab.className = 'page-tab' + (isActive ? ' active' : '');
+    tab.className = 'page-tab' + (isActive ? ' active' : '') + (page.pinned === true ? ' is-pinned' : '');
     tab.type = 'button';
     tab.setAttribute('role', 'tab');
     tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
@@ -2896,6 +2935,7 @@ function renderPageTabs() {
   updateWordCount();
   updatePageTabsScrollState();
   scrollActivePageTabIntoView();
+  updateMobilePagesButton();
 
   // Re-rendering swaps every tab node, so a preview left over from a reorder
   // either follows its tab to the new spot or goes away with a deleted page.
@@ -3432,6 +3472,11 @@ async function deletePage(pageId) {
   catch(error) { handleStorageError(error, 'saving recovery snapshot'); return; }
   const currentIndex = pages.findIndex(page => page.id === pageId);
   if (currentIndex < 0 || pages.length <= 1) return;
+  if (pageId === currentPageId) {
+    syncCurrentPageScrollPosition();
+    pages[currentIndex].content = sanitizeStoredContent(editor.innerHTML);
+  }
+  const removedPage = structuredClone(pages[currentIndex]);
   pages.splice(currentIndex, 1);
   textHistories.delete(pageId);
   if (pageId === currentPageId) {
@@ -3446,6 +3491,25 @@ async function deletePage(pageId) {
   
   safeLocalSet({ pages, currentPageId }, 'saving pages');
   renderPageTabs();
+  // The recovery snapshot keeps the page for later; Undo is the quick way back.
+  statusAnnouncer.show('Page deleted.', {
+    kind: 'success',
+    duration: 10_000,
+    action: { label: 'Undo', onClick: () => restoreDeletedPage(removedPage, currentIndex) }
+  });
+}
+
+function restoreDeletedPage(page, index) {
+  if (!workspaceWritable || !workspaceReady || pages.some(existing => existing.id === page.id)) return;
+  flushPendingTextSnapshot();
+  syncCurrentPageScrollPosition();
+  void saveContent();
+  pages.splice(Math.min(index, pages.length), 0, page);
+  currentPageId = page.id;
+  loadPageContent(page.id);
+  safeLocalSet({ pages, currentPageId }, 'restoring a page');
+  renderPageTabs();
+  statusAnnouncer.show('Page restored.', { kind: 'success' });
 }
 
 // Open emoji picker
@@ -4778,6 +4842,34 @@ function updateWordCount() {
 const debouncedWordCount = debounce(updateWordCount, 300);
 editor.addEventListener('input', debouncedWordCount);
 
+// First-run tips: shown only in a brand-new workspace while its one note is
+// still empty, and never again once dismissed or once something is written.
+const FIRST_RUN_HINT_KEY = 'blackboard-text:first-run-hint-dismissed';
+const firstRunHint = document.getElementById('firstRunHint');
+function firstRunHintDismissed() {
+  try { return localStorage.getItem(FIRST_RUN_HINT_KEY) === 'true'; } catch { return false; }
+}
+function dismissFirstRunHint() {
+  try { localStorage.setItem(FIRST_RUN_HINT_KEY, 'true'); } catch { /* Optional hint only. */ }
+  if (firstRunHint) firstRunHint.hidden = true;
+}
+function updateFirstRunHint() {
+  if (!firstRunHint || firstRunHintDismissed()) return;
+  const brandNew = workspaceWritable && pages.length === 1 && !(pages[0]?.content || '').trim() && !(pages[0]?.drawings || []).length;
+  if (!brandNew && editor.textContent.trim()) {
+    dismissFirstRunHint();
+    return;
+  }
+  firstRunHint.hidden = !brandNew || Boolean(editor.textContent.trim());
+}
+document.getElementById('firstRunHintDismiss')?.addEventListener('click', () => {
+  dismissFirstRunHint();
+  try { editor.focus({ preventScroll: true }); } catch { editor.focus(); }
+});
+editor.addEventListener('input', () => {
+  if (firstRunHint && !firstRunHint.hidden && editor.textContent.trim()) dismissFirstRunHint();
+});
+
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
   // Never hijack keys while an IME is composing.
@@ -4951,6 +5043,7 @@ async function bootstrapApp() {
   workspaceWritable = workspaceLock.acquired;
   await loadSavedData();
   if (workspaceReady && workspaceWritable) setWorkspaceWritableMode();
+  updateFirstRunHint();
   scheduleDrawingLayerSync({ forceRedraw: true });
   setupPwaUpdatePrompt();
 
@@ -4979,6 +5072,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') void tryPromoteReadOnlyTab();
 });
 
+queueMicrotask(updateMobilePagesButton);
 setupPageTools({
   getWorkspace: () => getWorkspaceForPersistence({captureEditor:workspaceReady}),
   isWritable: () => workspaceWritable && workspaceReady,
@@ -4994,6 +5088,7 @@ setupPageTools({
   restoreDrawings: restoreClearedDrawings,
   listSnapshots: () => workspaceStore.listSnapshots(),
   listPageHistory: id=>workspaceStore.listPageHistory(id),
+  listAllPageHistory: () => workspaceStore.listAllPageHistory(),
   addPage:addNewPage,
   togglePin(id){const page=getPageById(id);if(!workspaceWritable||!page)return;page.pinned=!page.pinned;void workspaceStore.savePage({...page,position:pages.indexOf(page)},currentPageId).catch(handleStorageError);renderPageTabs();},
   setDrawingDescription(id,value){const page=getPageById(id);if(!workspaceWritable||!page)return;page.drawingDescription=value.slice(0,2000);touchPageEdited(page);void saveContent();},

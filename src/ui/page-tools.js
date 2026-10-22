@@ -2,7 +2,7 @@ import { bindModalDialog } from './dialogs.js';
 import { pageFileName, pageText } from '../core/page-tools.js';
 import { createIcon } from './icons.js';
 
-export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSettings, publishPage, listSnapshots, listPageHistory, recoverPage, retrySave, redoDrawing, restoreDrawings, closeSettings, openSettings, togglePin, setDrawingDescription, exportPage, addPage }) {
+export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSettings, publishPage, listSnapshots, listPageHistory, listAllPageHistory, recoverPage, retrySave, redoDrawing, restoreDrawings, closeSettings, openSettings, togglePin, setDrawingDescription, exportPage, addPage }) {
   const searchButton = document.getElementById('findPagesBtn');
   const actionsButton = document.getElementById('pageActionsBtn');
   document.getElementById('findPagesShortcut').textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ K' : 'Ctrl K';
@@ -107,27 +107,35 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
     a.href=url;a.download=pageFileName(page)+(markdown?'.md':'.txt');a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     message.textContent='Text exported. Drawings stay in the workspace backup.';
   }
+  function groupLabel(text) {
+    const label=document.createElement('p');label.className='workspace-group-label';label.textContent=text;content.append(label);
+  }
+  // Grouped so the list reads at a glance: the page itself, files, history,
+  // help. Drawing redo lives in the drawing toolbar's More menu instead.
   function showActions() {
     open('Page actions');
     const workspace=getWorkspace();const page=workspace.pages.find(p=>p.id===workspace.currentPageId);
     if(!page)return;
+    groupLabel('This page');
     button('Name, emoji and delete…',()=>{close({restoreFocus:false});requestAnimationFrame(()=>pageSettings(page.id))},content,'pencil').disabled=!isWritable();
     button(page.pinned?'Unpin page':'Pin page',()=>{togglePin(page.id);showActions();},content,'pin').disabled=!isWritable();
     button('Share a copy…',()=>{close({restoreFocus:false});publishPage(page.id)},content,'link');
-    button('Export text (.txt)',()=>downloadPage(false),content,'download');
-    button('Export Markdown (.md)',()=>downloadPage(true),content,'markdown');
-    for(const format of ['png','pdf']) {
-      const el=button('Export '+format.toUpperCase()+' (text and drawings)',async()=>{el.disabled=true;message.textContent='Preparing export…';try{await exportPage(format);message.textContent=format.toUpperCase()+' exported.';}catch(error){message.textContent=error.message;}finally{el.disabled=false;}},content,'download');
-    }
-    button('Page history…',()=>void showPageHistory(),content,'history');
     button('Describe drawings…',()=>{
       open('Drawing description');const label=document.createElement('label');label.textContent='A text alternative for people who cannot see the drawing.';
       const textarea=document.createElement('textarea');textarea.rows=4;textarea.maxLength=2000;textarea.value=page.drawingDescription||'';textarea.setAttribute('aria-label','Drawing description');textarea.disabled=!isWritable();label.append(textarea);content.append(label);
       button('Save description',()=>{setDrawingDescription(page.id,textarea.value);message.textContent='Description saved. Shared copies include it.';},content,'page').disabled=!isWritable();
     },content,'text');
-    button('Redo drawing',()=>{redoDrawing();message.textContent='Drawing redo applied if available.';},content,'redo').disabled=!isWritable();
+    groupLabel('Export');
+    button('Export text (.txt)',()=>downloadPage(false),content,'download');
+    button('Export Markdown (.md)',()=>downloadPage(true),content,'markdown');
+    for(const format of ['png','pdf']) {
+      const el=button('Export '+format.toUpperCase()+' (text and drawings)',async()=>{el.disabled=true;message.textContent='Preparing export…';try{await exportPage(format);message.textContent=format.toUpperCase()+' exported.';}catch(error){message.textContent=error.message;}finally{el.disabled=false;}},content,'download');
+    }
+    groupLabel('History');
+    button('Page history…',()=>void showPageHistory(),content,'history');
     button('Restore cleared drawings',()=>{restoreDrawings();message.textContent='Last cleared drawings restored if available in this session.';},content,'brush').disabled=!isWritable();
-    button('Recovery history…',()=>void showRecovery(),content,'history');
+    button('Recovery history…',()=>void showRecovery(),content,'archive');
+    groupLabel('Help');
     button('Keyboard help',showHelp,content,'keyboard');
   }
   async function showRecovery() {
@@ -151,7 +159,27 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
           },row,'page');recover.disabled=!isWritable();details.append(row);
         }});
       }
+      await showDeletedPages(ticket);
     } catch(error){message.textContent=error.message;}
+  }
+  // Pages deleted earlier still have saved versions in page history. Their
+  // newest version is offered here, so a delete is recoverable even after the
+  // seven recovery snapshots have rotated.
+  async function showDeletedPages(ticket) {
+    if(!listAllPageHistory)return;
+    const existing=new Set(getWorkspace().pages.map(page=>page.id)),latest=new Map();
+    for(const revision of await listAllPageHistory()) if(!existing.has(revision.pageId)&&!latest.has(revision.pageId)) latest.set(revision.pageId,revision);
+    if(ticket!==request||!latest.size)return;
+    groupLabel('Deleted pages');
+    for(const revision of latest.values()){
+      const details=document.createElement('details');details.className='recovery-snapshot';const summary=document.createElement('summary');
+      const name=revision.page.title||pageText(revision.page.content).split('\n',1)[0].slice(0,60);
+      summary.append(new Date(revision.createdAt).toLocaleString(document.documentElement.lang==='ru'?'ru-RU':'en-US')+' · ',Object.assign(document.createElement('strong'),{className:'recovery-page-name',textContent:(revision.page.emoji?revision.page.emoji+' ':'')+(name||'Untitled page')}));
+      details.append(summary);content.append(details);let built=false;
+      details.addEventListener('toggle',()=>{if(!details.open||built)return;built=true;const preview=document.createElement('pre');preview.textContent=pageText(revision.page.content).slice(0,1000)||'Empty text';details.append(preview);
+        const recover=button('Recover as new page',async()=>{recover.disabled=true;try{await recoverPage(revision.page);message.textContent='Recovered as a new page. Existing pages were kept.';}catch(error){message.textContent=error.message;}finally{recover.disabled=!isWritable();}},details,'page');recover.disabled=!isWritable();
+      });
+    }
   }
   async function showPageHistory() {
     const ws=getWorkspace(),page=ws.pages.find(p=>p.id===ws.currentPageId);if(!page)return;
@@ -167,7 +195,7 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
   }
   function showHelp() {
     open('Keyboard help');
-    const lines=[['Find pages','Ctrl / ⌘ K'],['New page','Alt Shift N'],['Indent / unindent','Tab / Shift Tab in the editor'],['Leave the editor or close a panel','Escape'],['Undo / redo text or drawing','Ctrl / ⌘ Z · Ctrl / ⌘ Shift Z'],['Brush / eraser','Alt Shift B / E']];
+    const lines=[['Find pages','Ctrl / ⌘ K'],['New page','Alt Shift N'],['Keyboard help','?'],['Indent / unindent','Tab / Shift Tab in the editor'],['Leave the editor or close a panel','Escape'],['Undo / redo text or drawing','Ctrl / ⌘ Z · Ctrl / ⌘ Shift Z'],['Pen / eraser','B / E outside the text · Alt Shift B / E'],['Straight line','Hold Shift while drawing'],['Temporary eraser','Hold Alt while drawing'],['Delete selected stroke','Delete / Backspace'],['Reorder page tabs','Alt ↑ / ↓ on a tab']];
     const dl=document.createElement('dl');dl.className='workspace-shortcuts';for(const [label,key]of lines){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=key;dl.append(dt,dd)}content.append(dl);
   }
   searchButton.addEventListener('click',()=>showPages());
@@ -193,6 +221,13 @@ export function setupPageTools({ getWorkspace, isWritable, selectPage, pageSetti
     finally{retry.disabled=false;updateStatus();}
   });
   document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'&&!event.isComposing){event.preventDefault();showPages({instant:true});}});
+  // "?" opens Keyboard help whenever focus is not in something you type into.
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='?'||event.ctrlKey||event.metaKey||event.altKey||event.isComposing||document.querySelector('dialog[open]'))return;
+    const target=event.target;
+    if(target instanceof Element&&target.closest('input,textarea,select,[contenteditable="true"]'))return;
+    event.preventDefault();showHelp();
+  });
   document.querySelector('#recoveryHistoryBtn')?.addEventListener('click',()=>void showRecovery());
   updateStatus();
   return {showRecovery,showHelp,showPages};

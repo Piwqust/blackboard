@@ -381,6 +381,18 @@ export function createWorkspaceStore({
           .filter((r) => r.pageId === pageId)
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       }),
+    // Every stored page version, newest first. Versions of pages that were
+    // deleted stay until the history limits push them out.
+    listAllPageHistory: () =>
+      writeTail.then(async () => {
+        const db = await openDatabase(),
+          transaction = db.transaction(REVISIONS_STORE, "readonly");
+        const revisions = await requestResult(
+          transaction.objectStore(REVISIONS_STORE).getAll(),
+        );
+        await transactionComplete(transaction);
+        return revisions.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      }),
     createSnapshot: (label, workspace) =>
       enqueue(async () => {
         const source = workspace || (await readWorkspaceNow());

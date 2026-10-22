@@ -288,6 +288,31 @@ const RU = {
   "Link-key import failed.": "Не удалось импортировать ключи ссылок.",
   "The sharing service has reached its storage limit. Use the full link or export this page.":
     "Хранилище ссылок заполнено. Используйте полную ссылку или скачайте страницу.",
+  Tips: "Подсказки",
+  "Start typing. Notes save in this browser.":
+    "Начните писать. Заметки сохраняются в этом браузере.",
+  "Pen button: draw over the text · Ctrl/⌘ K: find pages · ?: shortcuts · Esc: leave the text":
+    "Кнопка с пером — рисовать поверх текста · Ctrl/⌘ K — найти страницу · ? — сочетания клавиш · Esc — выйти из текста",
+  "Pen button: draw over the text · Page button: switch pages":
+    "Кнопка с пером — рисовать поверх текста · Кнопка страницы — переключить страницу",
+  "Got it": "Понятно",
+  "Deleted pages": "Удалённые страницы",
+  "This page": "Эта страница",
+  Export: "Экспорт",
+  History: "История",
+  Help: "Справка",
+  "Pen / eraser": "Перо / ластик",
+  "B / E outside the text · Alt Shift B / E": "B / E вне текста · Alt Shift B / E",
+  "Straight line": "Прямая линия",
+  "Hold Shift while drawing": "Удерживайте Shift при рисовании",
+  "Temporary eraser": "Временный ластик",
+  "Hold Alt while drawing": "Удерживайте Alt при рисовании",
+  "Delete / Backspace": "Delete / Backspace",
+  "Reorder page tabs": "Переставить вкладки страниц",
+  "Alt ↑ / ↓ on a tab": "Alt ↑ / ↓ на вкладке",
+  "Page deleted.": "Страница удалена.",
+  "Page restored.": "Страница восстановлена.",
+  "Show drawing tools (B)": "Показать инструменты рисования (B)",
   "Add page (Alt+Shift+N)":
     "Новая страница (Alt+Shift+N)",
   "Opening note…":
@@ -437,7 +462,7 @@ function ruCount(count, one, few, many) {
   return count + " " + (form === "one" ? one : form === "few" ? few : many);
 }
 const EXCLUDED =
-  "#editor,#readerContent,#readerTitle,#readerEmoji,#readerDrawingDescriptionText,.workspace-results,.page-preview-title,.page-preview-snippet,.recovery-page strong,pre,textarea,input,.shared-link-row strong,.export-note-content";
+  ".recovery-page-name,#editor,#readerContent,#readerTitle,#readerEmoji,#readerDrawingDescriptionText,.workspace-results,.page-preview-title,.page-preview-snippet,.recovery-page strong,pre,textarea,input,.shared-link-row strong,.export-note-content";
 export function translateInterface(text, language) {
   if (language !== "ru") return text;
   if (RU[text]) return RU[text];
@@ -499,6 +524,8 @@ export function translateInterface(text, language) {
     return "Восстановить снимок от " + match[1] + "? Текущие заметки сначала будут сохранены в новом снимке.";
   if ((match = text.match(/^(.+) If a request was sent, check Shared links below before trying again\.$/s)))
     return translateInterface(match[1], language) + " Если запрос успел отправиться, проверьте список ссылок ниже, прежде чем повторять.";
+  if ((match = text.match(/^Pages\. Current page: (.+)\.$/s)))
+    return "Страницы. Текущая страница: " + match[1] + ".";
   if ((match = text.match(/^Set brush size to (.+)$/)))
     return "Толщина кисти " + match[1];
   if ((match = text.match(/^Set page emoji to (.+)$/su)))
@@ -567,8 +594,12 @@ export function setupLocalization() {
         NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
         {
           acceptNode(node) {
-            if (node instanceof Element && node.matches(EXCLUDED))
+            if (node instanceof Element && node.matches(EXCLUDED)) {
+              // A field's value is the user's, but its placeholder and label
+              // are interface text.
+              if (node.matches("input,textarea")) elements.push(node);
               return NodeFilter.FILTER_REJECT;
+            }
             return NodeFilter.FILTER_ACCEPT;
           },
         },

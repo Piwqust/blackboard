@@ -59,7 +59,10 @@
       <button id="clearDrawingsBtn" class="drawing-menu-item drawing-menu-item-danger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="clearDrawingsConfirm"><span data-icon="trash" class="drawing-menu-icon"></span><span>Clear page</span></button>
     </div>
 
-      <button id="drawingToolbarVisibilityToggleBtn" class="rail-collapse-toggle" type="button" aria-expanded="false" aria-controls="drawingToolbar" title="Show drawing tools" aria-label="Show drawing tools">
+      <!-- A pen says "draw" where a bare chevron read as "back". Once the tools
+           are open the chip shows a chevron pointing the way they fold away. -->
+      <button id="drawingToolbarVisibilityToggleBtn" class="rail-collapse-toggle" type="button" aria-expanded="false" aria-controls="drawingToolbar" title="Show drawing tools (B)" aria-label="Show drawing tools">
+        <span class="rail-collapse-pen" data-icon="brush"></span>
         <svg class="rail-collapse-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M9.5 5.25L16.25 12L9.5 18.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -369,6 +372,15 @@
 
   <div id="workspaceModeNotice" class="workspace-mode-notice" role="status" aria-live="polite" hidden></div>
   <div id="appStatus" class="app-status" role="status" aria-live="polite" hidden></div>
+
+  <!-- First run only, while the note is still empty: where drawing and pages
+       are. It goes away for good once you type or press Got it. -->
+  <aside id="firstRunHint" class="first-run-hint" aria-label="Tips" hidden>
+    <p class="first-run-hint-line">Start typing. Notes save in this browser.</p>
+    <p class="first-run-hint-line first-run-hint-desktop">Pen button: draw over the text · Ctrl/⌘ K: find pages · ?: shortcuts · Esc: leave the text</p>
+    <p class="first-run-hint-line first-run-hint-phone">Pen button: draw over the text · Page button: switch pages</p>
+    <button id="firstRunHintDismiss" class="first-run-hint-dismiss" type="button">Got it</button>
+  </aside>
 
   <div id="updateReadyNotice" class="update-ready-notice" role="status" aria-live="polite" hidden>
     <span>A new version is ready.</span>

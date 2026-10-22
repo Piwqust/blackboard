@@ -12,16 +12,51 @@ function position(root, offset) {
   return { node: last || root, offset: last?.length || 0 };
 }
 
-export function anchorBox(root, board, anchor) {
-  if (!anchor || anchor.end > root.textContent.length) return null;
-  if(anchor.text&&root.textContent.slice(anchor.start,anchor.end)!==anchor.text)return null;
-  const a = position(root, anchor.start),
-    b = position(root, anchor.end),
+// One pass over the text nodes, shared by every anchored stroke in a redraw.
+// Without it each stroke re-read textContent and walked the note from the top.
+export function createTextIndex(root) {
+  const nodes = [],
+    ends = [];
+  let text = "";
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    text += node.data;
+    nodes.push(node);
+    ends.push(text.length);
+  }
+  return { root, text, nodes, ends };
+}
+
+// Same answer as position(): the first text node whose end reaches offset.
+function indexedPosition(index, offset) {
+  const target = Math.max(0, offset);
+  let low = 0,
+    high = index.nodes.length - 1;
+  if (high < 0) return { node: index.root, offset: 0 };
+  if (index.ends[high] < target)
+    return { node: index.nodes[high], offset: index.nodes[high].length };
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (index.ends[middle] >= target) high = middle;
+    else low = middle + 1;
+  }
+  const start = index.ends[low] - index.nodes[low].length;
+  return { node: index.nodes[low], offset: target - start };
+}
+
+// frame (optional): { index, origin } computed once for a whole redraw.
+export function anchorBox(root, board, anchor, frame = null) {
+  const index = frame?.index?.root === root ? frame.index : null,
+    text = index ? index.text : root.textContent;
+  if (!anchor || anchor.end > text.length) return null;
+  if(anchor.text&&text.slice(anchor.start,anchor.end)!==anchor.text)return null;
+  const a = index ? indexedPosition(index, anchor.start) : position(root, anchor.start),
+    b = index ? indexedPosition(index, anchor.end) : position(root, anchor.end),
     range = document.createRange();
   range.setStart(a.node, a.offset);
   range.setEnd(b.node, b.offset);
   const rect = range.getBoundingClientRect(),
-    origin = board.getBoundingClientRect();
+    origin = frame?.origin || board.getBoundingClientRect();
   return rect.width && rect.height
     ? {
         x: rect.x - origin.x,
