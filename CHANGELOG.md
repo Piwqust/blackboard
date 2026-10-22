@@ -8,6 +8,54 @@ inside the next tagged release and are listed there.
 The release workflow publishes the section whose heading matches the pushed
 tag as the GitHub Release notes, so every tag needs a `## [x.y.z]` section here.
 
+## [2.5.0] - 2026-10-23
+
+A clearer interface, a website, and safer deletes. No data format changes:
+backups and links stay compatible with 2.4.
+
+### Added
+
+- **Website.** The site root is now a short page about Blackboard Text: what
+  it is, where notes live, how to install the app or the extension, how full
+  and short links differ, and a few answers. English or Russian. An installed
+  app still opens straight into the editor.
+- **Undo after deleting a page.** A "Page deleted · Undo" message brings the
+  page back in one tap.
+- **Deleted pages in Recovery history.** Earlier versions of deleted pages
+  can be recovered as new pages, even after the recovery snapshots rotate.
+- **First-run tips** in a brand-new workspace: where drawing, pages and
+  shortcuts are. They leave for good once you type or press Got it.
+- **? opens Keyboard help**, which now lists all shortcuts.
+- Pinned pages carry a small dot on their tab.
+
+### Changed
+
+- Drawing tools open from a **pen button** instead of a bare arrow.
+- On phones the page button shows the **current page's emoji** and opens the
+  page list.
+- On desktop, **Settings opens beside the page rail** instead of covering it.
+- **Page actions** are grouped into This page, Export, History and Help. Redo
+  stays in the drawing toolbar's More menu.
+- Without a sharing service, the share dialog offers full links only instead
+  of a disabled option.
+- Warnings are readable on dark themes; the Undo button and the delete
+  confirmation have more contrast.
+- Interface placeholders (such as the page name and search fields) are
+  translated into Russian.
+- The gear lines up with the page rail on desktop and phones.
+
+### Fixed
+
+- Drawing on long notes with many strokes attached to words is much faster:
+  one text index per redraw instead of one walk through the note per stroke,
+  and the recent-colour swatches are rebuilt only when they change.
+
+### Security
+
+- The editor, reader and short-link pages carry a Content-Security-Policy:
+  scripts only from the app itself, no plugins, and network access only to
+  the app and its sharing service.
+
 ## [2.4.2] - 2026-10-23
 
 Bug fixes and polish. No data format changes: backups and links stay
@@ -253,6 +301,7 @@ First tagged version: a Chrome extension.
   text when the window resizes.
 - Everything stays in `chrome.storage`: no account, network or telemetry.
 
+[2.5.0]: https://github.com/Piwqust/blackboard/compare/v2.4.2...v2.5.0
 [2.4.2]: https://github.com/Piwqust/blackboard/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/Piwqust/blackboard/compare/v2.3.2...v2.4.1
 [2.3.2]: https://github.com/Piwqust/blackboard/compare/v2.3.1...v2.3.2

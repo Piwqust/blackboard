@@ -11,6 +11,9 @@
 //   screenshots/hero-desktop.png  1440×900, default Blackboard theme
 //   screenshots/hero-phone.png    390×844 at 2× device scale
 //   screenshots/reader.png        the read-only reader for a full link
+//   landing/app-{desktop,phone}-{dark,light}.webp
+//                                 the website's landing page images, in the
+//                                 Blackboard and Paper themes (needs sharp)
 //
 // Every run uses fresh, throwaway browser contexts and the sample text below;
 // no real browser profile is read or written. Run `npx playwright install
@@ -26,6 +29,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const origin = `http://127.0.0.1:${Number(process.env.TEST_PORT || 4190)}`;
 const appUrl = `${origin}/dist/pwa/editor.html`;
 const outDir = path.join(root, 'screenshots');
+const landingDir = path.join(root, 'landing');
+const PAPER = { currentTheme: 'paper', textColor: '#1A1A1A', backgroundColor: '#FAFAF7', selectionColor: '#1A1A1A' };
 
 const lines = text => text.split('\n').map(line => (line ? `<div>${line}</div>` : '<div><br></div>')).join('');
 const at = iso => new Date(iso).getTime();
@@ -268,6 +273,15 @@ async function capture(page, file) {
   console.log(`  screenshots/${file}`);
 }
 
+// Landing images are WebP: a fraction of the PNG size, and the page shows
+// them lazily without precaching them.
+async function captureLanding(page, name, sharp) {
+  await page.waitForTimeout(400);
+  const png = await page.screenshot({ animations: 'disabled' });
+  await sharp(png).webp({ quality: 82 }).toFile(path.join(landingDir, `${name}.webp`));
+  console.log(`  landing/${name}.webp`);
+}
+
 async function fullLinkFor(page) {
   await page.locator('#settingsToggleBtn').click();
   await page.locator('#pageActionsBtn').click();
@@ -323,6 +337,34 @@ try {
   await phoneEditor.locator('#drawingToolbar').waitFor({ state: 'hidden' });
   await capture(phoneEditor, 'hero-phone.png');
   await phone.close();
+
+  let sharp;
+  try {
+    sharp = (await import('sharp')).default;
+  } catch {
+    console.warn('sharp is not installed, so the landing images were not refreshed.');
+  }
+  if (sharp) {
+    console.log('Writing landing screenshots:');
+    await mkdir(landingDir, { recursive: true });
+    for (const [scheme, settings] of [['dark', {}], ['light', PAPER]]) {
+      const wide = await browser.newContext({ ...contextOptions, colorScheme: scheme, viewport: { width: 960, height: 600 }, deviceScaleFactor: 2 });
+      // 960 px wide at 2×: a slightly smaller text size keeps the whole thought
+      // on screen, as on a laptop.
+      const wideEditor = await openSeededEditor(wide, { ...settings, fontSize: 30 });
+      await annotate(wideEditor);
+      await captureLanding(wideEditor, `app-desktop-${scheme}`, sharp);
+      await wide.close();
+
+      const narrow = await browser.newContext({ ...contextOptions, colorScheme: scheme, viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+      const narrowEditor = await openSeededEditor(narrow, { ...settings, fontSize: 26 });
+      await annotate(narrowEditor);
+      await narrowEditor.locator('#drawingToolbarVisibilityToggleBtn').click();
+      await narrowEditor.locator('#drawingToolbar').waitFor({ state: 'hidden' });
+      await captureLanding(narrowEditor, `app-phone-${scheme}`, sharp);
+      await narrow.close();
+    }
+  }
 } finally {
   await browser.close();
   server?.kill();

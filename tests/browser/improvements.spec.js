@@ -389,9 +389,10 @@ test("Russian interface never translates note text and switches back cleanly", a
 
 test("compact tools stay beside page navigation and inside the viewport", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.locator('#editor').fill('Текст остаётся на месте.\nИнструменты рядом со страницами.');
-  await mkdir('docs/updates/2.4.1/evidence',{recursive:true});
+  // Screenshots go to test-results; the files under docs/ are the recorded 2.4.1 evidence.
+  const evidence=testInfo.outputPath('evidence');await mkdir(evidence,{recursive:true});
   for (const width of [1440, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await openDrawingTools(page);
@@ -437,7 +438,7 @@ test("compact tools stay beside page navigation and inside the viewport", async 
     expect(width > 768 ? placement.nearDesktop : placement.nearMobile).toBe(
       true,
     );
-    if([1440,390,320].includes(width))await page.screenshot({path:'docs/updates/2.4.1/evidence/tools-'+width+'.png'});
+    if([1440,390,320].includes(width))await page.screenshot({path:path.join(evidence,'tools-'+width+'.png')});
     if (width <= 768) {
       await expect(page.locator('#wordCount')).toHaveCSS('opacity','0');
       await expect(page.locator("#mobilePagesBtn")).toBeVisible();

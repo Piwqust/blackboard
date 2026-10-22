@@ -78,6 +78,17 @@ async function copyRuntime(destination, { includePwaWorker }) {
   await Promise.all(staticFiles.map(file => copyFile(file, destination)));
   await cp(path.join(root, 'src'), path.join(destination, 'src'), { recursive: true });
   await writeFile(path.join(destination, 'src/config.js'), 'export const SHORT_LINKS_API = '+JSON.stringify(sharingApi)+';\n');
+  // The pages' Content-Security-Policy allows only this origin; the sharing
+  // service, when configured, is added the same way as in the extension manifest.
+  if (sharingApi) {
+    const origin = new URL(sharingApi).origin;
+    for (const page of ['editor.html', 'read.html', 's/index.html']) {
+      const pagePath = path.join(destination, page);
+      const html = await readFile(pagePath, 'utf8');
+      if (!html.includes("connect-src 'self'")) throw new Error(`${page} has no connect-src to extend.`);
+      await writeFile(pagePath, html.replace("connect-src 'self'", "connect-src 'self' " + origin));
+    }
+  }
   await cp(path.join(root, 'icons'), path.join(destination, 'icons'), { recursive: true, filter: source => !source.endsWith('generate-icons.html') });
   await copyFile('fonts/InterVariable.woff2', destination);
   await copyFile('fonts/InterTight-Variable.ttf', destination);

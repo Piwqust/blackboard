@@ -1,6 +1,6 @@
 {
   "name": "blackboard-text",
-  "version": "2.4.2",
+  "version": "2.5.0",
   "private": true,
   "type": "module",
   "description": "A quiet, local-first place to think: a notes web app (PWA) and personal browser extension.",

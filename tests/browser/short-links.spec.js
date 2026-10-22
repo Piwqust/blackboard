@@ -13,16 +13,24 @@ if (
 )
   throw new Error("Short-link tests only support a local service.");
 
-test("create, open under a Pages subpath, keep immutable copy and disable", async ({
-  page,
-  context,
-}) => {
+// Points the app at the local service, as a release build points it at the
+// real one. scripts/serve-test.mjs adds the service to each page's CSP when
+// SHORT_LINKS_TEST_API is set; rewriting the page here instead would make
+// Chrome treat it as non-local and block requests to the loopback Worker.
+async function useTestService(context) {
   await context.route("**/src/config.js", (route) =>
     route.fulfill({
       contentType: "text/javascript",
       body: "export const SHORT_LINKS_API = " + JSON.stringify(endpoint) + ";",
     }),
   );
+}
+
+test("create, open under a Pages subpath, keep immutable copy and disable", async ({
+  page,
+  context,
+}) => {
+  await useTestService(context);
   // Local emulator only: separate rate-limit actors for the two build targets.
   await context.setExtraHTTPHeaders({
     "CF-Connecting-IP": "192.0.2." + Math.ceil(Math.random() * 200),
@@ -77,12 +85,7 @@ test("lost response retries the same link, without uploading a second copy", asy
   page,
   context,
 }) => {
-  await context.route("**/src/config.js", (route) =>
-    route.fulfill({
-      contentType: "text/javascript",
-      body: "export const SHORT_LINKS_API = " + JSON.stringify(endpoint) + ";",
-    }),
-  );
+  await useTestService(context);
   await context.setExtraHTTPHeaders({
     "CF-Connecting-IP": "198.51.100." + Math.ceil(Math.random() * 200),
   });
@@ -133,12 +136,7 @@ test("encrypted keys restore management in another isolated browser profile", as
   context,
   browser,
 }, testInfo) => {
-  await context.route("**/src/config.js", (route) =>
-    route.fulfill({
-      contentType: "text/javascript",
-      body: "export const SHORT_LINKS_API = " + JSON.stringify(endpoint) + ";",
-    }),
-  );
+  await useTestService(context);
   await context.setExtraHTTPHeaders({
     "CF-Connecting-IP": "203.0.113." + Math.ceil(Math.random() * 200),
   });
@@ -169,13 +167,7 @@ test("encrypted keys restore management in another isolated browser profile", as
   expect(JSON.parse(encrypted).format).toBe("BlackboardTextLinkKeys");
   const recovered = await browser.newContext({ serviceWorkers: "block" });
   try {
-    await recovered.route("**/src/config.js", (route) =>
-      route.fulfill({
-        contentType: "text/javascript",
-        body:
-          "export const SHORT_LINKS_API = " + JSON.stringify(endpoint) + ";",
-      }),
-    );
+    await useTestService(recovered);
     await recovered.setExtraHTTPHeaders({
       "CF-Connecting-IP": "192.0.2." + Math.ceil(Math.random() * 200),
     });

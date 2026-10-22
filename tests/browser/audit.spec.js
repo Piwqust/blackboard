@@ -264,8 +264,9 @@ test('built-in themes have readable labels and visible keyboard focus', async ({
       return [...document.querySelectorAll('.section-label,#wordCount')].map(el=>{
         let bg=[255,255,255];let opacity=1;const chain=[];for(let n=el;n;n=n.parentElement)chain.unshift(n);
         for(const n of chain){const st=getComputedStyle(n);bg=mix(parse(st.backgroundColor),bg);opacity*=Number(st.opacity)}
-        return ratio(mix(parse(getComputedStyle(el).color),bg,opacity),bg);
-      });
+        // The word count fades out while Settings covers its corner.
+        return opacity===0?null:ratio(mix(parse(getComputedStyle(el).color),bg,opacity),bg);
+      }).filter(ratio=>ratio!==null);
     });
     for(const ratio of ratios) expect(ratio,theme).toBeGreaterThanOrEqual(4.5);
     await page.locator('#fontSize').focus();

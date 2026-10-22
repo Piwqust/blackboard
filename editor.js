@@ -32,7 +32,7 @@ import { createStatusAnnouncer } from './src/ui/app-status.js';
 import { registerPwaUpdates } from './src/ui/pwa-updates.js';
 import { hydrateIcons } from './src/ui/icons.js';
 
-const APP_VERSION = '2.4.2';
+const APP_VERSION = '2.5.0';
 
 // Static markup ships icon placeholders that already reserve their box, so
 // filling them in here cannot shift a row.
@@ -2528,6 +2528,7 @@ async function replaceWorkspaceSafely(replace) {
     return workspace;
   } finally {
     workspaceReady = true;
+    updateFirstRunHint();
   }
 }
 
@@ -2936,6 +2937,7 @@ function renderPageTabs() {
   updatePageTabsScrollState();
   scrollActivePageTabIntoView();
   updateMobilePagesButton();
+  updateFirstRunHint();
 
   // Re-rendering swaps every tab node, so a preview left over from a reorder
   // either follows its tab to the new spot or goes away with a deleted page.
@@ -4844,30 +4846,34 @@ editor.addEventListener('input', debouncedWordCount);
 
 // First-run tips: shown only in a brand-new workspace while its one note is
 // still empty, and never again once dismissed or once something is written.
-const FIRST_RUN_HINT_KEY = 'blackboard-text:first-run-hint-dismissed';
-const firstRunHint = document.getElementById('firstRunHint');
+// Plain function declarations: renderPageTabs can run before this point of
+// the module is evaluated.
 function firstRunHintDismissed() {
-  try { return localStorage.getItem(FIRST_RUN_HINT_KEY) === 'true'; } catch { return false; }
+  try { return localStorage.getItem('blackboard-text:first-run-hint-dismissed') === 'true'; } catch { return false; }
 }
 function dismissFirstRunHint() {
-  try { localStorage.setItem(FIRST_RUN_HINT_KEY, 'true'); } catch { /* Optional hint only. */ }
-  if (firstRunHint) firstRunHint.hidden = true;
+  try { localStorage.setItem('blackboard-text:first-run-hint-dismissed', 'true'); } catch { /* Optional hint only. */ }
+  const hint = document.getElementById('firstRunHint');
+  if (hint) hint.hidden = true;
 }
 function updateFirstRunHint() {
-  if (!firstRunHint || firstRunHintDismissed()) return;
-  const brandNew = workspaceWritable && pages.length === 1 && !(pages[0]?.content || '').trim() && !(pages[0]?.drawings || []).length;
-  if (!brandNew && editor.textContent.trim()) {
-    dismissFirstRunHint();
+  const hint = document.getElementById('firstRunHint');
+  if (!hint || !workspaceReady || firstRunHintDismissed()) return;
+  if (!workspaceWritable) {
+    hint.hidden = true;
     return;
   }
-  firstRunHint.hidden = !brandNew || Boolean(editor.textContent.trim());
+  const brandNew = pages.length === 1 && !(pages[0]?.content || '').trim() && !(pages[0]?.drawings || []).length && !editor.textContent.trim();
+  // A second page, any text or a drawing means the tips have done their job.
+  if (!brandNew) dismissFirstRunHint();
+  else hint.hidden = false;
 }
 document.getElementById('firstRunHintDismiss')?.addEventListener('click', () => {
   dismissFirstRunHint();
   try { editor.focus({ preventScroll: true }); } catch { editor.focus(); }
 });
 editor.addEventListener('input', () => {
-  if (firstRunHint && !firstRunHint.hidden && editor.textContent.trim()) dismissFirstRunHint();
+  if (!document.getElementById('firstRunHint')?.hidden && editor.textContent.trim()) dismissFirstRunHint();
 });
 
 // Keyboard shortcuts

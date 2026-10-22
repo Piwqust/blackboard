@@ -2938,8 +2938,9 @@ body.workspace-readonly #drawingLayer {
     border-radius: 13px;
   }
 
+  /* Same baseline as the bottom page rail beside it. */
   .controls-container {
-    bottom: 20px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     right: 20px;
   }
 

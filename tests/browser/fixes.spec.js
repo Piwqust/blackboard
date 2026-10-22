@@ -160,3 +160,28 @@ test("Russian interface uses plural forms and keeps data buttons inside Settings
     expect(await button.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
   }
 });
+
+test("the page security policy blocks nothing the app itself uses", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__cspViolations = [];
+    document.addEventListener("securitypolicyviolation", (event) =>
+      window.__cspViolations.push(event.violatedDirective + " " + event.blockedURI),
+    );
+  });
+  await page.reload();
+  await expect(page.locator("#editor")).toHaveAttribute("contenteditable", "true");
+  await page.locator("#editor").fill("Policy check");
+  await openPageActions(page);
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export PNG (text and drawings)", exact: true }).click();
+  await download;
+  await page.getByRole("button", { name: "Share a copy…", exact: true }).click();
+  await page.locator("#shareModeFull").check();
+  const preview = page.locator("#previewPublishLink");
+  await preview.waitFor();
+  const href = new URL(await preview.getAttribute("href"), page.url()).href;
+  expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
+  await page.goto(href);
+  await expect(page.locator("#readerContent")).toHaveText("Policy check");
+  expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
+});
